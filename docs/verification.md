@@ -20,7 +20,7 @@ Initial local verification was performed on 2026-11-23 using macOS, AppleClang 2
 
 The process suite checks output source identity, strictly increasing sample IDs, rejection before authority, rollback to the current baseline sample, failure with no valid fallback, post-commit failure and child reaping. Policy tests additionally cover exact deadline boundaries, malformed/late outputs, continuity across switching and rollback, invalid configuration and terminal deadline failure. Test checks remain active in release builds.
 
-The repository configures equivalent sanitizer CI on Ubuntu 24.04 and macOS 14. Remote CI execution status is available in the repository's Actions tab; local results above do not imply that a remote run has passed.
+The repository configures equivalent sanitizer CI on Ubuntu 24.04 and macOS 15. The first remote Ubuntu run passed. The initial macOS 14 runner was unavailable because that runner image had been retired; the workflow now selects macOS 15. Current remote CI execution status is available in the repository's Actions tab; local results above do not imply that a remote run has passed.
 
 ## Captured host example
 
