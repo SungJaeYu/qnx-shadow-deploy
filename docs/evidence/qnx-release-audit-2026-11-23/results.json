@@ -1,0 +1,4611 @@
+{
+  "observed_date": "2026-11-23",
+  "status": "passed_with_documented_scope",
+  "release": {
+    "id": "com.qnx.qnx800.patchset806",
+    "version": "8.0.6.00398T202611040724L",
+    "source": "QNX Software Center local server-cache/www_qnx_com_80_swcenter/content.xml",
+    "catalog_sha256": "e73e330b1a13eb97f840159d2f16d11d45fd3fe848c037bbd2c8e500564f6465",
+    "pinned_package_count": 260
+  },
+  "installed_package_count": 260,
+  "package_diff": {
+    "missing": [],
+    "extra": [],
+    "version_mismatch": []
+  },
+  "profile": {
+    "sha256": "d68b67885011e09875fe61be8e24407668e267be0961def5becbf06a20c37a1d",
+    "unit_count": 261,
+    "installed_version_mismatch": [],
+    "additional_units": {
+      "com.qnx.qnx800.host.win.x86_64.heartbeat.com.qnx.qnx800.host.win.x86_64.autopatch": "8.0.0.00072T202411221948L"
+    }
+  },
+  "packages": [
+    {
+      "id": "com.qnx.qnx800",
+      "release_version": "8.0.0.00141T202311271501L",
+      "installed_version": "8.0.0.00141T202311271501L"
+    },
+    {
+      "id": "com.qnx.qnx800.eula.qdl",
+      "release_version": "0.4.0.00135T202311191043L",
+      "installed_version": "0.4.0.00135T202311191043L"
+    },
+    {
+      "id": "com.qnx.qnx800.host.linux.x86_64",
+      "release_version": "0.0.1.02005T202411230033L",
+      "installed_version": "0.0.1.02005T202411230033L"
+    },
+    {
+      "id": "com.qnx.qnx800.host.linux.x86_64.binutils",
+      "release_version": "2.43.0.00101T202411221147L",
+      "installed_version": "2.43.0.00101T202411221147L"
+    },
+    {
+      "id": "com.qnx.qnx800.host.linux.x86_64.bison",
+      "release_version": "0.0.1.00282T202404151301L",
+      "installed_version": "0.0.1.00282T202404151301L"
+    },
+    {
+      "id": "com.qnx.qnx800.host.linux.x86_64.build.thirdparty",
+      "release_version": "0.0.1.00282T202404151301L",
+      "installed_version": "0.0.1.00282T202404151301L"
+    },
+    {
+      "id": "com.qnx.qnx800.host.linux.x86_64.cndfs",
+      "release_version": "8.0.0.00135T202311191043L",
+      "installed_version": "8.0.0.00135T202311191043L"
+    },
+    {
+      "id": "com.qnx.qnx800.host.linux.x86_64.dumpefs",
+      "release_version": "0.0.1.00007T202411221949L",
+      "installed_version": "0.0.1.00007T202411221949L"
+    },
+    {
+      "id": "com.qnx.qnx800.host.linux.x86_64.dumpifs",
+      "release_version": "1.2.0.00014T202605190942L",
+      "installed_version": "1.2.0.00014T202605190942L"
+    },
+    {
+      "id": "com.qnx.qnx800.host.linux.x86_64.elfnote",
+      "release_version": "0.0.2.00009T202411221949L",
+      "installed_version": "0.0.2.00009T202411221949L"
+    },
+    {
+      "id": "com.qnx.qnx800.host.linux.x86_64.fsutils",
+      "release_version": "0.1.0.00132T202605281115L",
+      "installed_version": "0.1.0.00132T202605281115L"
+    },
+    {
+      "id": "com.qnx.qnx800.host.linux.x86_64.gcc",
+      "release_version": "12.2.0.01008T202610011452L",
+      "installed_version": "12.2.0.01008T202610011452L"
+    },
+    {
+      "id": "com.qnx.qnx800.host.linux.x86_64.gdb",
+      "release_version": "14.2.6.00337T202610012127L",
+      "installed_version": "14.2.6.00337T202610012127L"
+    },
+    {
+      "id": "com.qnx.qnx800.host.linux.x86_64.heartbeat",
+      "release_version": "8.0.0.00072T202411221948L",
+      "installed_version": "8.0.0.00072T202411221948L"
+    },
+    {
+      "id": "com.qnx.qnx800.host.linux.x86_64.idehooks",
+      "release_version": "0.0.1.00282T202404151301L",
+      "installed_version": "0.0.1.00282T202404151301L"
+    },
+    {
+      "id": "com.qnx.qnx800.host.linux.x86_64.liblicense",
+      "release_version": "0.0.1.00016T202507171532L",
+      "installed_version": "0.0.1.00016T202507171532L"
+    },
+    {
+      "id": "com.qnx.qnx800.host.linux.x86_64.misc",
+      "release_version": "0.1.0.00132T202605281115L",
+      "installed_version": "0.1.0.00132T202605281115L"
+    },
+    {
+      "id": "com.qnx.qnx800.host.linux.x86_64.mkifs",
+      "release_version": "1.3.0.00032T202610012114L",
+      "installed_version": "1.3.0.00032T202610012114L"
+    },
+    {
+      "id": "com.qnx.qnx800.host.linux.x86_64.mkqfs",
+      "release_version": "0.5.0.00132T202605281115L",
+      "installed_version": "0.5.0.00132T202605281115L"
+    },
+    {
+      "id": "com.qnx.qnx800.host.linux.x86_64.mkshadow",
+      "release_version": "0.0.1.00135T202311191043L",
+      "installed_version": "0.0.1.00135T202311191043L"
+    },
+    {
+      "id": "com.qnx.qnx800.host.linux.x86_64.mkxfs",
+      "release_version": "1.3.0.00033T202610061226L",
+      "installed_version": "1.3.0.00033T202610061226L"
+    },
+    {
+      "id": "com.qnx.qnx800.host.linux.x86_64.openssl",
+      "release_version": "3.0.22.00012T202610012115L",
+      "installed_version": "3.0.22.00012T202610012115L"
+    },
+    {
+      "id": "com.qnx.qnx800.host.linux.x86_64.python3",
+      "release_version": "3.13.7.00013T202603200501L",
+      "installed_version": "3.13.7.00013T202603200501L"
+    },
+    {
+      "id": "com.qnx.qnx800.host.linux.x86_64.qcc",
+      "release_version": "8.0.0.00121T202510081309L",
+      "installed_version": "8.0.0.00121T202510081309L"
+    },
+    {
+      "id": "com.qnx.qnx800.host.linux.x86_64.qchecksec",
+      "release_version": "0.0.1.00135T202311191043L",
+      "installed_version": "0.0.1.00135T202311191043L"
+    },
+    {
+      "id": "com.qnx.qnx800.host.linux.x86_64.qlicense",
+      "release_version": "8.0.0.00114T202411221950L",
+      "installed_version": "8.0.0.00114T202411221950L"
+    },
+    {
+      "id": "com.qnx.qnx800.host.linux.x86_64.secpol",
+      "release_version": "0.6.0.06031T202610011839L",
+      "installed_version": "0.6.0.06031T202610011839L"
+    },
+    {
+      "id": "com.qnx.qnx800.host.linux.x86_64.usemsg",
+      "release_version": "1.0.0.00003T202411221950L",
+      "installed_version": "1.0.0.00003T202411221950L"
+    },
+    {
+      "id": "com.qnx.qnx800.host.linux.x86_64.utils.kdserver",
+      "release_version": "0.0.1.00135T202311191043L",
+      "installed_version": "0.0.1.00135T202311191043L"
+    },
+    {
+      "id": "com.qnx.qnx800.host.mkqnximage",
+      "release_version": "0.6.0.06031T202610011839L",
+      "installed_version": "0.6.0.06031T202610011839L"
+    },
+    {
+      "id": "com.qnx.qnx800.host.qnxsdp_env",
+      "release_version": "0.1.0.00132T202605281115L",
+      "installed_version": "0.1.0.00132T202605281115L"
+    },
+    {
+      "id": "com.qnx.qnx800.host.win.x86_64",
+      "release_version": "0.0.1.02005T202411230033L",
+      "installed_version": "0.0.1.02005T202411230033L"
+    },
+    {
+      "id": "com.qnx.qnx800.host.win.x86_64.binutils",
+      "release_version": "2.43.0.00101T202411221147L",
+      "installed_version": "2.43.0.00101T202411221147L"
+    },
+    {
+      "id": "com.qnx.qnx800.host.win.x86_64.bison",
+      "release_version": "0.0.1.00282T202404151301L",
+      "installed_version": "0.0.1.00282T202404151301L"
+    },
+    {
+      "id": "com.qnx.qnx800.host.win.x86_64.build.thirdparty",
+      "release_version": "0.0.1.00282T202404151301L",
+      "installed_version": "0.0.1.00282T202404151301L"
+    },
+    {
+      "id": "com.qnx.qnx800.host.win.x86_64.cndfs",
+      "release_version": "8.0.0.00135T202311191043L",
+      "installed_version": "8.0.0.00135T202311191043L"
+    },
+    {
+      "id": "com.qnx.qnx800.host.win.x86_64.dumpefs",
+      "release_version": "0.0.1.00007T202411221949L",
+      "installed_version": "0.0.1.00007T202411221949L"
+    },
+    {
+      "id": "com.qnx.qnx800.host.win.x86_64.dumpifs",
+      "release_version": "1.2.0.00014T202605190942L",
+      "installed_version": "1.2.0.00014T202605190942L"
+    },
+    {
+      "id": "com.qnx.qnx800.host.win.x86_64.elfnote",
+      "release_version": "0.0.2.00009T202411221949L",
+      "installed_version": "0.0.2.00009T202411221949L"
+    },
+    {
+      "id": "com.qnx.qnx800.host.win.x86_64.extra",
+      "release_version": "0.1.0.00132T202605281115L",
+      "installed_version": "0.1.0.00132T202605281115L"
+    },
+    {
+      "id": "com.qnx.qnx800.host.win.x86_64.fsutils",
+      "release_version": "0.1.0.00132T202605281115L",
+      "installed_version": "0.1.0.00132T202605281115L"
+    },
+    {
+      "id": "com.qnx.qnx800.host.win.x86_64.gcc",
+      "release_version": "12.2.0.01008T202610011452L",
+      "installed_version": "12.2.0.01008T202610011452L"
+    },
+    {
+      "id": "com.qnx.qnx800.host.win.x86_64.gdb",
+      "release_version": "14.2.6.00337T202610012127L",
+      "installed_version": "14.2.6.00337T202610012127L"
+    },
+    {
+      "id": "com.qnx.qnx800.host.win.x86_64.heartbeat",
+      "release_version": "8.0.0.00072T202411221948L",
+      "installed_version": "8.0.0.00072T202411221948L"
+    },
+    {
+      "id": "com.qnx.qnx800.host.win.x86_64.idehooks",
+      "release_version": "0.0.1.00282T202404151301L",
+      "installed_version": "0.0.1.00282T202404151301L"
+    },
+    {
+      "id": "com.qnx.qnx800.host.win.x86_64.liblicense",
+      "release_version": "0.0.1.00016T202507171532L",
+      "installed_version": "0.0.1.00016T202507171532L"
+    },
+    {
+      "id": "com.qnx.qnx800.host.win.x86_64.misc",
+      "release_version": "0.1.0.00132T202605281115L",
+      "installed_version": "0.1.0.00132T202605281115L"
+    },
+    {
+      "id": "com.qnx.qnx800.host.win.x86_64.mkifs",
+      "release_version": "1.3.0.00032T202610012114L",
+      "installed_version": "1.3.0.00032T202610012114L"
+    },
+    {
+      "id": "com.qnx.qnx800.host.win.x86_64.mkqfs",
+      "release_version": "0.5.0.00132T202605281115L",
+      "installed_version": "0.5.0.00132T202605281115L"
+    },
+    {
+      "id": "com.qnx.qnx800.host.win.x86_64.mkshadow",
+      "release_version": "0.0.1.00135T202311191043L",
+      "installed_version": "0.0.1.00135T202311191043L"
+    },
+    {
+      "id": "com.qnx.qnx800.host.win.x86_64.mkxfs",
+      "release_version": "1.3.0.00033T202610061226L",
+      "installed_version": "1.3.0.00033T202610061226L"
+    },
+    {
+      "id": "com.qnx.qnx800.host.win.x86_64.net.curl",
+      "release_version": "0.0.1.00135T202311191043L",
+      "installed_version": "0.0.1.00135T202311191043L"
+    },
+    {
+      "id": "com.qnx.qnx800.host.win.x86_64.openssl",
+      "release_version": "3.0.22.00012T202610012115L",
+      "installed_version": "3.0.22.00012T202610012115L"
+    },
+    {
+      "id": "com.qnx.qnx800.host.win.x86_64.qcc",
+      "release_version": "8.0.0.00120T202411231804L",
+      "installed_version": "8.0.0.00120T202411231804L"
+    },
+    {
+      "id": "com.qnx.qnx800.host.win.x86_64.qchecksec",
+      "release_version": "0.0.1.00135T202311191043L",
+      "installed_version": "0.0.1.00135T202311191043L"
+    },
+    {
+      "id": "com.qnx.qnx800.host.win.x86_64.qlicense",
+      "release_version": "8.0.0.00114T202411221950L",
+      "installed_version": "8.0.0.00114T202411221950L"
+    },
+    {
+      "id": "com.qnx.qnx800.host.win.x86_64.qnxlm2",
+      "release_version": "0.0.2.00056T202405150950L",
+      "installed_version": "0.0.2.00056T202405150950L"
+    },
+    {
+      "id": "com.qnx.qnx800.host.win.x86_64.secpol",
+      "release_version": "0.6.0.06031T202610011839L",
+      "installed_version": "0.6.0.06031T202610011839L"
+    },
+    {
+      "id": "com.qnx.qnx800.host.win.x86_64.usemsg",
+      "release_version": "1.0.0.00003T202411221950L",
+      "installed_version": "1.0.0.00003T202411221950L"
+    },
+    {
+      "id": "com.qnx.qnx800.host.win.x86_64.utils.kdserver",
+      "release_version": "0.0.1.00135T202311191043L",
+      "installed_version": "0.0.1.00135T202311191043L"
+    },
+    {
+      "id": "com.qnx.qnx800.osr.bsdtar",
+      "release_version": "3.8.8.00091T202607141410L",
+      "installed_version": "3.8.8.00091T202607141410L"
+    },
+    {
+      "id": "com.qnx.qnx800.osr.less",
+      "release_version": "0.0.670.00040T202501111907L",
+      "installed_version": "0.0.670.00040T202501111907L"
+    },
+    {
+      "id": "com.qnx.qnx800.osr.libffi",
+      "release_version": "3.2.1.00021T202311191417L",
+      "installed_version": "3.2.1.00021T202311191417L"
+    },
+    {
+      "id": "com.qnx.qnx800.osr.sqlite3",
+      "release_version": "0.0.1.03082T202512161159L",
+      "installed_version": "0.0.1.03082T202512161159L"
+    },
+    {
+      "id": "com.qnx.qnx800.osr.toybox",
+      "release_version": "0.8.11.00051T202603161435L",
+      "installed_version": "0.8.11.00051T202603161435L"
+    },
+    {
+      "id": "com.qnx.qnx800.target",
+      "release_version": "0.1.1.00132T202605281115L",
+      "installed_version": "0.1.1.00132T202605281115L"
+    },
+    {
+      "id": "com.qnx.qnx800.target.base",
+      "release_version": "0.0.1.00135T202311191043L",
+      "installed_version": "0.0.1.00135T202311191043L"
+    },
+    {
+      "id": "com.qnx.qnx800.target.base.bootfiles",
+      "release_version": "0.1.0.00021T202411230047L",
+      "installed_version": "0.1.0.00021T202411230047L"
+    },
+    {
+      "id": "com.qnx.qnx800.target.base.compression",
+      "release_version": "0.5.0.00132T202605281115L",
+      "installed_version": "0.5.0.00132T202605281115L"
+    },
+    {
+      "id": "com.qnx.qnx800.target.base.compression.bz2",
+      "release_version": "0.4.0.00132T202605281115L",
+      "installed_version": "0.4.0.00132T202605281115L"
+    },
+    {
+      "id": "com.qnx.qnx800.target.base.compression.libz",
+      "release_version": "0.4.0.00132T202605281115L",
+      "installed_version": "0.4.0.00132T202605281115L"
+    },
+    {
+      "id": "com.qnx.qnx800.target.base.compression.lz4",
+      "release_version": "0.5.0.00132T202605281115L",
+      "installed_version": "0.5.0.00132T202605281115L"
+    },
+    {
+      "id": "com.qnx.qnx800.target.base.compression.lzma",
+      "release_version": "0.4.0.00132T202605281115L",
+      "installed_version": "0.4.0.00132T202605281115L"
+    },
+    {
+      "id": "com.qnx.qnx800.target.base.compression.lzo2",
+      "release_version": "0.4.0.00132T202605281115L",
+      "installed_version": "0.4.0.00132T202605281115L"
+    },
+    {
+      "id": "com.qnx.qnx800.target.base.compression.zstd",
+      "release_version": "0.5.0.00132T202605281115L",
+      "installed_version": "0.5.0.00132T202605281115L"
+    },
+    {
+      "id": "com.qnx.qnx800.target.base.cpp",
+      "release_version": "18.0.0.01506T202610011617L",
+      "installed_version": "18.0.0.01506T202610011617L"
+    },
+    {
+      "id": "com.qnx.qnx800.target.base.elf",
+      "release_version": "0.0.2.00009T202411221949L",
+      "installed_version": "0.0.2.00009T202411221949L"
+    },
+    {
+      "id": "com.qnx.qnx800.target.base.ipl",
+      "release_version": "0.1.0.00006T202411230051L",
+      "installed_version": "0.1.0.00006T202411230051L"
+    },
+    {
+      "id": "com.qnx.qnx800.target.base.ipl.utils",
+      "release_version": "0.1.0.00006T202411230051L",
+      "installed_version": "0.1.0.00006T202411230051L"
+    },
+    {
+      "id": "com.qnx.qnx800.target.base.libcache",
+      "release_version": "0.0.1.00135T202311191043L",
+      "installed_version": "0.0.1.00135T202311191043L"
+    },
+    {
+      "id": "com.qnx.qnx800.target.base.libcatalog",
+      "release_version": "1.1.0.00132T202605281115L",
+      "installed_version": "1.1.0.00132T202605281115L"
+    },
+    {
+      "id": "com.qnx.qnx800.target.base.libdrvr",
+      "release_version": "0.0.1.00443T202311201012L",
+      "installed_version": "0.0.1.00443T202311201012L"
+    },
+    {
+      "id": "com.qnx.qnx800.target.base.libelf",
+      "release_version": "0.0.1.00135T202311191043L",
+      "installed_version": "0.0.1.00135T202311191043L"
+    },
+    {
+      "id": "com.qnx.qnx800.target.base.libexpat",
+      "release_version": "2.8.0.00382T202605041557L",
+      "installed_version": "2.8.0.00382T202605041557L"
+    },
+    {
+      "id": "com.qnx.qnx800.target.base.libforksafe_mutex",
+      "release_version": "2.7.0.06031T202610011839L",
+      "installed_version": "2.7.0.06031T202610011839L"
+    },
+    {
+      "id": "com.qnx.qnx800.target.base.libm",
+      "release_version": "0.0.2.02005T202411230033L",
+      "installed_version": "0.0.2.02005T202411230033L"
+    },
+    {
+      "id": "com.qnx.qnx800.target.base.libregex",
+      "release_version": "1.0.0.00600T202507302003L",
+      "installed_version": "1.0.0.00600T202507302003L"
+    },
+    {
+      "id": "com.qnx.qnx800.target.base.libstartup",
+      "release_version": "1.3.0.00024T202610012310L",
+      "installed_version": "1.3.0.00024T202610012310L"
+    },
+    {
+      "id": "com.qnx.qnx800.target.base.libstringsa64",
+      "release_version": "1.0.0.00600T202507302003L",
+      "installed_version": "1.0.0.00600T202507302003L"
+    },
+    {
+      "id": "com.qnx.qnx800.target.base.libxml2",
+      "release_version": "2.15.2.00014T202604201444L",
+      "installed_version": "2.15.2.00014T202604201444L"
+    },
+    {
+      "id": "com.qnx.qnx800.target.base.mkfiles",
+      "release_version": "0.2.0.06031T202610011839L",
+      "installed_version": "0.2.0.06031T202610011839L"
+    },
+    {
+      "id": "com.qnx.qnx800.target.base.shutdown",
+      "release_version": "0.0.1.00135T202311191043L",
+      "installed_version": "0.0.1.00135T202311191043L"
+    },
+    {
+      "id": "com.qnx.qnx800.target.base.slm",
+      "release_version": "0.0.1.00135T202311191043L",
+      "installed_version": "0.0.1.00135T202311191043L"
+    },
+    {
+      "id": "com.qnx.qnx800.target.base.startup",
+      "release_version": "0.2.0.00206T202610012317L",
+      "installed_version": "0.2.0.00206T202610012317L"
+    },
+    {
+      "id": "com.qnx.qnx800.target.base.text.icu",
+      "release_version": "0.0.1.03082T202512161159L",
+      "installed_version": "0.0.1.03082T202512161159L"
+    },
+    {
+      "id": "com.qnx.qnx800.target.base.text.ncurses",
+      "release_version": "0.0.2.00012T202411230232L",
+      "installed_version": "0.0.2.00012T202411230232L"
+    },
+    {
+      "id": "com.qnx.qnx800.target.binutils",
+      "release_version": "2.43.0.00101T202411221147L",
+      "installed_version": "2.43.0.00101T202411221147L"
+    },
+    {
+      "id": "com.qnx.qnx800.target.bsp.i2c",
+      "release_version": "1.0.0.00043T202605220102L",
+      "installed_version": "1.0.0.00043T202605220102L"
+    },
+    {
+      "id": "com.qnx.qnx800.target.bsp.i2c.utils",
+      "release_version": "0.1.0.00006T202411230100L",
+      "installed_version": "0.1.0.00006T202411230100L"
+    },
+    {
+      "id": "com.qnx.qnx800.target.bsp.spi",
+      "release_version": "0.1.2.00015T202501271455L",
+      "installed_version": "0.1.2.00015T202501271455L"
+    },
+    {
+      "id": "com.qnx.qnx800.target.connectivity.can",
+      "release_version": "0.0.1.00443T202311201012L",
+      "installed_version": "0.0.1.00443T202311201012L"
+    },
+    {
+      "id": "com.qnx.qnx800.target.connectivity.can.utils",
+      "release_version": "0.1.0.00009T202411230055L",
+      "installed_version": "0.1.0.00009T202411230055L"
+    },
+    {
+      "id": "com.qnx.qnx800.target.connectivity.char",
+      "release_version": "0.2.1.00061T202608121656L",
+      "installed_version": "0.2.1.00061T202608121656L"
+    },
+    {
+      "id": "com.qnx.qnx800.target.connectivity.devc",
+      "release_version": "0.2.1.00052T202606191407L",
+      "installed_version": "0.2.1.00052T202606191407L"
+    },
+    {
+      "id": "com.qnx.qnx800.target.connectivity.io_char",
+      "release_version": "0.3.0.00052T202606191407L",
+      "installed_version": "0.3.0.00052T202606191407L"
+    },
+    {
+      "id": "com.qnx.qnx800.target.docs.plugins",
+      "release_version": "0.0.1.00599T202412040959L",
+      "installed_version": "0.0.1.00599T202412040959L"
+    },
+    {
+      "id": "com.qnx.qnx800.target.drivers.dma",
+      "release_version": "0.0.1.00443T202311201012L",
+      "installed_version": "0.0.1.00443T202311201012L"
+    },
+    {
+      "id": "com.qnx.qnx800.target.drivers.dvfs",
+      "release_version": "0.0.1.00443T202311201012L",
+      "installed_version": "0.0.1.00443T202311201012L"
+    },
+    {
+      "id": "com.qnx.qnx800.target.drivers.flash",
+      "release_version": "0.1.1.00023T202507101612L",
+      "installed_version": "0.1.1.00023T202507101612L"
+    },
+    {
+      "id": "com.qnx.qnx800.target.drivers.libfdt",
+      "release_version": "0.1.0.00392T202406181101L",
+      "installed_version": "0.1.0.00392T202406181101L"
+    },
+    {
+      "id": "com.qnx.qnx800.target.fs.base",
+      "release_version": "0.3.6.00021T202610201726L",
+      "installed_version": "0.3.6.00021T202610201726L"
+    },
+    {
+      "id": "com.qnx.qnx800.target.fs.blkutils",
+      "release_version": "0.3.2.00020T202610012324L",
+      "installed_version": "0.3.2.00020T202610012324L"
+    },
+    {
+      "id": "com.qnx.qnx800.target.fs.cam",
+      "release_version": "0.0.1.00443T202311201012L",
+      "installed_version": "0.0.1.00443T202311201012L"
+    },
+    {
+      "id": "com.qnx.qnx800.target.fs.cndfs",
+      "release_version": "0.1.1.00132T202605281115L",
+      "installed_version": "0.1.1.00132T202605281115L"
+    },
+    {
+      "id": "com.qnx.qnx800.target.fs.dosfs",
+      "release_version": "0.3.0.00020T202610012324L",
+      "installed_version": "0.3.0.00020T202610012324L"
+    },
+    {
+      "id": "com.qnx.qnx800.target.fs.extfs",
+      "release_version": "0.3.1.00020T202610012324L",
+      "installed_version": "0.3.1.00020T202610012324L"
+    },
+    {
+      "id": "com.qnx.qnx800.target.fs.flash3",
+      "release_version": "0.0.6.00600T202507302003L",
+      "installed_version": "0.0.6.00600T202507302003L"
+    },
+    {
+      "id": "com.qnx.qnx800.target.fs.gpt",
+      "release_version": "0.1.0.00132T202605281115L",
+      "installed_version": "0.1.0.00132T202605281115L"
+    },
+    {
+      "id": "com.qnx.qnx800.target.fs.notify",
+      "release_version": "0.3.2.00013T202610012323L",
+      "installed_version": "0.3.2.00013T202610012323L"
+    },
+    {
+      "id": "com.qnx.qnx800.target.fs.qcfs",
+      "release_version": "0.6.0.06031T202610011839L",
+      "installed_version": "0.6.0.06031T202610011839L"
+    },
+    {
+      "id": "com.qnx.qnx800.target.fs.qnx6fs",
+      "release_version": "0.3.2.00020T202610012324L",
+      "installed_version": "0.3.2.00020T202610012324L"
+    },
+    {
+      "id": "com.qnx.qnx800.target.fs.qtdfs",
+      "release_version": "0.6.0.06031T202610011839L",
+      "installed_version": "0.6.0.06031T202610011839L"
+    },
+    {
+      "id": "com.qnx.qnx800.target.fs.squashfs",
+      "release_version": "0.3.0.00020T202610012324L",
+      "installed_version": "0.3.0.00020T202610012324L"
+    },
+    {
+      "id": "com.qnx.qnx800.target.fs.udffs",
+      "release_version": "0.3.0.00020T202610012324L",
+      "installed_version": "0.3.0.00020T202610012324L"
+    },
+    {
+      "id": "com.qnx.qnx800.target.fs.utils",
+      "release_version": "0.2.0.06031T202610011839L",
+      "installed_version": "0.2.0.06031T202610011839L"
+    },
+    {
+      "id": "com.qnx.qnx800.target.fsp.common",
+      "release_version": "1.0.0.00016T202609251152L",
+      "installed_version": "1.0.0.00016T202609251152L"
+    },
+    {
+      "id": "com.qnx.qnx800.target.graphics.group",
+      "release_version": "4.3.0.00572T202605261514L",
+      "installed_version": "4.3.0.00572T202605261514L"
+    },
+    {
+      "id": "com.qnx.qnx800.target.hw",
+      "release_version": "0.0.1.00443T202311201012L",
+      "installed_version": "0.0.1.00443T202311201012L"
+    },
+    {
+      "id": "com.qnx.qnx800.target.input.devh",
+      "release_version": "0.1.0.00018T202604301101L",
+      "installed_version": "0.1.0.00018T202604301101L"
+    },
+    {
+      "id": "com.qnx.qnx800.target.input.keyboard",
+      "release_version": "0.1.0.00007T202411230047L",
+      "installed_version": "0.1.0.00007T202411230047L"
+    },
+    {
+      "id": "com.qnx.qnx800.target.libbacktrace",
+      "release_version": "0.0.2.00103T202610012113L",
+      "installed_version": "0.0.2.00103T202610012113L"
+    },
+    {
+      "id": "com.qnx.qnx800.target.microkernel.core",
+      "release_version": "2.8.0.00047T202610300907L",
+      "installed_version": "2.8.0.00047T202610300907L"
+    },
+    {
+      "id": "com.qnx.qnx800.target.microkernel.kdumper",
+      "release_version": "0.0.2.02005T202411230033L",
+      "installed_version": "0.0.2.02005T202411230033L"
+    },
+    {
+      "id": "com.qnx.qnx800.target.microkernel.libcontainer",
+      "release_version": "1.0.0.00132T202605281115L",
+      "installed_version": "1.0.0.00132T202605281115L"
+    },
+    {
+      "id": "com.qnx.qnx800.target.microkernel.libslog2",
+      "release_version": "0.2.2.00600T202507302003L",
+      "installed_version": "0.2.2.00600T202507302003L"
+    },
+    {
+      "id": "com.qnx.qnx800.target.microkernel.libslog2.extra",
+      "release_version": "0.2.2.00600T202507302003L",
+      "installed_version": "0.2.2.00600T202507302003L"
+    },
+    {
+      "id": "com.qnx.qnx800.target.microkernel.slogger2",
+      "release_version": "0.6.0.06031T202610011839L",
+      "installed_version": "0.6.0.06031T202610011839L"
+    },
+    {
+      "id": "com.qnx.qnx800.target.microkernel.support",
+      "release_version": "2.8.0.00047T202610300907L",
+      "installed_version": "2.8.0.00047T202610300907L"
+    },
+    {
+      "id": "com.qnx.qnx800.target.microkernel.tools",
+      "release_version": "0.2.0.06031T202610011839L",
+      "installed_version": "0.2.0.06031T202610011839L"
+    },
+    {
+      "id": "com.qnx.qnx800.target.net.curl",
+      "release_version": "0.0.2.00446T202407261305L",
+      "installed_version": "0.0.2.00446T202407261305L"
+    },
+    {
+      "id": "com.qnx.qnx800.target.net.devs.cgem",
+      "release_version": "0.6.0.00011T202610012146L",
+      "installed_version": "0.6.0.00011T202610012146L"
+    },
+    {
+      "id": "com.qnx.qnx800.target.net.devs.clk.xilinx",
+      "release_version": "0.5.0.00015T202605220948L",
+      "installed_version": "0.5.0.00015T202605220948L"
+    },
+    {
+      "id": "com.qnx.qnx800.target.net.devs.dwceqos",
+      "release_version": "0.6.0.00015T202610012116L",
+      "installed_version": "0.6.0.00015T202610012116L"
+    },
+    {
+      "id": "com.qnx.qnx800.target.net.devs.ffec",
+      "release_version": "0.6.0.00011T202610012146L",
+      "installed_version": "0.6.0.00011T202610012146L"
+    },
+    {
+      "id": "com.qnx.qnx800.target.net.devs.genet",
+      "release_version": "0.6.0.00011T202610012146L",
+      "installed_version": "0.6.0.00011T202610012146L"
+    },
+    {
+      "id": "com.qnx.qnx800.target.net.devs.rt",
+      "release_version": "0.5.0.00006T202605051035L",
+      "installed_version": "0.5.0.00006T202605051035L"
+    },
+    {
+      "id": "com.qnx.qnx800.target.net.devsddk",
+      "release_version": "0.6.0.00011T202610012146L",
+      "installed_version": "0.6.0.00011T202610012146L"
+    },
+    {
+      "id": "com.qnx.qnx800.target.net.devsfdt",
+      "release_version": "0.6.0.00011T202610012146L",
+      "installed_version": "0.6.0.00011T202610012146L"
+    },
+    {
+      "id": "com.qnx.qnx800.target.net.devspci",
+      "release_version": "0.6.0.00011T202610012146L",
+      "installed_version": "0.6.0.00011T202610012146L"
+    },
+    {
+      "id": "com.qnx.qnx800.target.net.devsusb",
+      "release_version": "0.6.0.00011T202610012146L",
+      "installed_version": "0.6.0.00011T202610012146L"
+    },
+    {
+      "id": "com.qnx.qnx800.target.net.devsvirtio",
+      "release_version": "0.6.0.00014T202610210541L",
+      "installed_version": "0.6.0.00014T202610210541L"
+    },
+    {
+      "id": "com.qnx.qnx800.target.net.devutils",
+      "release_version": "0.6.0.00011T202610012146L",
+      "installed_version": "0.6.0.00011T202610012146L"
+    },
+    {
+      "id": "com.qnx.qnx800.target.net.dhcp",
+      "release_version": "0.3.0.00017T202507311313L",
+      "installed_version": "0.3.0.00017T202507311313L"
+    },
+    {
+      "id": "com.qnx.qnx800.target.net.iosock",
+      "release_version": "0.6.0.00011T202610012146L",
+      "installed_version": "0.6.0.00011T202610012146L"
+    },
+    {
+      "id": "com.qnx.qnx800.target.net.iperf2",
+      "release_version": "0.0.2.00417T202407041502L",
+      "installed_version": "0.0.2.00417T202407041502L"
+    },
+    {
+      "id": "com.qnx.qnx800.target.net.iperf3",
+      "release_version": "0.5.0.00005T202601190904L",
+      "installed_version": "0.5.0.00005T202601190904L"
+    },
+    {
+      "id": "com.qnx.qnx800.target.net.mdnsresponder",
+      "release_version": "0.3.0.00600T202507302003L",
+      "installed_version": "0.3.0.00600T202507302003L"
+    },
+    {
+      "id": "com.qnx.qnx800.target.net.modsphy",
+      "release_version": "0.6.0.00011T202610012146L",
+      "installed_version": "0.6.0.00011T202610012146L"
+    },
+    {
+      "id": "com.qnx.qnx800.target.net.netmap",
+      "release_version": "0.6.0.00011T202610012146L",
+      "installed_version": "0.6.0.00011T202610012146L"
+    },
+    {
+      "id": "com.qnx.qnx800.target.net.nfs",
+      "release_version": "0.6.0.00012T202610210714L",
+      "installed_version": "0.6.0.00012T202610210714L"
+    },
+    {
+      "id": "com.qnx.qnx800.target.net.ntp",
+      "release_version": "0.0.2.00417T202407041502L",
+      "installed_version": "0.0.2.00417T202407041502L"
+    },
+    {
+      "id": "com.qnx.qnx800.target.net.openSSH",
+      "release_version": "0.5.1.00009T202608101640L",
+      "installed_version": "0.5.1.00009T202608101640L"
+    },
+    {
+      "id": "com.qnx.qnx800.target.net.pcap",
+      "release_version": "0.0.2.00417T202407041502L",
+      "installed_version": "0.0.2.00417T202407041502L"
+    },
+    {
+      "id": "com.qnx.qnx800.target.net.ptpd2",
+      "release_version": "0.6.0.00026T202610012114L",
+      "installed_version": "0.6.0.00026T202610012114L"
+    },
+    {
+      "id": "com.qnx.qnx800.target.net.tcpdump",
+      "release_version": "0.2.0.02504T202504081900L",
+      "installed_version": "0.2.0.02504T202504081900L"
+    },
+    {
+      "id": "com.qnx.qnx800.target.net.unbound",
+      "release_version": "0.6.0.00012T202610012144L",
+      "installed_version": "0.6.0.00012T202610012144L"
+    },
+    {
+      "id": "com.qnx.qnx800.target.net.utils",
+      "release_version": "0.6.0.00011T202610012146L",
+      "installed_version": "0.6.0.00011T202610012146L"
+    },
+    {
+      "id": "com.qnx.qnx800.target.net.utils.if_up",
+      "release_version": "0.3.0.00103T202507311314L",
+      "installed_version": "0.3.0.00103T202507311314L"
+    },
+    {
+      "id": "com.qnx.qnx800.target.net.utils.ifwatchd",
+      "release_version": "0.3.0.00103T202507311314L",
+      "installed_version": "0.3.0.00103T202507311314L"
+    },
+    {
+      "id": "com.qnx.qnx800.target.os_services.base",
+      "release_version": "1.0.0.03063T202511271306L",
+      "installed_version": "1.0.0.03063T202511271306L"
+    },
+    {
+      "id": "com.qnx.qnx800.target.os_services.hid",
+      "release_version": "0.1.0.00019T202608101142L",
+      "installed_version": "0.1.0.00019T202608101142L"
+    },
+    {
+      "id": "com.qnx.qnx800.target.os_services.kpipe",
+      "release_version": "1.1.0.06031T202610011839L",
+      "installed_version": "1.1.0.06031T202610011839L"
+    },
+    {
+      "id": "com.qnx.qnx800.target.os_services.libdevice_publisher",
+      "release_version": "0.0.1.00443T202311201012L",
+      "installed_version": "0.0.1.00443T202311201012L"
+    },
+    {
+      "id": "com.qnx.qnx800.target.os_services.libjson",
+      "release_version": "0.6.0.06031T202610011839L",
+      "installed_version": "0.6.0.06031T202610011839L"
+    },
+    {
+      "id": "com.qnx.qnx800.target.os_services.libqh",
+      "release_version": "0.0.1.00135T202311191043L",
+      "installed_version": "0.0.1.00135T202311191043L"
+    },
+    {
+      "id": "com.qnx.qnx800.target.os_services.mqueue",
+      "release_version": "1.2.0.00132T202605281115L",
+      "installed_version": "1.2.0.00132T202605281115L"
+    },
+    {
+      "id": "com.qnx.qnx800.target.os_services.server_monitor",
+      "release_version": "1.3.0.06031T202610011839L",
+      "installed_version": "1.3.0.06031T202610011839L"
+    },
+    {
+      "id": "com.qnx.qnx800.target.os_services.smmu.api",
+      "release_version": "0.0.2.02005T202411230033L",
+      "installed_version": "0.0.2.02005T202411230033L"
+    },
+    {
+      "id": "com.qnx.qnx800.target.os_services.smmu.core",
+      "release_version": "0.1.0.06031T202610011839L",
+      "installed_version": "0.1.0.06031T202610011839L"
+    },
+    {
+      "id": "com.qnx.qnx800.target.pci.capabilities",
+      "release_version": "3.0.1.03075T202605211339L",
+      "installed_version": "3.0.1.03075T202605211339L"
+    },
+    {
+      "id": "com.qnx.qnx800.target.pci.compat",
+      "release_version": "3.0.0.02005T202411230033L",
+      "installed_version": "3.0.0.02005T202411230033L"
+    },
+    {
+      "id": "com.qnx.qnx800.target.pci.core.group",
+      "release_version": "3.1.0.03075T202605211339L",
+      "installed_version": "3.1.0.03075T202605211339L"
+    },
+    {
+      "id": "com.qnx.qnx800.target.pci.debug",
+      "release_version": "3.0.0.02005T202411230033L",
+      "installed_version": "3.0.0.02005T202411230033L"
+    },
+    {
+      "id": "com.qnx.qnx800.target.pci.hw.x86",
+      "release_version": "3.1.0.02005T202411230033L",
+      "installed_version": "3.1.0.02005T202411230033L"
+    },
+    {
+      "id": "com.qnx.qnx800.target.pci.lib",
+      "release_version": "3.0.4.03075T202605211339L",
+      "installed_version": "3.0.4.03075T202605211339L"
+    },
+    {
+      "id": "com.qnx.qnx800.target.pci.lib_hw_common",
+      "release_version": "3.0.0.03075T202605211339L",
+      "installed_version": "3.0.0.03075T202605211339L"
+    },
+    {
+      "id": "com.qnx.qnx800.target.pci.server",
+      "release_version": "3.2.1.03075T202605211339L",
+      "installed_version": "3.2.1.03075T202605211339L"
+    },
+    {
+      "id": "com.qnx.qnx800.target.pci.srvrmod_error_handling",
+      "release_version": "3.0.0.02005T202411230033L",
+      "installed_version": "3.0.0.02005T202411230033L"
+    },
+    {
+      "id": "com.qnx.qnx800.target.pci.srvrmod_event",
+      "release_version": "3.0.0.02005T202411230033L",
+      "installed_version": "3.0.0.02005T202411230033L"
+    },
+    {
+      "id": "com.qnx.qnx800.target.pci.srvrmod_misc",
+      "release_version": "3.0.0.02005T202411230033L",
+      "installed_version": "3.0.0.02005T202411230033L"
+    },
+    {
+      "id": "com.qnx.qnx800.target.pci.uisupport",
+      "release_version": "3.0.1.03075T202605211339L",
+      "installed_version": "3.0.1.03075T202605211339L"
+    },
+    {
+      "id": "com.qnx.qnx800.target.pci.utils",
+      "release_version": "3.0.0.02005T202411230033L",
+      "installed_version": "3.0.0.02005T202411230033L"
+    },
+    {
+      "id": "com.qnx.qnx800.target.qplms",
+      "release_version": "2.0.1.00009T202602121736L",
+      "installed_version": "2.0.1.00009T202602121736L"
+    },
+    {
+      "id": "com.qnx.qnx800.target.qplms.utils",
+      "release_version": "2.0.1.00009T202602121736L",
+      "installed_version": "2.0.1.00009T202602121736L"
+    },
+    {
+      "id": "com.qnx.qnx800.target.qscan",
+      "release_version": "0.0.2.02005T202411230033L",
+      "installed_version": "0.0.2.02005T202411230033L"
+    },
+    {
+      "id": "com.qnx.qnx800.target.screen.base",
+      "release_version": "4.3.1.00008T202610020004L",
+      "installed_version": "4.3.1.00008T202610020004L"
+    },
+    {
+      "id": "com.qnx.qnx800.target.screen.device_input",
+      "release_version": "0.1.0.00007T202411230047L",
+      "installed_version": "0.1.0.00007T202411230047L"
+    },
+    {
+      "id": "com.qnx.qnx800.target.screen.docs.plugins",
+      "release_version": "4.0.1.00117T202501221715L",
+      "installed_version": "4.0.1.00117T202501221715L"
+    },
+    {
+      "id": "com.qnx.qnx800.target.screen.img_codecs",
+      "release_version": "10.0.1.00014T202610012359L",
+      "installed_version": "10.0.1.00014T202610012359L"
+    },
+    {
+      "id": "com.qnx.qnx800.target.screen.img_codecs.libgif",
+      "release_version": "2.0.1.00024T202610012335L",
+      "installed_version": "2.0.1.00024T202610012335L"
+    },
+    {
+      "id": "com.qnx.qnx800.target.screen.img_codecs.libgif.7",
+      "release_version": "2.0.1.00024T202610012335L",
+      "installed_version": "2.0.1.00024T202610012335L"
+    },
+    {
+      "id": "com.qnx.qnx800.target.screen.img_codecs.libjpeg",
+      "release_version": "2.0.0.00014T202604151511L",
+      "installed_version": "2.0.0.00014T202604151511L"
+    },
+    {
+      "id": "com.qnx.qnx800.target.screen.img_codecs.libjpeg.10",
+      "release_version": "2.0.0.00014T202604151511L",
+      "installed_version": "2.0.0.00014T202604151511L"
+    },
+    {
+      "id": "com.qnx.qnx800.target.screen.img_codecs.libpng",
+      "release_version": "2.0.0.00014T202605061416L",
+      "installed_version": "2.0.0.00014T202605061416L"
+    },
+    {
+      "id": "com.qnx.qnx800.target.screen.img_codecs.libpng.16",
+      "release_version": "2.0.0.00014T202605061416L",
+      "installed_version": "2.0.0.00014T202605061416L"
+    },
+    {
+      "id": "com.qnx.qnx800.target.screen.img_codecs.libtiff",
+      "release_version": "3.0.0.00014T202610012353L",
+      "installed_version": "3.0.0.00014T202610012353L"
+    },
+    {
+      "id": "com.qnx.qnx800.target.screen.img_codecs.libtiff.9",
+      "release_version": "3.0.0.00014T202610012353L",
+      "installed_version": "3.0.0.00014T202610012353L"
+    },
+    {
+      "id": "com.qnx.qnx800.target.screen.kalman",
+      "release_version": "0.0.1.00443T202311201012L",
+      "installed_version": "0.0.1.00443T202311201012L"
+    },
+    {
+      "id": "com.qnx.qnx800.target.screen.screen_utils",
+      "release_version": "4.3.1.00008T202610020004L",
+      "installed_version": "4.3.1.00008T202610020004L"
+    },
+    {
+      "id": "com.qnx.qnx800.target.screen.video_capture",
+      "release_version": "4.0.2.00132T202501161817L",
+      "installed_version": "4.0.2.00132T202501161817L"
+    },
+    {
+      "id": "com.qnx.qnx800.target.screen.vncserv",
+      "release_version": "4.2.1.00115T202610020016L",
+      "installed_version": "4.2.1.00115T202610020016L"
+    },
+    {
+      "id": "com.qnx.qnx800.target.security.authentication",
+      "release_version": "0.0.1.00135T202311191043L",
+      "installed_version": "0.0.1.00135T202311191043L"
+    },
+    {
+      "id": "com.qnx.qnx800.target.security.crypto.cryptodev",
+      "release_version": "0.5.0.00132T202605281115L",
+      "installed_version": "0.5.0.00132T202605281115L"
+    },
+    {
+      "id": "com.qnx.qnx800.target.security.crypto.openssl3",
+      "release_version": "3.0.22.00012T202610012115L",
+      "installed_version": "3.0.22.00012T202610012115L"
+    },
+    {
+      "id": "com.qnx.qnx800.target.security.crypto.pkcs11",
+      "release_version": "0.0.1.00135T202311191043L",
+      "installed_version": "0.0.1.00135T202311191043L"
+    },
+    {
+      "id": "com.qnx.qnx800.target.security.crypto.qcrypto.core",
+      "release_version": "0.5.0.00132T202605281115L",
+      "installed_version": "0.5.0.00132T202605281115L"
+    },
+    {
+      "id": "com.qnx.qnx800.target.security.crypto.qcrypto.openssl3",
+      "release_version": "0.0.2.02029T202501171702L",
+      "installed_version": "0.0.2.02029T202501171702L"
+    },
+    {
+      "id": "com.qnx.qnx800.target.security.crypto.qcrypto.tools",
+      "release_version": "0.0.1.00135T202311191043L",
+      "installed_version": "0.0.1.00135T202311191043L"
+    },
+    {
+      "id": "com.qnx.qnx800.target.security.pam",
+      "release_version": "0.0.1.00135T202311191043L",
+      "installed_version": "0.0.1.00135T202311191043L"
+    },
+    {
+      "id": "com.qnx.qnx800.target.security.random",
+      "release_version": "0.0.1.00135T202311191043L",
+      "installed_version": "0.0.1.00135T202311191043L"
+    },
+    {
+      "id": "com.qnx.qnx800.target.security.secpol",
+      "release_version": "0.6.0.06031T202610011839L",
+      "installed_version": "0.6.0.06031T202610011839L"
+    },
+    {
+      "id": "com.qnx.qnx800.target.security.secpol.support",
+      "release_version": "0.6.0.06031T202610011839L",
+      "installed_version": "0.6.0.06031T202610011839L"
+    },
+    {
+      "id": "com.qnx.qnx800.target.security.secpol.tools",
+      "release_version": "0.6.0.06031T202610011839L",
+      "installed_version": "0.6.0.06031T202610011839L"
+    },
+    {
+      "id": "com.qnx.qnx800.target.security.tcg",
+      "release_version": "0.3.0.00600T202507302003L",
+      "installed_version": "0.3.0.00600T202507302003L"
+    },
+    {
+      "id": "com.qnx.qnx800.target.text.charconv",
+      "release_version": "0.0.1.00135T202311191043L",
+      "installed_version": "0.0.1.00135T202311191043L"
+    },
+    {
+      "id": "com.qnx.qnx800.target.tools.cpp",
+      "release_version": "12.2.0.01008T202610011452L",
+      "installed_version": "12.2.0.01008T202610011452L"
+    },
+    {
+      "id": "com.qnx.qnx800.target.usb.base",
+      "release_version": "0.2.0.00070T202609111428L",
+      "installed_version": "0.2.0.00070T202609111428L"
+    },
+    {
+      "id": "com.qnx.qnx800.target.usb.dcd",
+      "release_version": "0.1.0.00060T202605201516L",
+      "installed_version": "0.1.0.00060T202605201516L"
+    },
+    {
+      "id": "com.qnx.qnx800.target.usb.dcd.ut",
+      "release_version": "0.0.1.00443T202311201012L",
+      "installed_version": "0.0.1.00443T202311201012L"
+    },
+    {
+      "id": "com.qnx.qnx800.target.utils.base.b",
+      "release_version": "0.0.1.02077T202503111502L",
+      "installed_version": "0.0.1.02077T202503111502L"
+    },
+    {
+      "id": "com.qnx.qnx800.target.utils.base.c",
+      "release_version": "0.0.1.00135T202311191043L",
+      "installed_version": "0.0.1.00135T202311191043L"
+    },
+    {
+      "id": "com.qnx.qnx800.target.utils.base.d",
+      "release_version": "0.0.1.00135T202311191043L",
+      "installed_version": "0.0.1.00135T202311191043L"
+    },
+    {
+      "id": "com.qnx.qnx800.target.utils.base.e",
+      "release_version": "0.0.1.00135T202311191043L",
+      "installed_version": "0.0.1.00135T202311191043L"
+    },
+    {
+      "id": "com.qnx.qnx800.target.utils.base.f",
+      "release_version": "0.0.1.00135T202311191043L",
+      "installed_version": "0.0.1.00135T202311191043L"
+    },
+    {
+      "id": "com.qnx.qnx800.target.utils.base.g",
+      "release_version": "0.0.1.00135T202311191043L",
+      "installed_version": "0.0.1.00135T202311191043L"
+    },
+    {
+      "id": "com.qnx.qnx800.target.utils.base.h",
+      "release_version": "0.0.1.00135T202311191043L",
+      "installed_version": "0.0.1.00135T202311191043L"
+    },
+    {
+      "id": "com.qnx.qnx800.target.utils.base.i",
+      "release_version": "0.0.1.00135T202311191043L",
+      "installed_version": "0.0.1.00135T202311191043L"
+    },
+    {
+      "id": "com.qnx.qnx800.target.utils.base.k",
+      "release_version": "0.0.1.00282T202404151301L",
+      "installed_version": "0.0.1.00282T202404151301L"
+    },
+    {
+      "id": "com.qnx.qnx800.target.utils.base.l",
+      "release_version": "0.0.2.02005T202411230033L",
+      "installed_version": "0.0.2.02005T202411230033L"
+    },
+    {
+      "id": "com.qnx.qnx800.target.utils.base.m",
+      "release_version": "0.6.0.06031T202610011839L",
+      "installed_version": "0.6.0.06031T202610011839L"
+    },
+    {
+      "id": "com.qnx.qnx800.target.utils.base.n",
+      "release_version": "0.0.1.00135T202311191043L",
+      "installed_version": "0.0.1.00135T202311191043L"
+    },
+    {
+      "id": "com.qnx.qnx800.target.utils.base.p",
+      "release_version": "0.0.1.00135T202311191043L",
+      "installed_version": "0.0.1.00135T202311191043L"
+    },
+    {
+      "id": "com.qnx.qnx800.target.utils.base.r",
+      "release_version": "0.0.1.00135T202311191043L",
+      "installed_version": "0.0.1.00135T202311191043L"
+    },
+    {
+      "id": "com.qnx.qnx800.target.utils.base.s",
+      "release_version": "0.0.1.00135T202311191043L",
+      "installed_version": "0.0.1.00135T202311191043L"
+    },
+    {
+      "id": "com.qnx.qnx800.target.utils.base.t",
+      "release_version": "0.6.0.06031T202610011839L",
+      "installed_version": "0.6.0.06031T202610011839L"
+    },
+    {
+      "id": "com.qnx.qnx800.target.utils.base.u",
+      "release_version": "0.0.1.00135T202311191043L",
+      "installed_version": "0.0.1.00135T202311191043L"
+    },
+    {
+      "id": "com.qnx.qnx800.target.utils.base.w",
+      "release_version": "0.0.1.00135T202311191043L",
+      "installed_version": "0.0.1.00135T202311191043L"
+    },
+    {
+      "id": "com.qnx.qnx800.target.utils.base.x",
+      "release_version": "0.0.1.00135T202311191043L",
+      "installed_version": "0.0.1.00135T202311191043L"
+    },
+    {
+      "id": "com.qnx.qnx800.target.utils.debugtools",
+      "release_version": "0.2.0.06031T202610011839L",
+      "installed_version": "0.2.0.06031T202610011839L"
+    },
+    {
+      "id": "com.qnx.qnx800.target.utils.gawk",
+      "release_version": "0.6.0.06031T202610011839L",
+      "installed_version": "0.6.0.06031T202610011839L"
+    },
+    {
+      "id": "com.qnx.qnx800.target.utils.hw",
+      "release_version": "0.2.0.00014T202411230051L",
+      "installed_version": "0.2.0.00014T202411230051L"
+    },
+    {
+      "id": "com.qnx.qnx800.target.utils.libunwind",
+      "release_version": "1.8.2.00175T202605211154L",
+      "installed_version": "1.8.2.00175T202605211154L"
+    },
+    {
+      "id": "com.qnx.qnx800.target.utils.python3",
+      "release_version": "3.13.7.00013T202603200501L",
+      "installed_version": "3.13.7.00013T202603200501L"
+    },
+    {
+      "id": "com.qnx.qnx800.target.utils.qnx",
+      "release_version": "0.6.0.06031T202610011839L",
+      "installed_version": "0.6.0.06031T202610011839L"
+    },
+    {
+      "id": "com.qnx.qnx800.target.utils.system",
+      "release_version": "0.2.1.06031T202610011839L",
+      "installed_version": "0.2.1.06031T202610011839L"
+    },
+    {
+      "id": "com.qnx.qnx800.target.utils.system.dumpefs",
+      "release_version": "0.0.1.00007T202411221949L",
+      "installed_version": "0.0.1.00007T202411221949L"
+    },
+    {
+      "id": "com.qnx.qnx800.target.utils.system.dumpifs",
+      "release_version": "1.2.1.00014T202605190942L",
+      "installed_version": "1.2.1.00014T202605190942L"
+    },
+    {
+      "id": "com.qnx.qnx800.target.utils.system.dumpifs_nto",
+      "release_version": "1.2.0.00014T202605190942L",
+      "installed_version": "1.2.0.00014T202605190942L"
+    },
+    {
+      "id": "com.qnx.qnx800.target.utils.utlfd",
+      "release_version": "0.0.1.00135T202311191043L",
+      "installed_version": "0.0.1.00135T202311191043L"
+    },
+    {
+      "id": "com.qnx.qnx800.target.utils.valgrind",
+      "release_version": "3.17.0.00307T202605151458L",
+      "installed_version": "3.17.0.00307T202605151458L"
+    }
+  ],
+  "qsc": {
+    "version": "1.7.0",
+    "build": "1.7.0.v202103252036",
+    "support_gap": "Installed QSC 1.7 is below the 8.0.6 release-note minimum 2.0.4. macOS/ARM is not a supported SDP development host."
+  },
+  "guest": {
+    "uname": "QNX shadowdeploy-qnx 8.0.0 2026/10/30-09:10:05EDT x86pc x86_64",
+    "inventory_sha256": "20de8b54c4a72e1d1db2d0f3e334e45727efc2588ed70743f5027110ae6ec271",
+    "scanned_paths": 297,
+    "vendor_package_records": 286,
+    "vendor_build_id_records": 285,
+    "unique_vendor_build_ids": 164,
+    "vendor_records": [
+      {
+        "path": "/proc/boot/ability",
+        "package": "com.qnx.qnx800.target.utils.system",
+        "version": "0.2.1.06031T202610011839L",
+        "package_source": "guest_use_info",
+        "release_version_matches": true,
+        "build_id": "ea45c3c0342645e5ac25a9d56bc73ba5",
+        "matching_sdk_assets": [
+          "target/qnx/x86_64/bin/on"
+        ]
+      },
+      {
+        "path": "/proc/boot/cam-disk.so",
+        "package": "com.qnx.qnx800.target.fs.cam",
+        "version": "0.0.1.00443T202311201012L",
+        "package_source": "guest_use_info",
+        "release_version_matches": true,
+        "build_id": "51c6f2e1550f8494ace41cb0a518869e",
+        "matching_sdk_assets": [
+          "target/qnx/x86_64/lib/dll/cam-disk.so"
+        ]
+      },
+      {
+        "path": "/proc/boot/cat",
+        "package": "com.qnx.qnx800.osr.toybox",
+        "version": "0.8.11.00051T202603161435L",
+        "package_source": "guest_use_info",
+        "release_version_matches": true,
+        "build_id": "ac16218adbb6c6d9fb85ffadcb63fa52",
+        "matching_sdk_assets": [
+          "target/qnx/x86_64/usr/bin/toybox",
+          "target/qnx/x86_64/usr/bin/toybox.sym"
+        ]
+      },
+      {
+        "path": "/proc/boot/chmod",
+        "package": "com.qnx.qnx800.osr.toybox",
+        "version": "0.8.11.00051T202603161435L",
+        "package_source": "guest_use_info",
+        "release_version_matches": true,
+        "build_id": "ac16218adbb6c6d9fb85ffadcb63fa52",
+        "matching_sdk_assets": [
+          "target/qnx/x86_64/usr/bin/toybox",
+          "target/qnx/x86_64/usr/bin/toybox.sym"
+        ]
+      },
+      {
+        "path": "/proc/boot/dd",
+        "package": "com.qnx.qnx800.osr.toybox",
+        "version": "0.8.11.00051T202603161435L",
+        "package_source": "guest_use_info",
+        "release_version_matches": true,
+        "build_id": "ac16218adbb6c6d9fb85ffadcb63fa52",
+        "matching_sdk_assets": [
+          "target/qnx/x86_64/usr/bin/toybox",
+          "target/qnx/x86_64/usr/bin/toybox.sym"
+        ]
+      },
+      {
+        "path": "/proc/boot/devb-eide",
+        "package": "com.qnx.qnx800.target.fs.cam",
+        "version": "0.0.1.00443T202311201012L",
+        "package_source": "guest_use_info",
+        "release_version_matches": true,
+        "build_id": "b22fb38e1cda95f3d42e1df9c6409984",
+        "matching_sdk_assets": [
+          "target/qnx/x86_64/sbin/devb-eide"
+        ]
+      },
+      {
+        "path": "/proc/boot/devc-ser8250",
+        "package": "com.qnx.qnx800.target.connectivity.devc",
+        "version": "0.2.1.00052T202606191407L",
+        "package_source": "guest_use_info",
+        "release_version_matches": true,
+        "build_id": "bc42b1224b53d4409d919de3fd020e2a",
+        "matching_sdk_assets": [
+          "target/qnx/x86_64/sbin/devc-ser8250"
+        ]
+      },
+      {
+        "path": "/proc/boot/echo",
+        "package": "com.qnx.qnx800.osr.toybox",
+        "version": "0.8.11.00051T202603161435L",
+        "package_source": "guest_use_info",
+        "release_version_matches": true,
+        "build_id": "ac16218adbb6c6d9fb85ffadcb63fa52",
+        "matching_sdk_assets": [
+          "target/qnx/x86_64/usr/bin/toybox",
+          "target/qnx/x86_64/usr/bin/toybox.sym"
+        ]
+      },
+      {
+        "path": "/proc/boot/fs-dos.so",
+        "package": "com.qnx.qnx800.target.fs.dosfs",
+        "version": "0.3.0.00020T202610012324L",
+        "package_source": "guest_use_info",
+        "release_version_matches": true,
+        "build_id": "a2fa1ee1c80d20f4f175d727a089665b",
+        "matching_sdk_assets": [
+          "target/qnx/x86_64/lib/dll/fs-dos.so"
+        ]
+      },
+      {
+        "path": "/proc/boot/fs-qnx6.so",
+        "package": "com.qnx.qnx800.target.fs.qnx6fs",
+        "version": "0.3.2.00020T202610012324L",
+        "package_source": "guest_use_info",
+        "release_version_matches": true,
+        "build_id": "9488dc9ac3c2c36396f269268649da91",
+        "matching_sdk_assets": [
+          "target/qnx/x86_64/lib/dll/fs-qnx6.so"
+        ]
+      },
+      {
+        "path": "/proc/boot/fs-qtd.so",
+        "package": "com.qnx.qnx800.target.fs.qtdfs",
+        "version": "0.6.0.06031T202610011839L",
+        "package_source": "guest_use_info",
+        "release_version_matches": true,
+        "build_id": "8c4e00aaed85889d71859fffab2d00e8",
+        "matching_sdk_assets": [
+          "target/qnx/x86_64/lib/dll/fs-qtd.so"
+        ]
+      },
+      {
+        "path": "/proc/boot/fsevmgr",
+        "package": "com.qnx.qnx800.target.fs.notify",
+        "version": "0.3.2.00013T202610012323L",
+        "package_source": "guest_use_info",
+        "release_version_matches": true,
+        "build_id": "3c29a23ce5f8c7b94bc11610df8e8852",
+        "matching_sdk_assets": [
+          "target/qnx/x86_64/sbin/fsevmgr"
+        ]
+      },
+      {
+        "path": "/proc/boot/getconf",
+        "package": "com.qnx.qnx800.target.utils.system",
+        "version": "0.2.1.06031T202610011839L",
+        "package_source": "guest_use_info",
+        "release_version_matches": true,
+        "build_id": "e1072ad6bd75c58010ea77dc44124e32",
+        "matching_sdk_assets": [
+          "target/qnx/x86_64/usr/bin/getconf"
+        ]
+      },
+      {
+        "path": "/proc/boot/grep",
+        "package": "com.qnx.qnx800.osr.toybox",
+        "version": "0.8.11.00051T202603161435L",
+        "package_source": "guest_use_info",
+        "release_version_matches": true,
+        "build_id": "ac16218adbb6c6d9fb85ffadcb63fa52",
+        "matching_sdk_assets": [
+          "target/qnx/x86_64/usr/bin/toybox",
+          "target/qnx/x86_64/usr/bin/toybox.sym"
+        ]
+      },
+      {
+        "path": "/proc/boot/io-blk.so",
+        "package": "com.qnx.qnx800.target.fs.base",
+        "version": "0.3.6.00021T202610201726L",
+        "package_source": "guest_use_info",
+        "release_version_matches": true,
+        "build_id": "239994a669f30af867bfb265b0f2dd08",
+        "matching_sdk_assets": [
+          "target/qnx/x86_64/lib/dll/io-blk.so"
+        ]
+      },
+      {
+        "path": "/proc/boot/ksh",
+        "package": "com.qnx.qnx800.target.utils.base.k",
+        "version": "0.0.1.00282T202404151301L",
+        "package_source": "guest_use_info",
+        "release_version_matches": true,
+        "build_id": "3d3255bf0ec208377129ffd403a7a975",
+        "matching_sdk_assets": [
+          "target/qnx/x86_64/bin/ksh"
+        ]
+      },
+      {
+        "path": "/proc/boot/ldqnx-64.so.2",
+        "package": "com.qnx.qnx800.target.microkernel.core",
+        "version": "2.8.0.00047T202610300907L",
+        "package_source": "guest_use_info",
+        "release_version_matches": true,
+        "build_id": "6fa7e2c564a26985e2cae4ad199e5d06",
+        "matching_sdk_assets": [
+          "target/qnx/x86_64/usr/lib/ldqnx-64.so.2"
+        ]
+      },
+      {
+        "path": "/proc/boot/libc.so.6",
+        "package": "com.qnx.qnx800.target.microkernel.core",
+        "version": "2.8.0.00047T202610300907L",
+        "package_source": "guest_use_info",
+        "release_version_matches": true,
+        "build_id": "655b868d1695a21beb088b9e10318d99",
+        "matching_sdk_assets": [
+          "target/qnx/x86_64/lib/libc.so.6"
+        ]
+      },
+      {
+        "path": "/proc/boot/libcam.so.2",
+        "package": "com.qnx.qnx800.target.fs.cam",
+        "version": "0.0.1.00443T202311201012L",
+        "package_source": "guest_use_info",
+        "release_version_matches": true,
+        "build_id": "3f7e2b3c1c69e84905741ef663705181",
+        "matching_sdk_assets": [
+          "target/qnx/x86_64/lib/libcam.so.2"
+        ]
+      },
+      {
+        "path": "/proc/boot/libcrypto.so.3",
+        "package": "com.qnx.qnx800.target.security.crypto.openssl3",
+        "version": "3.0.22.00012T202610012115L",
+        "package_source": "guest_use_info",
+        "release_version_matches": true,
+        "build_id": "08286352043fbc516d669b79c2ebc8c4",
+        "matching_sdk_assets": [
+          "target/qnx/x86_64/usr/lib/libcrypto.so.3",
+          "target/qnx/x86_64/usr/lib/libcrypto.so.3.sym"
+        ]
+      },
+      {
+        "path": "/proc/boot/libfsnotify.so.1",
+        "package": "com.qnx.qnx800.target.fs.notify",
+        "version": "0.3.2.00013T202610012323L",
+        "package_source": "guest_use_info",
+        "release_version_matches": true,
+        "build_id": "9aece447fa658a2468a695442218fc57",
+        "matching_sdk_assets": [
+          "target/qnx/x86_64/lib/libfsnotify.so.1"
+        ]
+      },
+      {
+        "path": "/proc/boot/libgcc_s.so.1",
+        "package": "com.qnx.qnx800.target.tools.cpp",
+        "version": "12.2.0.01008T202610011452L",
+        "package_source": "guest_use_info",
+        "release_version_matches": true,
+        "build_id": "a90999bbdd7ab2f4acfd885846147d34",
+        "matching_sdk_assets": [
+          "target/qnx/x86_64/lib/libgcc_s.so.1"
+        ]
+      },
+      {
+        "path": "/proc/boot/libjail.so.1",
+        "package": "com.qnx.qnx800.target.net.utils",
+        "version": "0.6.0.00011T202610012146L",
+        "package_source": "guest_use_info",
+        "release_version_matches": true,
+        "build_id": "880c16d86783326cf2b1d480bf106808",
+        "matching_sdk_assets": [
+          "target/qnx/x86_64/lib/libjail.so.1"
+        ]
+      },
+      {
+        "path": "/proc/boot/libjson.so.1",
+        "package": "com.qnx.qnx800.target.os_services.libjson",
+        "version": "0.6.0.06031T202610011839L",
+        "package_source": "guest_use_info",
+        "release_version_matches": true,
+        "build_id": "5957dd4f68625680be3758e69ceccfd5",
+        "matching_sdk_assets": [
+          "target/qnx/x86_64/lib/libjson.so.1"
+        ]
+      },
+      {
+        "path": "/proc/boot/libm.so.3",
+        "package": "com.qnx.qnx800.target.base.libm",
+        "version": "0.0.2.02005T202411230033L",
+        "package_source": "guest_use_info",
+        "release_version_matches": true,
+        "build_id": "42332cc9ac1f48ee63ced28387c7e28a",
+        "matching_sdk_assets": [
+          "target/qnx/x86_64/lib/libm.so.3"
+        ]
+      },
+      {
+        "path": "/proc/boot/libpci.so.3.0",
+        "package": "com.qnx.qnx800.target.pci.lib",
+        "version": "3.0.4.03075T202605211339L",
+        "package_source": "guest_use_info",
+        "release_version_matches": true,
+        "build_id": "62224bb5b855f99cffa13f9fe9f6fd35",
+        "matching_sdk_assets": [
+          "target/qnx/x86_64/lib/libpci.so.3.0"
+        ]
+      },
+      {
+        "path": "/proc/boot/libpci_hw_common.so",
+        "package": "com.qnx.qnx800.target.pci.lib_hw_common",
+        "version": "3.0.0.03075T202605211339L",
+        "package_source": "guest_use_info",
+        "release_version_matches": true,
+        "build_id": "94bd11f707a7199303342867763cf430",
+        "matching_sdk_assets": [
+          "target/qnx/x86_64/lib/libpci_hw_common.so.3.0"
+        ]
+      },
+      {
+        "path": "/proc/boot/libpci_hw_common.so.3.0",
+        "package": "com.qnx.qnx800.target.pci.lib_hw_common",
+        "version": "3.0.0.03075T202605211339L",
+        "package_source": "guest_use_info",
+        "release_version_matches": true,
+        "build_id": "94bd11f707a7199303342867763cf430",
+        "matching_sdk_assets": [
+          "target/qnx/x86_64/lib/libpci_hw_common.so.3.0"
+        ]
+      },
+      {
+        "path": "/proc/boot/libqcrypto.so.1.0",
+        "package": "com.qnx.qnx800.target.security.crypto.qcrypto.core",
+        "version": "0.5.0.00132T202605281115L",
+        "package_source": "guest_use_info",
+        "release_version_matches": true,
+        "build_id": "9d536087985d41881f58d998cb35df95",
+        "matching_sdk_assets": [
+          "target/qnx/x86_64/usr/lib/libqcrypto.so.1.0"
+        ]
+      },
+      {
+        "path": "/proc/boot/libqh.so.1",
+        "package": "com.qnx.qnx800.target.os_services.libqh",
+        "version": "0.0.1.00135T202311191043L",
+        "package_source": "guest_use_info",
+        "release_version_matches": true,
+        "build_id": "edbd3e93ab30a338668eded151d9d286",
+        "matching_sdk_assets": [
+          "target/qnx/x86_64/lib/libqh.so.1"
+        ]
+      },
+      {
+        "path": "/proc/boot/libregex.so.1",
+        "package": "com.qnx.qnx800.target.base.libregex",
+        "version": "1.0.0.00600T202507302003L",
+        "package_source": "guest_use_info",
+        "release_version_matches": true,
+        "build_id": "c4fdebf635924fdbb46180199b8218a5",
+        "matching_sdk_assets": [
+          "target/qnx/x86_64/lib/libregex.so.1"
+        ]
+      },
+      {
+        "path": "/proc/boot/libsecpol.so.1",
+        "package": "com.qnx.qnx800.target.security.secpol",
+        "version": "0.6.0.06031T202610011839L",
+        "package_source": "guest_use_info",
+        "release_version_matches": true,
+        "build_id": "1fcb47329d39d1d8de9aebf1f07bced4",
+        "matching_sdk_assets": [
+          "target/qnx/x86_64/lib/libsecpol.so.1"
+        ]
+      },
+      {
+        "path": "/proc/boot/libslog2.so",
+        "package": "com.qnx.qnx800.target.microkernel.libslog2",
+        "version": "0.2.2.00600T202507302003L",
+        "package_source": "guest_use_info",
+        "release_version_matches": true,
+        "build_id": "b5f0357e2eadcab089026decf97e3e55",
+        "matching_sdk_assets": [
+          "target/qnx/x86_64/lib/libslog2.so.1"
+        ]
+      },
+      {
+        "path": "/proc/boot/libslog2.so.1",
+        "package": "com.qnx.qnx800.target.microkernel.libslog2",
+        "version": "0.2.2.00600T202507302003L",
+        "package_source": "guest_use_info",
+        "release_version_matches": true,
+        "build_id": "b5f0357e2eadcab089026decf97e3e55",
+        "matching_sdk_assets": [
+          "target/qnx/x86_64/lib/libslog2.so.1"
+        ]
+      },
+      {
+        "path": "/proc/boot/libslog2parse.so.1",
+        "package": "com.qnx.qnx800.target.microkernel.slogger2",
+        "version": "0.6.0.06031T202610011839L",
+        "package_source": "guest_use_info",
+        "release_version_matches": true,
+        "build_id": "2fb00bbc874171ba2231dd0145b868f8",
+        "matching_sdk_assets": [
+          "target/qnx/x86_64/lib/libslog2parse.so.1"
+        ]
+      },
+      {
+        "path": "/proc/boot/libslog2shim.so.1",
+        "package": "com.qnx.qnx800.target.microkernel.slogger2",
+        "version": "0.6.0.06031T202610011839L",
+        "package_source": "guest_use_info",
+        "release_version_matches": true,
+        "build_id": "f9bd08f55c97247555cdc2c184d574f9",
+        "matching_sdk_assets": [
+          "target/qnx/x86_64/lib/libslog2shim.so.1"
+        ]
+      },
+      {
+        "path": "/proc/boot/libsocket.so",
+        "package": "com.qnx.qnx800.target.net.iosock",
+        "version": "0.6.0.00011T202610012146L",
+        "package_source": "guest_use_info",
+        "release_version_matches": true,
+        "build_id": "98df7ae8315ec7c9aa416a45eea2a32e",
+        "matching_sdk_assets": [
+          "target/qnx/x86_64/lib/libsocket.so.4"
+        ]
+      },
+      {
+        "path": "/proc/boot/libsocket.so.4",
+        "package": "com.qnx.qnx800.target.net.iosock",
+        "version": "0.6.0.00011T202610012146L",
+        "package_source": "guest_use_info",
+        "release_version_matches": true,
+        "build_id": "98df7ae8315ec7c9aa416a45eea2a32e",
+        "matching_sdk_assets": [
+          "target/qnx/x86_64/lib/libsocket.so.4"
+        ]
+      },
+      {
+        "path": "/proc/boot/libz.so.2",
+        "package": "com.qnx.qnx800.target.base.compression.libz",
+        "version": "0.4.0.00132T202605281115L",
+        "package_source": "guest_use_info",
+        "release_version_matches": true,
+        "build_id": "ad286fbaeeffd3b9adf009b40145dd63",
+        "matching_sdk_assets": [
+          "target/qnx/x86_64/usr/lib/libz.so.2"
+        ]
+      },
+      {
+        "path": "/proc/boot/ln",
+        "package": "com.qnx.qnx800.osr.toybox",
+        "version": "0.8.11.00051T202603161435L",
+        "package_source": "guest_use_info",
+        "release_version_matches": true,
+        "build_id": "ac16218adbb6c6d9fb85ffadcb63fa52",
+        "matching_sdk_assets": [
+          "target/qnx/x86_64/usr/bin/toybox",
+          "target/qnx/x86_64/usr/bin/toybox.sym"
+        ]
+      },
+      {
+        "path": "/proc/boot/ls",
+        "package": "com.qnx.qnx800.osr.toybox",
+        "version": "0.8.11.00051T202603161435L",
+        "package_source": "guest_use_info",
+        "release_version_matches": true,
+        "build_id": "ac16218adbb6c6d9fb85ffadcb63fa52",
+        "matching_sdk_assets": [
+          "target/qnx/x86_64/usr/bin/toybox",
+          "target/qnx/x86_64/usr/bin/toybox.sym"
+        ]
+      },
+      {
+        "path": "/proc/boot/mount",
+        "package": "com.qnx.qnx800.target.utils.base.m",
+        "version": "0.6.0.06031T202610011839L",
+        "package_source": "guest_use_info",
+        "release_version_matches": true,
+        "build_id": "90c10f8957b766aa135dc66ad97f9e34",
+        "matching_sdk_assets": [
+          "target/qnx/x86_64/bin/mount"
+        ]
+      },
+      {
+        "path": "/proc/boot/on",
+        "package": "com.qnx.qnx800.target.utils.system",
+        "version": "0.2.1.06031T202610011839L",
+        "package_source": "guest_use_info",
+        "release_version_matches": true,
+        "build_id": "ea45c3c0342645e5ac25a9d56bc73ba5",
+        "matching_sdk_assets": [
+          "target/qnx/x86_64/bin/on"
+        ]
+      },
+      {
+        "path": "/proc/boot/pci-server",
+        "package": "com.qnx.qnx800.target.pci.server",
+        "version": "3.2.1.03075T202605211339L",
+        "package_source": "guest_use_info",
+        "release_version_matches": true,
+        "build_id": "04b660ae4426fde9a222dd7ec96f2478",
+        "matching_sdk_assets": [
+          "target/qnx/x86_64/sbin/pci-server"
+        ]
+      },
+      {
+        "path": "/proc/boot/pci_bkwd_compat.so",
+        "package": "com.qnx.qnx800.target.pci.compat",
+        "version": "3.0.0.02005T202411230033L",
+        "package_source": "guest_use_info",
+        "release_version_matches": true,
+        "build_id": "7be85681759b5aaca1f6117ccf98deda",
+        "matching_sdk_assets": [
+          "target/qnx/x86_64/lib/dll/pci/pci_bkwd_compat.so.3.0"
+        ]
+      },
+      {
+        "path": "/proc/boot/pci_bkwd_compat.so.3.0",
+        "package": "com.qnx.qnx800.target.pci.compat",
+        "version": "3.0.0.02005T202411230033L",
+        "package_source": "guest_use_info",
+        "release_version_matches": true,
+        "build_id": "7be85681759b5aaca1f6117ccf98deda",
+        "matching_sdk_assets": [
+          "target/qnx/x86_64/lib/dll/pci/pci_bkwd_compat.so.3.0"
+        ]
+      },
+      {
+        "path": "/proc/boot/pci_cap-0x01.so",
+        "package": "com.qnx.qnx800.target.pci.capabilities",
+        "version": "3.0.1.03075T202605211339L",
+        "package_source": "guest_use_info",
+        "release_version_matches": true,
+        "build_id": "a3b2d21e18aec6e518fd1ed47a088a4c",
+        "matching_sdk_assets": [
+          "target/qnx/x86_64/lib/dll/pci/pci_cap-0x01.so.3.0"
+        ]
+      },
+      {
+        "path": "/proc/boot/pci_cap-0x01.so.3.0",
+        "package": "com.qnx.qnx800.target.pci.capabilities",
+        "version": "3.0.1.03075T202605211339L",
+        "package_source": "guest_use_info",
+        "release_version_matches": true,
+        "build_id": "a3b2d21e18aec6e518fd1ed47a088a4c",
+        "matching_sdk_assets": [
+          "target/qnx/x86_64/lib/dll/pci/pci_cap-0x01.so.3.0"
+        ]
+      },
+      {
+        "path": "/proc/boot/pci_cap-0x05.so",
+        "package": "com.qnx.qnx800.target.pci.capabilities",
+        "version": "3.0.1.03075T202605211339L",
+        "package_source": "guest_use_info",
+        "release_version_matches": true,
+        "build_id": "6638af0504d5d422da57ca1ac443de92",
+        "matching_sdk_assets": [
+          "target/qnx/x86_64/lib/dll/pci/pci_cap-0x05.so.3.0"
+        ]
+      },
+      {
+        "path": "/proc/boot/pci_cap-0x05.so.3.0",
+        "package": "com.qnx.qnx800.target.pci.capabilities",
+        "version": "3.0.1.03075T202605211339L",
+        "package_source": "guest_use_info",
+        "release_version_matches": true,
+        "build_id": "6638af0504d5d422da57ca1ac443de92",
+        "matching_sdk_assets": [
+          "target/qnx/x86_64/lib/dll/pci/pci_cap-0x05.so.3.0"
+        ]
+      },
+      {
+        "path": "/proc/boot/pci_cap-0x10.so",
+        "package": "com.qnx.qnx800.target.pci.capabilities",
+        "version": "3.0.1.03075T202605211339L",
+        "package_source": "guest_use_info",
+        "release_version_matches": true,
+        "build_id": "60320577417c3622f68833a0dcf4254e",
+        "matching_sdk_assets": [
+          "target/qnx/x86_64/lib/dll/pci/pci_cap-0x10.so.3.0"
+        ]
+      },
+      {
+        "path": "/proc/boot/pci_cap-0x10.so.3.0",
+        "package": "com.qnx.qnx800.target.pci.capabilities",
+        "version": "3.0.1.03075T202605211339L",
+        "package_source": "guest_use_info",
+        "release_version_matches": true,
+        "build_id": "60320577417c3622f68833a0dcf4254e",
+        "matching_sdk_assets": [
+          "target/qnx/x86_64/lib/dll/pci/pci_cap-0x10.so.3.0"
+        ]
+      },
+      {
+        "path": "/proc/boot/pci_cap-0x11.so",
+        "package": "com.qnx.qnx800.target.pci.capabilities",
+        "version": "3.0.1.03075T202605211339L",
+        "package_source": "guest_use_info",
+        "release_version_matches": true,
+        "build_id": "497d7b683cccfb899a3a2875d1680c58",
+        "matching_sdk_assets": [
+          "target/qnx/x86_64/lib/dll/pci/pci_cap-0x11.so.3.0"
+        ]
+      },
+      {
+        "path": "/proc/boot/pci_cap-0x11.so.3.0",
+        "package": "com.qnx.qnx800.target.pci.capabilities",
+        "version": "3.0.1.03075T202605211339L",
+        "package_source": "guest_use_info",
+        "release_version_matches": true,
+        "build_id": "497d7b683cccfb899a3a2875d1680c58",
+        "matching_sdk_assets": [
+          "target/qnx/x86_64/lib/dll/pci/pci_cap-0x11.so.3.0"
+        ]
+      },
+      {
+        "path": "/proc/boot/pci_debug2.so",
+        "package": "com.qnx.qnx800.target.pci.debug",
+        "version": "3.0.0.02005T202411230033L",
+        "package_source": "guest_use_info",
+        "release_version_matches": true,
+        "build_id": "967e18b387aef21550fdb3ac725b1ebf",
+        "matching_sdk_assets": [
+          "target/qnx/x86_64/lib/dll/pci/pci_debug2.so.3.0"
+        ]
+      },
+      {
+        "path": "/proc/boot/pci_debug2.so.3.0",
+        "package": "com.qnx.qnx800.target.pci.debug",
+        "version": "3.0.0.02005T202411230033L",
+        "package_source": "guest_use_info",
+        "release_version_matches": true,
+        "build_id": "967e18b387aef21550fdb3ac725b1ebf",
+        "matching_sdk_assets": [
+          "target/qnx/x86_64/lib/dll/pci/pci_debug2.so.3.0"
+        ]
+      },
+      {
+        "path": "/proc/boot/pci_hw-Intel_x86.so",
+        "package": "com.qnx.qnx800.target.pci.hw.x86",
+        "version": "3.1.0.02005T202411230033L",
+        "package_source": "guest_use_info",
+        "release_version_matches": true,
+        "build_id": "c39ba6d0240fbfb84e4332b0ed75d413",
+        "matching_sdk_assets": [
+          "target/qnx/x86_64/lib/dll/pci/pci_hw-Intel_x86.so.3.1"
+        ]
+      },
+      {
+        "path": "/proc/boot/pci_hw-Intel_x86.so.3.1",
+        "package": "com.qnx.qnx800.target.pci.hw.x86",
+        "version": "3.1.0.02005T202411230033L",
+        "package_source": "guest_use_info",
+        "release_version_matches": true,
+        "build_id": "c39ba6d0240fbfb84e4332b0ed75d413",
+        "matching_sdk_assets": [
+          "target/qnx/x86_64/lib/dll/pci/pci_hw-Intel_x86.so.3.1"
+        ]
+      },
+      {
+        "path": "/proc/boot/pci_slog2.so",
+        "package": "com.qnx.qnx800.target.pci.debug",
+        "version": "3.0.0.02005T202411230033L",
+        "package_source": "guest_use_info",
+        "release_version_matches": true,
+        "build_id": "1672d7e2b7066c07f7e6bcea414a0665",
+        "matching_sdk_assets": [
+          "target/qnx/x86_64/lib/dll/pci/pci_slog2.so.3.0"
+        ]
+      },
+      {
+        "path": "/proc/boot/pci_slog2.so.3.0",
+        "package": "com.qnx.qnx800.target.pci.debug",
+        "version": "3.0.0.02005T202411230033L",
+        "package_source": "guest_use_info",
+        "release_version_matches": true,
+        "build_id": "1672d7e2b7066c07f7e6bcea414a0665",
+        "matching_sdk_assets": [
+          "target/qnx/x86_64/lib/dll/pci/pci_slog2.so.3.0"
+        ]
+      },
+      {
+        "path": "/proc/boot/pci_strings.so",
+        "package": "com.qnx.qnx800.target.pci.uisupport",
+        "version": "3.0.1.03075T202605211339L",
+        "package_source": "guest_use_info",
+        "release_version_matches": true,
+        "build_id": "ba276dd2fa3053ecf712e9a4167698a5",
+        "matching_sdk_assets": [
+          "target/qnx/x86_64/lib/dll/pci/pci_strings.so.3.0"
+        ]
+      },
+      {
+        "path": "/proc/boot/pci_strings.so.3.0",
+        "package": "com.qnx.qnx800.target.pci.uisupport",
+        "version": "3.0.1.03075T202605211339L",
+        "package_source": "guest_use_info",
+        "release_version_matches": true,
+        "build_id": "ba276dd2fa3053ecf712e9a4167698a5",
+        "matching_sdk_assets": [
+          "target/qnx/x86_64/lib/dll/pci/pci_strings.so.3.0"
+        ]
+      },
+      {
+        "path": "/proc/boot/pidin",
+        "package": "com.qnx.qnx800.target.utils.system",
+        "version": "0.2.1.06031T202610011839L",
+        "package_source": "guest_use_info",
+        "release_version_matches": true,
+        "build_id": "7ff1df8b352291e41f476a2078cb0855",
+        "matching_sdk_assets": [
+          "target/qnx/x86_64/bin/pidin"
+        ]
+      },
+      {
+        "path": "/proc/boot/procnto-smp-instr",
+        "package": "com.qnx.qnx800.target.microkernel.core",
+        "version": "2.8.0.00047T202610300907L",
+        "package_source": "guest_use_info",
+        "release_version_matches": true,
+        "build_id": null,
+        "matching_sdk_assets": []
+      },
+      {
+        "path": "/proc/boot/qcrypto-openssl-3.so",
+        "package": "com.qnx.qnx800.target.security.crypto.qcrypto.openssl3",
+        "version": "0.0.2.02029T202501171702L",
+        "package_source": "guest_use_info",
+        "release_version_matches": true,
+        "build_id": "7dd754add2ffd5f4336031c02f73f3f1",
+        "matching_sdk_assets": [
+          "target/qnx/x86_64/lib/dll/qcrypto-openssl-3.so"
+        ]
+      },
+      {
+        "path": "/proc/boot/rm",
+        "package": "com.qnx.qnx800.osr.toybox",
+        "version": "0.8.11.00051T202603161435L",
+        "package_source": "guest_use_info",
+        "release_version_matches": true,
+        "build_id": "ac16218adbb6c6d9fb85ffadcb63fa52",
+        "matching_sdk_assets": [
+          "target/qnx/x86_64/usr/bin/toybox",
+          "target/qnx/x86_64/usr/bin/toybox.sym"
+        ]
+      },
+      {
+        "path": "/proc/boot/rtc",
+        "package": "com.qnx.qnx800.target.utils.hw",
+        "version": "0.2.0.00014T202411230051L",
+        "package_source": "guest_use_info",
+        "release_version_matches": true,
+        "build_id": "650b8ad1eb27d876c4bcbc5f3d78cfd8",
+        "matching_sdk_assets": [
+          "target/qnx/x86_64/sbin/rtc"
+        ]
+      },
+      {
+        "path": "/proc/boot/setconf",
+        "package": "com.qnx.qnx800.target.utils.system",
+        "version": "0.2.1.06031T202610011839L",
+        "package_source": "guest_use_info",
+        "release_version_matches": true,
+        "build_id": "e1072ad6bd75c58010ea77dc44124e32",
+        "matching_sdk_assets": [
+          "target/qnx/x86_64/usr/bin/getconf"
+        ]
+      },
+      {
+        "path": "/proc/boot/setfacl",
+        "package": "com.qnx.qnx800.target.utils.system",
+        "version": "0.2.1.06031T202610011839L",
+        "package_source": "guest_use_info",
+        "release_version_matches": true,
+        "build_id": "0347484d7b88ce215f44640de6fcd520",
+        "matching_sdk_assets": [
+          "target/qnx/x86_64/bin/setfacl"
+        ]
+      },
+      {
+        "path": "/proc/boot/sh",
+        "package": "com.qnx.qnx800.target.utils.base.k",
+        "version": "0.0.1.00282T202404151301L",
+        "package_source": "guest_use_info",
+        "release_version_matches": true,
+        "build_id": "3d3255bf0ec208377129ffd403a7a975",
+        "matching_sdk_assets": [
+          "target/qnx/x86_64/bin/ksh"
+        ]
+      },
+      {
+        "path": "/proc/boot/sleep",
+        "package": "com.qnx.qnx800.osr.toybox",
+        "version": "0.8.11.00051T202603161435L",
+        "package_source": "guest_use_info",
+        "release_version_matches": true,
+        "build_id": "ac16218adbb6c6d9fb85ffadcb63fa52",
+        "matching_sdk_assets": [
+          "target/qnx/x86_64/usr/bin/toybox",
+          "target/qnx/x86_64/usr/bin/toybox.sym"
+        ]
+      },
+      {
+        "path": "/proc/boot/slog2info",
+        "package": "com.qnx.qnx800.target.microkernel.slogger2",
+        "version": "0.6.0.06031T202610011839L",
+        "package_source": "guest_use_info",
+        "release_version_matches": true,
+        "build_id": "b24c5c0dac62d06a8537831e33af506f",
+        "matching_sdk_assets": [
+          "target/qnx/x86_64/bin/slog2info"
+        ]
+      },
+      {
+        "path": "/proc/boot/slogger2",
+        "package": "com.qnx.qnx800.target.microkernel.slogger2",
+        "version": "0.6.0.06031T202610011839L",
+        "package_source": "guest_use_info",
+        "release_version_matches": true,
+        "build_id": "572868d27a63b2b5712fed9ce7f28371",
+        "matching_sdk_assets": [
+          "target/qnx/x86_64/bin/slogger2"
+        ]
+      },
+      {
+        "path": "/proc/boot/toybox",
+        "package": "com.qnx.qnx800.osr.toybox",
+        "version": "0.8.11.00051T202603161435L",
+        "package_source": "guest_use_info",
+        "release_version_matches": true,
+        "build_id": "ac16218adbb6c6d9fb85ffadcb63fa52",
+        "matching_sdk_assets": [
+          "target/qnx/x86_64/usr/bin/toybox",
+          "target/qnx/x86_64/usr/bin/toybox.sym"
+        ]
+      },
+      {
+        "path": "/proc/boot/umount",
+        "package": "com.qnx.qnx800.target.utils.base.u",
+        "version": "0.0.1.00135T202311191043L",
+        "package_source": "guest_use_info",
+        "release_version_matches": true,
+        "build_id": "f7a5418e83b352ca3db927aee95cf7aa",
+        "matching_sdk_assets": [
+          "target/qnx/x86_64/bin/umount"
+        ]
+      },
+      {
+        "path": "/proc/boot/waitfor",
+        "package": "com.qnx.qnx800.target.utils.system",
+        "version": "0.2.1.06031T202610011839L",
+        "package_source": "guest_use_info",
+        "release_version_matches": true,
+        "build_id": "ea45c3c0342645e5ac25a9d56bc73ba5",
+        "matching_sdk_assets": [
+          "target/qnx/x86_64/bin/on"
+        ]
+      },
+      {
+        "path": "/system/bin/arp",
+        "package": "com.qnx.qnx800.target.net.utils",
+        "version": "0.6.0.00011T202610012146L",
+        "package_source": "guest_use_info",
+        "release_version_matches": true,
+        "build_id": "e06f1c23053f4928fcef63b9a1d86637",
+        "matching_sdk_assets": [
+          "target/qnx/x86_64/usr/sbin/arp"
+        ]
+      },
+      {
+        "path": "/system/bin/ascii",
+        "package": "com.qnx.qnx800.osr.toybox",
+        "version": "0.8.11.00051T202603161435L",
+        "package_source": "guest_use_info",
+        "release_version_matches": true,
+        "build_id": "ac16218adbb6c6d9fb85ffadcb63fa52",
+        "matching_sdk_assets": [
+          "target/qnx/x86_64/usr/bin/toybox",
+          "target/qnx/x86_64/usr/bin/toybox.sym"
+        ]
+      },
+      {
+        "path": "/system/bin/awk",
+        "package": "com.qnx.qnx800.target.utils.gawk",
+        "version": "0.6.0.06031T202610011839L",
+        "package_source": "sdk_build_id_lookup",
+        "release_version_matches": true,
+        "build_id": "cb7a103818b67044d1935d4e6ba19bf2",
+        "matching_sdk_assets": [
+          "target/qnx/x86_64/usr/bin/gawk"
+        ]
+      },
+      {
+        "path": "/system/bin/base64",
+        "package": "com.qnx.qnx800.osr.toybox",
+        "version": "0.8.11.00051T202603161435L",
+        "package_source": "guest_use_info",
+        "release_version_matches": true,
+        "build_id": "ac16218adbb6c6d9fb85ffadcb63fa52",
+        "matching_sdk_assets": [
+          "target/qnx/x86_64/usr/bin/toybox",
+          "target/qnx/x86_64/usr/bin/toybox.sym"
+        ]
+      },
+      {
+        "path": "/system/bin/basename",
+        "package": "com.qnx.qnx800.osr.toybox",
+        "version": "0.8.11.00051T202603161435L",
+        "package_source": "guest_use_info",
+        "release_version_matches": true,
+        "build_id": "ac16218adbb6c6d9fb85ffadcb63fa52",
+        "matching_sdk_assets": [
+          "target/qnx/x86_64/usr/bin/toybox",
+          "target/qnx/x86_64/usr/bin/toybox.sym"
+        ]
+      },
+      {
+        "path": "/system/bin/bc",
+        "package": "com.qnx.qnx800.osr.toybox",
+        "version": "0.8.11.00051T202603161435L",
+        "package_source": "guest_use_info",
+        "release_version_matches": true,
+        "build_id": "ac16218adbb6c6d9fb85ffadcb63fa52",
+        "matching_sdk_assets": [
+          "target/qnx/x86_64/usr/bin/toybox",
+          "target/qnx/x86_64/usr/bin/toybox.sym"
+        ]
+      },
+      {
+        "path": "/system/bin/bsdtar",
+        "package": "com.qnx.qnx800.osr.bsdtar",
+        "version": "3.8.8.00091T202607141410L",
+        "package_source": "guest_use_info",
+        "release_version_matches": true,
+        "build_id": "cb0e96c908088b34fb65f2cc63dc7a60",
+        "matching_sdk_assets": [
+          "target/qnx/x86_64/bin/bsdtar"
+        ]
+      },
+      {
+        "path": "/system/bin/bunzip2",
+        "package": "com.qnx.qnx800.osr.toybox",
+        "version": "0.8.11.00051T202603161435L",
+        "package_source": "guest_use_info",
+        "release_version_matches": true,
+        "build_id": "ac16218adbb6c6d9fb85ffadcb63fa52",
+        "matching_sdk_assets": [
+          "target/qnx/x86_64/usr/bin/toybox",
+          "target/qnx/x86_64/usr/bin/toybox.sym"
+        ]
+      },
+      {
+        "path": "/system/bin/bzcat",
+        "package": "com.qnx.qnx800.osr.toybox",
+        "version": "0.8.11.00051T202603161435L",
+        "package_source": "guest_use_info",
+        "release_version_matches": true,
+        "build_id": "ac16218adbb6c6d9fb85ffadcb63fa52",
+        "matching_sdk_assets": [
+          "target/qnx/x86_64/usr/bin/toybox",
+          "target/qnx/x86_64/usr/bin/toybox.sym"
+        ]
+      },
+      {
+        "path": "/system/bin/cal",
+        "package": "com.qnx.qnx800.osr.toybox",
+        "version": "0.8.11.00051T202603161435L",
+        "package_source": "guest_use_info",
+        "release_version_matches": true,
+        "build_id": "ac16218adbb6c6d9fb85ffadcb63fa52",
+        "matching_sdk_assets": [
+          "target/qnx/x86_64/usr/bin/toybox",
+          "target/qnx/x86_64/usr/bin/toybox.sym"
+        ]
+      },
+      {
+        "path": "/system/bin/chgrp",
+        "package": "com.qnx.qnx800.osr.toybox",
+        "version": "0.8.11.00051T202603161435L",
+        "package_source": "guest_use_info",
+        "release_version_matches": true,
+        "build_id": "ac16218adbb6c6d9fb85ffadcb63fa52",
+        "matching_sdk_assets": [
+          "target/qnx/x86_64/usr/bin/toybox",
+          "target/qnx/x86_64/usr/bin/toybox.sym"
+        ]
+      },
+      {
+        "path": "/system/bin/chkqnx6fs",
+        "package": "com.qnx.qnx800.target.fs.qnx6fs",
+        "version": "0.3.2.00020T202610012324L",
+        "package_source": "guest_use_info",
+        "release_version_matches": true,
+        "build_id": "593fbec228907c27d6b8284eec842391",
+        "matching_sdk_assets": [
+          "target/qnx/x86_64/sbin/chkqnx6fs"
+        ]
+      },
+      {
+        "path": "/system/bin/chown",
+        "package": "com.qnx.qnx800.osr.toybox",
+        "version": "0.8.11.00051T202603161435L",
+        "package_source": "guest_use_info",
+        "release_version_matches": true,
+        "build_id": "ac16218adbb6c6d9fb85ffadcb63fa52",
+        "matching_sdk_assets": [
+          "target/qnx/x86_64/usr/bin/toybox",
+          "target/qnx/x86_64/usr/bin/toybox.sym"
+        ]
+      },
+      {
+        "path": "/system/bin/cksum",
+        "package": "com.qnx.qnx800.osr.toybox",
+        "version": "0.8.11.00051T202603161435L",
+        "package_source": "guest_use_info",
+        "release_version_matches": true,
+        "build_id": "ac16218adbb6c6d9fb85ffadcb63fa52",
+        "matching_sdk_assets": [
+          "target/qnx/x86_64/usr/bin/toybox",
+          "target/qnx/x86_64/usr/bin/toybox.sym"
+        ]
+      },
+      {
+        "path": "/system/bin/clear",
+        "package": "com.qnx.qnx800.osr.toybox",
+        "version": "0.8.11.00051T202603161435L",
+        "package_source": "guest_use_info",
+        "release_version_matches": true,
+        "build_id": "ac16218adbb6c6d9fb85ffadcb63fa52",
+        "matching_sdk_assets": [
+          "target/qnx/x86_64/usr/bin/toybox",
+          "target/qnx/x86_64/usr/bin/toybox.sym"
+        ]
+      },
+      {
+        "path": "/system/bin/cmp",
+        "package": "com.qnx.qnx800.osr.toybox",
+        "version": "0.8.11.00051T202603161435L",
+        "package_source": "guest_use_info",
+        "release_version_matches": true,
+        "build_id": "ac16218adbb6c6d9fb85ffadcb63fa52",
+        "matching_sdk_assets": [
+          "target/qnx/x86_64/usr/bin/toybox",
+          "target/qnx/x86_64/usr/bin/toybox.sym"
+        ]
+      },
+      {
+        "path": "/system/bin/comm",
+        "package": "com.qnx.qnx800.osr.toybox",
+        "version": "0.8.11.00051T202603161435L",
+        "package_source": "guest_use_info",
+        "release_version_matches": true,
+        "build_id": "ac16218adbb6c6d9fb85ffadcb63fa52",
+        "matching_sdk_assets": [
+          "target/qnx/x86_64/usr/bin/toybox",
+          "target/qnx/x86_64/usr/bin/toybox.sym"
+        ]
+      },
+      {
+        "path": "/system/bin/cp",
+        "package": "com.qnx.qnx800.osr.toybox",
+        "version": "0.8.11.00051T202603161435L",
+        "package_source": "guest_use_info",
+        "release_version_matches": true,
+        "build_id": "ac16218adbb6c6d9fb85ffadcb63fa52",
+        "matching_sdk_assets": [
+          "target/qnx/x86_64/usr/bin/toybox",
+          "target/qnx/x86_64/usr/bin/toybox.sym"
+        ]
+      },
+      {
+        "path": "/system/bin/cpio",
+        "package": "com.qnx.qnx800.osr.toybox",
+        "version": "0.8.11.00051T202603161435L",
+        "package_source": "guest_use_info",
+        "release_version_matches": true,
+        "build_id": "ac16218adbb6c6d9fb85ffadcb63fa52",
+        "matching_sdk_assets": [
+          "target/qnx/x86_64/usr/bin/toybox",
+          "target/qnx/x86_64/usr/bin/toybox.sym"
+        ]
+      },
+      {
+        "path": "/system/bin/crc32",
+        "package": "com.qnx.qnx800.osr.toybox",
+        "version": "0.8.11.00051T202603161435L",
+        "package_source": "guest_use_info",
+        "release_version_matches": true,
+        "build_id": "ac16218adbb6c6d9fb85ffadcb63fa52",
+        "matching_sdk_assets": [
+          "target/qnx/x86_64/usr/bin/toybox",
+          "target/qnx/x86_64/usr/bin/toybox.sym"
+        ]
+      },
+      {
+        "path": "/system/bin/curl",
+        "package": "com.qnx.qnx800.target.net.curl",
+        "version": "0.0.2.00446T202407261305L",
+        "package_source": "guest_use_info",
+        "release_version_matches": true,
+        "build_id": "7527b6ba90ea6f31d49fcfee1c509335",
+        "matching_sdk_assets": [
+          "target/qnx/x86_64/usr/bin/curl"
+        ]
+      },
+      {
+        "path": "/system/bin/cut",
+        "package": "com.qnx.qnx800.osr.toybox",
+        "version": "0.8.11.00051T202603161435L",
+        "package_source": "guest_use_info",
+        "release_version_matches": true,
+        "build_id": "ac16218adbb6c6d9fb85ffadcb63fa52",
+        "matching_sdk_assets": [
+          "target/qnx/x86_64/usr/bin/toybox",
+          "target/qnx/x86_64/usr/bin/toybox.sym"
+        ]
+      },
+      {
+        "path": "/system/bin/date",
+        "package": "com.qnx.qnx800.osr.toybox",
+        "version": "0.8.11.00051T202603161435L",
+        "package_source": "guest_use_info",
+        "release_version_matches": true,
+        "build_id": "ac16218adbb6c6d9fb85ffadcb63fa52",
+        "matching_sdk_assets": [
+          "target/qnx/x86_64/usr/bin/toybox",
+          "target/qnx/x86_64/usr/bin/toybox.sym"
+        ]
+      },
+      {
+        "path": "/system/bin/devb-loopback",
+        "package": "com.qnx.qnx800.target.fs.cam",
+        "version": "0.0.1.00443T202311201012L",
+        "package_source": "guest_use_info",
+        "release_version_matches": true,
+        "build_id": "194720507bab7816b7943e05d23bc55b",
+        "matching_sdk_assets": [
+          "target/qnx/x86_64/sbin/devb-loopback"
+        ]
+      },
+      {
+        "path": "/system/bin/devb-umass",
+        "package": "com.qnx.qnx800.target.fs.cam",
+        "version": "0.0.1.00443T202311201012L",
+        "package_source": "guest_use_info",
+        "release_version_matches": true,
+        "build_id": "ec5749368b37a1aba28872ad24192397",
+        "matching_sdk_assets": [
+          "target/qnx/x86_64/sbin/devb-umass"
+        ]
+      },
+      {
+        "path": "/system/bin/devc-pty",
+        "package": "com.qnx.qnx800.target.connectivity.devc",
+        "version": "0.2.1.00052T202606191407L",
+        "package_source": "guest_use_info",
+        "release_version_matches": true,
+        "build_id": "f84595667fca62db9a56d053f1ba4c50",
+        "matching_sdk_assets": [
+          "target/qnx/x86_64/sbin/devc-pty"
+        ]
+      },
+      {
+        "path": "/system/bin/df",
+        "package": "com.qnx.qnx800.target.utils.base.d",
+        "version": "0.0.1.00135T202311191043L",
+        "package_source": "guest_use_info",
+        "release_version_matches": true,
+        "build_id": "d019040fe62863de4cbcf26a83e5809a",
+        "matching_sdk_assets": [
+          "target/qnx/x86_64/bin/df"
+        ]
+      },
+      {
+        "path": "/system/bin/dhcpcd",
+        "package": "com.qnx.qnx800.target.net.dhcp",
+        "version": "0.3.0.00017T202507311313L",
+        "package_source": "guest_use_info",
+        "release_version_matches": true,
+        "build_id": "971010b12039de45ff6b8a69f773d755",
+        "matching_sdk_assets": [
+          "target/qnx/x86_64/sbin/dhcpcd"
+        ]
+      },
+      {
+        "path": "/system/bin/diff",
+        "package": "com.qnx.qnx800.osr.toybox",
+        "version": "0.8.11.00051T202603161435L",
+        "package_source": "guest_use_info",
+        "release_version_matches": true,
+        "build_id": "ac16218adbb6c6d9fb85ffadcb63fa52",
+        "matching_sdk_assets": [
+          "target/qnx/x86_64/usr/bin/toybox",
+          "target/qnx/x86_64/usr/bin/toybox.sym"
+        ]
+      },
+      {
+        "path": "/system/bin/dirname",
+        "package": "com.qnx.qnx800.osr.toybox",
+        "version": "0.8.11.00051T202603161435L",
+        "package_source": "guest_use_info",
+        "release_version_matches": true,
+        "build_id": "ac16218adbb6c6d9fb85ffadcb63fa52",
+        "matching_sdk_assets": [
+          "target/qnx/x86_64/usr/bin/toybox",
+          "target/qnx/x86_64/usr/bin/toybox.sym"
+        ]
+      },
+      {
+        "path": "/system/bin/dos2unix",
+        "package": "com.qnx.qnx800.osr.toybox",
+        "version": "0.8.11.00051T202603161435L",
+        "package_source": "guest_use_info",
+        "release_version_matches": true,
+        "build_id": "ac16218adbb6c6d9fb85ffadcb63fa52",
+        "matching_sdk_assets": [
+          "target/qnx/x86_64/usr/bin/toybox",
+          "target/qnx/x86_64/usr/bin/toybox.sym"
+        ]
+      },
+      {
+        "path": "/system/bin/du",
+        "package": "com.qnx.qnx800.osr.toybox",
+        "version": "0.8.11.00051T202603161435L",
+        "package_source": "guest_use_info",
+        "release_version_matches": true,
+        "build_id": "ac16218adbb6c6d9fb85ffadcb63fa52",
+        "matching_sdk_assets": [
+          "target/qnx/x86_64/usr/bin/toybox",
+          "target/qnx/x86_64/usr/bin/toybox.sym"
+        ]
+      },
+      {
+        "path": "/system/bin/dumper",
+        "package": "com.qnx.qnx800.target.microkernel.tools",
+        "version": "0.2.0.06031T202610011839L",
+        "package_source": "guest_use_info",
+        "release_version_matches": true,
+        "build_id": "6dbf3a71d4164e64920162987b7f936d",
+        "matching_sdk_assets": [
+          "target/qnx/x86_64/usr/sbin/dumper"
+        ]
+      },
+      {
+        "path": "/system/bin/egrep",
+        "package": "com.qnx.qnx800.osr.toybox",
+        "version": "0.8.11.00051T202603161435L",
+        "package_source": "guest_use_info",
+        "release_version_matches": true,
+        "build_id": "ac16218adbb6c6d9fb85ffadcb63fa52",
+        "matching_sdk_assets": [
+          "target/qnx/x86_64/usr/bin/toybox",
+          "target/qnx/x86_64/usr/bin/toybox.sym"
+        ]
+      },
+      {
+        "path": "/system/bin/env",
+        "package": "com.qnx.qnx800.osr.toybox",
+        "version": "0.8.11.00051T202603161435L",
+        "package_source": "guest_use_info",
+        "release_version_matches": true,
+        "build_id": "ac16218adbb6c6d9fb85ffadcb63fa52",
+        "matching_sdk_assets": [
+          "target/qnx/x86_64/usr/bin/toybox",
+          "target/qnx/x86_64/usr/bin/toybox.sym"
+        ]
+      },
+      {
+        "path": "/system/bin/expand",
+        "package": "com.qnx.qnx800.osr.toybox",
+        "version": "0.8.11.00051T202603161435L",
+        "package_source": "guest_use_info",
+        "release_version_matches": true,
+        "build_id": "ac16218adbb6c6d9fb85ffadcb63fa52",
+        "matching_sdk_assets": [
+          "target/qnx/x86_64/usr/bin/toybox",
+          "target/qnx/x86_64/usr/bin/toybox.sym"
+        ]
+      },
+      {
+        "path": "/system/bin/expr",
+        "package": "com.qnx.qnx800.osr.toybox",
+        "version": "0.8.11.00051T202603161435L",
+        "package_source": "guest_use_info",
+        "release_version_matches": true,
+        "build_id": "ac16218adbb6c6d9fb85ffadcb63fa52",
+        "matching_sdk_assets": [
+          "target/qnx/x86_64/usr/bin/toybox",
+          "target/qnx/x86_64/usr/bin/toybox.sym"
+        ]
+      },
+      {
+        "path": "/system/bin/false",
+        "package": "com.qnx.qnx800.osr.toybox",
+        "version": "0.8.11.00051T202603161435L",
+        "package_source": "guest_use_info",
+        "release_version_matches": true,
+        "build_id": "ac16218adbb6c6d9fb85ffadcb63fa52",
+        "matching_sdk_assets": [
+          "target/qnx/x86_64/usr/bin/toybox",
+          "target/qnx/x86_64/usr/bin/toybox.sym"
+        ]
+      },
+      {
+        "path": "/system/bin/fdisk",
+        "package": "com.qnx.qnx800.target.fs.utils",
+        "version": "0.2.0.06031T202610011839L",
+        "package_source": "guest_use_info",
+        "release_version_matches": true,
+        "build_id": "f00f404d0d9f3f7bfe326a99d7d344c9",
+        "matching_sdk_assets": [
+          "target/qnx/x86_64/sbin/fdisk"
+        ]
+      },
+      {
+        "path": "/system/bin/fgrep",
+        "package": "com.qnx.qnx800.osr.toybox",
+        "version": "0.8.11.00051T202603161435L",
+        "package_source": "guest_use_info",
+        "release_version_matches": true,
+        "build_id": "ac16218adbb6c6d9fb85ffadcb63fa52",
+        "matching_sdk_assets": [
+          "target/qnx/x86_64/usr/bin/toybox",
+          "target/qnx/x86_64/usr/bin/toybox.sym"
+        ]
+      },
+      {
+        "path": "/system/bin/file",
+        "package": "com.qnx.qnx800.osr.toybox",
+        "version": "0.8.11.00051T202603161435L",
+        "package_source": "guest_use_info",
+        "release_version_matches": true,
+        "build_id": "ac16218adbb6c6d9fb85ffadcb63fa52",
+        "matching_sdk_assets": [
+          "target/qnx/x86_64/usr/bin/toybox",
+          "target/qnx/x86_64/usr/bin/toybox.sym"
+        ]
+      },
+      {
+        "path": "/system/bin/find",
+        "package": "com.qnx.qnx800.osr.toybox",
+        "version": "0.8.11.00051T202603161435L",
+        "package_source": "guest_use_info",
+        "release_version_matches": true,
+        "build_id": "ac16218adbb6c6d9fb85ffadcb63fa52",
+        "matching_sdk_assets": [
+          "target/qnx/x86_64/usr/bin/toybox",
+          "target/qnx/x86_64/usr/bin/toybox.sym"
+        ]
+      },
+      {
+        "path": "/system/bin/fmt",
+        "package": "com.qnx.qnx800.osr.toybox",
+        "version": "0.8.11.00051T202603161435L",
+        "package_source": "guest_use_info",
+        "release_version_matches": true,
+        "build_id": "ac16218adbb6c6d9fb85ffadcb63fa52",
+        "matching_sdk_assets": [
+          "target/qnx/x86_64/usr/bin/toybox",
+          "target/qnx/x86_64/usr/bin/toybox.sym"
+        ]
+      },
+      {
+        "path": "/system/bin/fs-nfs3",
+        "package": "com.qnx.qnx800.target.net.nfs",
+        "version": "0.6.0.00012T202610210714L",
+        "package_source": "guest_use_info",
+        "release_version_matches": true,
+        "build_id": "01513352863b6f78777262669d52ac9b",
+        "matching_sdk_assets": [
+          "target/qnx/x86_64/usr/sbin/fs-nfs3"
+        ]
+      },
+      {
+        "path": "/system/bin/fullpath",
+        "package": "com.qnx.qnx800.target.utils.base.f",
+        "version": "0.0.1.00135T202311191043L",
+        "package_source": "guest_use_info",
+        "release_version_matches": true,
+        "build_id": "915cd297c4f60ba9468fdf309b58fdf9",
+        "matching_sdk_assets": [
+          "target/qnx/x86_64/usr/bin/fullpath"
+        ]
+      },
+      {
+        "path": "/system/bin/gawk",
+        "package": "com.qnx.qnx800.target.utils.gawk",
+        "version": "0.6.0.06031T202610011839L",
+        "package_source": "sdk_build_id_lookup",
+        "release_version_matches": true,
+        "build_id": "cb7a103818b67044d1935d4e6ba19bf2",
+        "matching_sdk_assets": [
+          "target/qnx/x86_64/usr/bin/gawk"
+        ]
+      },
+      {
+        "path": "/system/bin/getfacl",
+        "package": "com.qnx.qnx800.target.utils.system",
+        "version": "0.2.1.06031T202610011839L",
+        "package_source": "guest_use_info",
+        "release_version_matches": true,
+        "build_id": "34102038c07b346238cd3e7c9ca81e39",
+        "matching_sdk_assets": [
+          "target/qnx/x86_64/bin/getfacl"
+        ]
+      },
+      {
+        "path": "/system/bin/groups",
+        "package": "com.qnx.qnx800.osr.toybox",
+        "version": "0.8.11.00051T202603161435L",
+        "package_source": "guest_use_info",
+        "release_version_matches": true,
+        "build_id": "ac16218adbb6c6d9fb85ffadcb63fa52",
+        "matching_sdk_assets": [
+          "target/qnx/x86_64/usr/bin/toybox",
+          "target/qnx/x86_64/usr/bin/toybox.sym"
+        ]
+      },
+      {
+        "path": "/system/bin/gunzip",
+        "package": "com.qnx.qnx800.osr.toybox",
+        "version": "0.8.11.00051T202603161435L",
+        "package_source": "guest_use_info",
+        "release_version_matches": true,
+        "build_id": "ac16218adbb6c6d9fb85ffadcb63fa52",
+        "matching_sdk_assets": [
+          "target/qnx/x86_64/usr/bin/toybox",
+          "target/qnx/x86_64/usr/bin/toybox.sym"
+        ]
+      },
+      {
+        "path": "/system/bin/gzip",
+        "package": "com.qnx.qnx800.osr.toybox",
+        "version": "0.8.11.00051T202603161435L",
+        "package_source": "guest_use_info",
+        "release_version_matches": true,
+        "build_id": "ac16218adbb6c6d9fb85ffadcb63fa52",
+        "matching_sdk_assets": [
+          "target/qnx/x86_64/usr/bin/toybox",
+          "target/qnx/x86_64/usr/bin/toybox.sym"
+        ]
+      },
+      {
+        "path": "/system/bin/hd",
+        "package": "com.qnx.qnx800.osr.toybox",
+        "version": "0.8.11.00051T202603161435L",
+        "package_source": "guest_use_info",
+        "release_version_matches": true,
+        "build_id": "ac16218adbb6c6d9fb85ffadcb63fa52",
+        "matching_sdk_assets": [
+          "target/qnx/x86_64/usr/bin/toybox",
+          "target/qnx/x86_64/usr/bin/toybox.sym"
+        ]
+      },
+      {
+        "path": "/system/bin/head",
+        "package": "com.qnx.qnx800.osr.toybox",
+        "version": "0.8.11.00051T202603161435L",
+        "package_source": "guest_use_info",
+        "release_version_matches": true,
+        "build_id": "ac16218adbb6c6d9fb85ffadcb63fa52",
+        "matching_sdk_assets": [
+          "target/qnx/x86_64/usr/bin/toybox",
+          "target/qnx/x86_64/usr/bin/toybox.sym"
+        ]
+      },
+      {
+        "path": "/system/bin/hexdump",
+        "package": "com.qnx.qnx800.osr.toybox",
+        "version": "0.8.11.00051T202603161435L",
+        "package_source": "guest_use_info",
+        "release_version_matches": true,
+        "build_id": "ac16218adbb6c6d9fb85ffadcb63fa52",
+        "matching_sdk_assets": [
+          "target/qnx/x86_64/usr/bin/toybox",
+          "target/qnx/x86_64/usr/bin/toybox.sym"
+        ]
+      },
+      {
+        "path": "/system/bin/hogs",
+        "package": "com.qnx.qnx800.target.utils.qnx",
+        "version": "0.6.0.06031T202610011839L",
+        "package_source": "guest_use_info",
+        "release_version_matches": true,
+        "build_id": "8d955bf7c6355078093101bdae5f5dec",
+        "matching_sdk_assets": [
+          "target/qnx/x86_64/usr/bin/hogs"
+        ]
+      },
+      {
+        "path": "/system/bin/hostname",
+        "package": "com.qnx.qnx800.target.utils.base.h",
+        "version": "0.0.1.00135T202311191043L",
+        "package_source": "guest_use_info",
+        "release_version_matches": true,
+        "build_id": "a76ee9f5eaed521a20cd1b5e82318bbe",
+        "matching_sdk_assets": [
+          "target/qnx/x86_64/bin/hostname"
+        ]
+      },
+      {
+        "path": "/system/bin/id",
+        "package": "com.qnx.qnx800.osr.toybox",
+        "version": "0.8.11.00051T202603161435L",
+        "package_source": "guest_use_info",
+        "release_version_matches": true,
+        "build_id": "ac16218adbb6c6d9fb85ffadcb63fa52",
+        "matching_sdk_assets": [
+          "target/qnx/x86_64/usr/bin/toybox",
+          "target/qnx/x86_64/usr/bin/toybox.sym"
+        ]
+      },
+      {
+        "path": "/system/bin/if_up",
+        "package": "com.qnx.qnx800.target.net.utils.if_up",
+        "version": "0.3.0.00103T202507311314L",
+        "package_source": "guest_use_info",
+        "release_version_matches": true,
+        "build_id": "d6f238f7a815b6e36fd12a4963c8e48f",
+        "matching_sdk_assets": [
+          "target/qnx/x86_64/usr/sbin/if_up"
+        ]
+      },
+      {
+        "path": "/system/bin/ifconfig",
+        "package": "com.qnx.qnx800.target.net.utils",
+        "version": "0.6.0.00011T202610012146L",
+        "package_source": "guest_use_info",
+        "release_version_matches": true,
+        "build_id": "ce3fcc1fefbd870bf166d22076566b33",
+        "matching_sdk_assets": [
+          "target/qnx/x86_64/sbin/ifconfig"
+        ]
+      },
+      {
+        "path": "/system/bin/ifmcstat",
+        "package": "com.qnx.qnx800.target.net.devutils",
+        "version": "0.6.0.00011T202610012146L",
+        "package_source": "guest_use_info",
+        "release_version_matches": true,
+        "build_id": "c043f5b42c04117727b45cbb92caf308",
+        "matching_sdk_assets": [
+          "target/qnx/x86_64/usr/sbin/ifmcstat"
+        ]
+      },
+      {
+        "path": "/system/bin/ifwatchd",
+        "package": "com.qnx.qnx800.target.net.utils.ifwatchd",
+        "version": "0.3.0.00103T202507311314L",
+        "package_source": "guest_use_info",
+        "release_version_matches": true,
+        "build_id": "ee60c4af27d768d84853b5d4b495d71e",
+        "matching_sdk_assets": [
+          "target/qnx/x86_64/usr/sbin/ifwatchd"
+        ]
+      },
+      {
+        "path": "/system/bin/install",
+        "package": "com.qnx.qnx800.osr.toybox",
+        "version": "0.8.11.00051T202603161435L",
+        "package_source": "guest_use_info",
+        "release_version_matches": true,
+        "build_id": "ac16218adbb6c6d9fb85ffadcb63fa52",
+        "matching_sdk_assets": [
+          "target/qnx/x86_64/usr/bin/toybox",
+          "target/qnx/x86_64/usr/bin/toybox.sym"
+        ]
+      },
+      {
+        "path": "/system/bin/io-sock",
+        "package": "com.qnx.qnx800.target.net.iosock",
+        "version": "0.6.0.00011T202610012146L",
+        "package_source": "guest_use_info",
+        "release_version_matches": true,
+        "build_id": "77dadaf63c2d4c8bc13f4a2c84694ed2",
+        "matching_sdk_assets": [
+          "target/qnx/x86_64/sbin/io-sock"
+        ]
+      },
+      {
+        "path": "/system/bin/io-usb-otg",
+        "package": "com.qnx.qnx800.target.usb.base",
+        "version": "0.2.0.00070T202609111428L",
+        "package_source": "guest_use_info",
+        "release_version_matches": true,
+        "build_id": "508f7b397361ba229792e41cc90fbee9",
+        "matching_sdk_assets": [
+          "target/qnx/x86_64/sbin/io-usb-otg"
+        ]
+      },
+      {
+        "path": "/system/bin/iperf2",
+        "package": "com.qnx.qnx800.target.net.iperf2",
+        "version": "0.0.2.00417T202407041502L",
+        "package_source": "guest_use_info",
+        "release_version_matches": true,
+        "build_id": "15ab2afa01ff09f5a715ec4a1183a667",
+        "matching_sdk_assets": [
+          "target/qnx/x86_64/usr/bin/iperf2"
+        ]
+      },
+      {
+        "path": "/system/bin/iperf3",
+        "package": "com.qnx.qnx800.target.net.iperf3",
+        "version": "0.5.0.00005T202601190904L",
+        "package_source": "guest_use_info",
+        "release_version_matches": true,
+        "build_id": "6a73c31d9ee9f855ba62ce26c37897f7",
+        "matching_sdk_assets": [
+          "target/qnx/x86_64/usr/bin/iperf3"
+        ]
+      },
+      {
+        "path": "/system/bin/ldd",
+        "package": "com.qnx.qnx800.target.utils.qnx",
+        "version": "0.6.0.06031T202610011839L",
+        "package_source": "guest_use_info",
+        "release_version_matches": true,
+        "build_id": "ae781d2345d540115648e6309ab1110b",
+        "matching_sdk_assets": [
+          "target/qnx/x86_64/usr/bin/ldd"
+        ]
+      },
+      {
+        "path": "/system/bin/less",
+        "package": "com.qnx.qnx800.osr.less",
+        "version": "0.0.670.00040T202501111907L",
+        "package_source": "guest_use_info",
+        "release_version_matches": true,
+        "build_id": "565f0087036b97e206268e9079a3d2f8",
+        "matching_sdk_assets": [
+          "target/qnx/x86_64/usr/bin/less",
+          "target/qnx/x86_64/usr/bin/more"
+        ]
+      },
+      {
+        "path": "/system/bin/link",
+        "package": "com.qnx.qnx800.osr.toybox",
+        "version": "0.8.11.00051T202603161435L",
+        "package_source": "guest_use_info",
+        "release_version_matches": true,
+        "build_id": "ac16218adbb6c6d9fb85ffadcb63fa52",
+        "matching_sdk_assets": [
+          "target/qnx/x86_64/usr/bin/toybox",
+          "target/qnx/x86_64/usr/bin/toybox.sym"
+        ]
+      },
+      {
+        "path": "/system/bin/login",
+        "package": "com.qnx.qnx800.target.security.authentication",
+        "version": "0.0.1.00135T202311191043L",
+        "package_source": "guest_use_info",
+        "release_version_matches": true,
+        "build_id": "544e0723ece3d42c26bf4d7f0c8a1fc4",
+        "matching_sdk_assets": [
+          "target/qnx/x86_64/bin/login"
+        ]
+      },
+      {
+        "path": "/system/bin/logname",
+        "package": "com.qnx.qnx800.osr.toybox",
+        "version": "0.8.11.00051T202603161435L",
+        "package_source": "guest_use_info",
+        "release_version_matches": true,
+        "build_id": "ac16218adbb6c6d9fb85ffadcb63fa52",
+        "matching_sdk_assets": [
+          "target/qnx/x86_64/usr/bin/toybox",
+          "target/qnx/x86_64/usr/bin/toybox.sym"
+        ]
+      },
+      {
+        "path": "/system/bin/md5sum",
+        "package": "com.qnx.qnx800.osr.toybox",
+        "version": "0.8.11.00051T202603161435L",
+        "package_source": "guest_use_info",
+        "release_version_matches": true,
+        "build_id": "ac16218adbb6c6d9fb85ffadcb63fa52",
+        "matching_sdk_assets": [
+          "target/qnx/x86_64/usr/bin/toybox",
+          "target/qnx/x86_64/usr/bin/toybox.sym"
+        ]
+      },
+      {
+        "path": "/system/bin/mkdir",
+        "package": "com.qnx.qnx800.osr.toybox",
+        "version": "0.8.11.00051T202603161435L",
+        "package_source": "guest_use_info",
+        "release_version_matches": true,
+        "build_id": "ac16218adbb6c6d9fb85ffadcb63fa52",
+        "matching_sdk_assets": [
+          "target/qnx/x86_64/usr/bin/toybox",
+          "target/qnx/x86_64/usr/bin/toybox.sym"
+        ]
+      },
+      {
+        "path": "/system/bin/mkdosfs",
+        "package": "com.qnx.qnx800.target.fs.dosfs",
+        "version": "0.3.0.00020T202610012324L",
+        "package_source": "guest_use_info",
+        "release_version_matches": true,
+        "build_id": "426b3ca38959e7498d5e46243b694e76",
+        "matching_sdk_assets": [
+          "target/qnx/x86_64/sbin/mkdosfs"
+        ]
+      },
+      {
+        "path": "/system/bin/mkfifo",
+        "package": "com.qnx.qnx800.osr.toybox",
+        "version": "0.8.11.00051T202603161435L",
+        "package_source": "guest_use_info",
+        "release_version_matches": true,
+        "build_id": "ac16218adbb6c6d9fb85ffadcb63fa52",
+        "matching_sdk_assets": [
+          "target/qnx/x86_64/usr/bin/toybox",
+          "target/qnx/x86_64/usr/bin/toybox.sym"
+        ]
+      },
+      {
+        "path": "/system/bin/mktemp",
+        "package": "com.qnx.qnx800.osr.toybox",
+        "version": "0.8.11.00051T202603161435L",
+        "package_source": "guest_use_info",
+        "release_version_matches": true,
+        "build_id": "ac16218adbb6c6d9fb85ffadcb63fa52",
+        "matching_sdk_assets": [
+          "target/qnx/x86_64/usr/bin/toybox",
+          "target/qnx/x86_64/usr/bin/toybox.sym"
+        ]
+      },
+      {
+        "path": "/system/bin/more",
+        "package": "com.qnx.qnx800.osr.toybox",
+        "version": "0.8.11.00051T202603161435L",
+        "package_source": "guest_use_info",
+        "release_version_matches": true,
+        "build_id": "ac16218adbb6c6d9fb85ffadcb63fa52",
+        "matching_sdk_assets": [
+          "target/qnx/x86_64/usr/bin/toybox",
+          "target/qnx/x86_64/usr/bin/toybox.sym"
+        ]
+      },
+      {
+        "path": "/system/bin/mqueue",
+        "package": "com.qnx.qnx800.target.os_services.mqueue",
+        "version": "1.2.0.00132T202605281115L",
+        "package_source": "guest_use_info",
+        "release_version_matches": true,
+        "build_id": "db230f329e18b6290eae66b95b2e4f34",
+        "matching_sdk_assets": [
+          "target/qnx/x86_64/sbin/mqueue"
+        ]
+      },
+      {
+        "path": "/system/bin/mv",
+        "package": "com.qnx.qnx800.osr.toybox",
+        "version": "0.8.11.00051T202603161435L",
+        "package_source": "guest_use_info",
+        "release_version_matches": true,
+        "build_id": "ac16218adbb6c6d9fb85ffadcb63fa52",
+        "matching_sdk_assets": [
+          "target/qnx/x86_64/usr/bin/toybox",
+          "target/qnx/x86_64/usr/bin/toybox.sym"
+        ]
+      },
+      {
+        "path": "/system/bin/ndp",
+        "package": "com.qnx.qnx800.target.net.devutils",
+        "version": "0.6.0.00011T202610012146L",
+        "package_source": "guest_use_info",
+        "release_version_matches": true,
+        "build_id": "87d65843933612bee18bc40c76a35c1a",
+        "matching_sdk_assets": [
+          "target/qnx/x86_64/usr/sbin/ndp"
+        ]
+      },
+      {
+        "path": "/system/bin/netstat",
+        "package": "com.qnx.qnx800.target.net.devutils",
+        "version": "0.6.0.00011T202610012146L",
+        "package_source": "guest_use_info",
+        "release_version_matches": true,
+        "build_id": "32da0aaf025f6ba1d764e2c26abeed21",
+        "matching_sdk_assets": [
+          "target/qnx/x86_64/usr/bin/netstat"
+        ]
+      },
+      {
+        "path": "/system/bin/nl",
+        "package": "com.qnx.qnx800.osr.toybox",
+        "version": "0.8.11.00051T202603161435L",
+        "package_source": "guest_use_info",
+        "release_version_matches": true,
+        "build_id": "ac16218adbb6c6d9fb85ffadcb63fa52",
+        "matching_sdk_assets": [
+          "target/qnx/x86_64/usr/bin/toybox",
+          "target/qnx/x86_64/usr/bin/toybox.sym"
+        ]
+      },
+      {
+        "path": "/system/bin/nohup",
+        "package": "com.qnx.qnx800.osr.toybox",
+        "version": "0.8.11.00051T202603161435L",
+        "package_source": "guest_use_info",
+        "release_version_matches": true,
+        "build_id": "ac16218adbb6c6d9fb85ffadcb63fa52",
+        "matching_sdk_assets": [
+          "target/qnx/x86_64/usr/bin/toybox",
+          "target/qnx/x86_64/usr/bin/toybox.sym"
+        ]
+      },
+      {
+        "path": "/system/bin/ntp-keygen",
+        "package": "com.qnx.qnx800.target.net.ntp",
+        "version": "0.0.2.00417T202407041502L",
+        "package_source": "guest_use_info",
+        "release_version_matches": true,
+        "build_id": "e18ac0f4adbdcba71797a4cccb8aa42f",
+        "matching_sdk_assets": [
+          "target/qnx/x86_64/usr/sbin/ntp-keygen"
+        ]
+      },
+      {
+        "path": "/system/bin/ntpd",
+        "package": "com.qnx.qnx800.target.net.ntp",
+        "version": "0.0.2.00417T202407041502L",
+        "package_source": "guest_use_info",
+        "release_version_matches": true,
+        "build_id": "8c01d00d55162d764da78432517ddbc8",
+        "matching_sdk_assets": [
+          "target/qnx/x86_64/usr/sbin/ntpd"
+        ]
+      },
+      {
+        "path": "/system/bin/ntpdate",
+        "package": "com.qnx.qnx800.target.net.ntp",
+        "version": "0.0.2.00417T202407041502L",
+        "package_source": "guest_use_info",
+        "release_version_matches": true,
+        "build_id": "92c2d32eab0ba1e4a00e00a7ef86eba2",
+        "matching_sdk_assets": [
+          "target/qnx/x86_64/usr/sbin/ntpdate"
+        ]
+      },
+      {
+        "path": "/system/bin/ntpq",
+        "package": "com.qnx.qnx800.target.net.ntp",
+        "version": "0.0.2.00417T202407041502L",
+        "package_source": "guest_use_info",
+        "release_version_matches": true,
+        "build_id": "f1cb82c72215b1487bfc57e770d170ff",
+        "matching_sdk_assets": [
+          "target/qnx/x86_64/usr/bin/ntpq"
+        ]
+      },
+      {
+        "path": "/system/bin/od",
+        "package": "com.qnx.qnx800.osr.toybox",
+        "version": "0.8.11.00051T202603161435L",
+        "package_source": "guest_use_info",
+        "release_version_matches": true,
+        "build_id": "ac16218adbb6c6d9fb85ffadcb63fa52",
+        "matching_sdk_assets": [
+          "target/qnx/x86_64/usr/bin/toybox",
+          "target/qnx/x86_64/usr/bin/toybox.sym"
+        ]
+      },
+      {
+        "path": "/system/bin/openssl",
+        "package": "com.qnx.qnx800.target.security.crypto.openssl3",
+        "version": "3.0.22.00012T202610012115L",
+        "package_source": "guest_use_info",
+        "release_version_matches": true,
+        "build_id": "3dda15862bd7a8963d16be5106e240e4",
+        "matching_sdk_assets": [
+          "target/qnx/x86_64/usr/bin/openssl",
+          "target/qnx/x86_64/usr/bin/openssl.sym"
+        ]
+      },
+      {
+        "path": "/system/bin/passwd",
+        "package": "com.qnx.qnx800.target.security.authentication",
+        "version": "0.0.1.00135T202311191043L",
+        "package_source": "guest_use_info",
+        "release_version_matches": true,
+        "build_id": "bea9dbcd91547bcc2a517dbc5097bb69",
+        "matching_sdk_assets": [
+          "target/qnx/x86_64/usr/bin/passwd"
+        ]
+      },
+      {
+        "path": "/system/bin/paste",
+        "package": "com.qnx.qnx800.osr.toybox",
+        "version": "0.8.11.00051T202603161435L",
+        "package_source": "guest_use_info",
+        "release_version_matches": true,
+        "build_id": "ac16218adbb6c6d9fb85ffadcb63fa52",
+        "matching_sdk_assets": [
+          "target/qnx/x86_64/usr/bin/toybox",
+          "target/qnx/x86_64/usr/bin/toybox.sym"
+        ]
+      },
+      {
+        "path": "/system/bin/patch",
+        "package": "com.qnx.qnx800.osr.toybox",
+        "version": "0.8.11.00051T202603161435L",
+        "package_source": "guest_use_info",
+        "release_version_matches": true,
+        "build_id": "ac16218adbb6c6d9fb85ffadcb63fa52",
+        "matching_sdk_assets": [
+          "target/qnx/x86_64/usr/bin/toybox",
+          "target/qnx/x86_64/usr/bin/toybox.sym"
+        ]
+      },
+      {
+        "path": "/system/bin/pci-tool",
+        "package": "com.qnx.qnx800.target.pci.utils",
+        "version": "3.0.0.02005T202411230033L",
+        "package_source": "guest_use_info",
+        "release_version_matches": true,
+        "build_id": "db795a9ef7129d6f72f1cee0d69841b0",
+        "matching_sdk_assets": [
+          "target/qnx/x86_64/usr/sbin/pci-tool"
+        ]
+      },
+      {
+        "path": "/system/bin/pdebug",
+        "package": "com.qnx.qnx800.target.utils.debugtools",
+        "version": "0.2.0.06031T202610011839L",
+        "package_source": "guest_use_info",
+        "release_version_matches": true,
+        "build_id": "90bade32821c1b64ec20f97dc0c642b0",
+        "matching_sdk_assets": [
+          "target/qnx/x86_64/usr/bin/pdebug"
+        ]
+      },
+      {
+        "path": "/system/bin/pfctl",
+        "package": "com.qnx.qnx800.target.net.utils",
+        "version": "0.6.0.00011T202610012146L",
+        "package_source": "guest_use_info",
+        "release_version_matches": true,
+        "build_id": "cde586fbdbe837c25f01a8d15dc3eac7",
+        "matching_sdk_assets": [
+          "target/qnx/x86_64/sbin/pfctl"
+        ]
+      },
+      {
+        "path": "/system/bin/ping",
+        "package": "com.qnx.qnx800.target.net.devutils",
+        "version": "0.6.0.00011T202610012146L",
+        "package_source": "guest_use_info",
+        "release_version_matches": true,
+        "build_id": "fa20411af4720118b0838b5e4e550d4e",
+        "matching_sdk_assets": [
+          "target/qnx/x86_64/sbin/ping"
+        ]
+      },
+      {
+        "path": "/system/bin/pipe",
+        "package": "com.qnx.qnx800.target.os_services.base",
+        "version": "1.0.0.03063T202511271306L",
+        "package_source": "guest_use_info",
+        "release_version_matches": true,
+        "build_id": "68aab09f44585c9fa9a8d660e0e2ddaf",
+        "matching_sdk_assets": [
+          "target/qnx/x86_64/sbin/pipe"
+        ]
+      },
+      {
+        "path": "/system/bin/printenv",
+        "package": "com.qnx.qnx800.osr.toybox",
+        "version": "0.8.11.00051T202603161435L",
+        "package_source": "guest_use_info",
+        "release_version_matches": true,
+        "build_id": "ac16218adbb6c6d9fb85ffadcb63fa52",
+        "matching_sdk_assets": [
+          "target/qnx/x86_64/usr/bin/toybox",
+          "target/qnx/x86_64/usr/bin/toybox.sym"
+        ]
+      },
+      {
+        "path": "/system/bin/printf",
+        "package": "com.qnx.qnx800.osr.toybox",
+        "version": "0.8.11.00051T202603161435L",
+        "package_source": "guest_use_info",
+        "release_version_matches": true,
+        "build_id": "ac16218adbb6c6d9fb85ffadcb63fa52",
+        "matching_sdk_assets": [
+          "target/qnx/x86_64/usr/bin/toybox",
+          "target/qnx/x86_64/usr/bin/toybox.sym"
+        ]
+      },
+      {
+        "path": "/system/bin/pwd",
+        "package": "com.qnx.qnx800.osr.toybox",
+        "version": "0.8.11.00051T202603161435L",
+        "package_source": "guest_use_info",
+        "release_version_matches": true,
+        "build_id": "ac16218adbb6c6d9fb85ffadcb63fa52",
+        "matching_sdk_assets": [
+          "target/qnx/x86_64/usr/bin/toybox",
+          "target/qnx/x86_64/usr/bin/toybox.sym"
+        ]
+      },
+      {
+        "path": "/system/bin/qconn",
+        "package": "com.qnx.qnx800.target.utils.debugtools",
+        "version": "0.2.0.06031T202610011839L",
+        "package_source": "guest_use_info",
+        "release_version_matches": true,
+        "build_id": "fe9f9c03a365ae8915ea31e1c3d15158",
+        "matching_sdk_assets": [
+          "target/qnx/x86_64/usr/sbin/qconn"
+        ]
+      },
+      {
+        "path": "/system/bin/random",
+        "package": "com.qnx.qnx800.target.security.random",
+        "version": "0.0.1.00135T202311191043L",
+        "package_source": "guest_use_info",
+        "release_version_matches": true,
+        "build_id": "2d7a9ee3a5f9f20aed023798d41ac93e",
+        "matching_sdk_assets": [
+          "target/qnx/x86_64/usr/sbin/random"
+        ]
+      },
+      {
+        "path": "/system/bin/readlink",
+        "package": "com.qnx.qnx800.osr.toybox",
+        "version": "0.8.11.00051T202603161435L",
+        "package_source": "guest_use_info",
+        "release_version_matches": true,
+        "build_id": "ac16218adbb6c6d9fb85ffadcb63fa52",
+        "matching_sdk_assets": [
+          "target/qnx/x86_64/usr/bin/toybox",
+          "target/qnx/x86_64/usr/bin/toybox.sym"
+        ]
+      },
+      {
+        "path": "/system/bin/realpath",
+        "package": "com.qnx.qnx800.osr.toybox",
+        "version": "0.8.11.00051T202603161435L",
+        "package_source": "guest_use_info",
+        "release_version_matches": true,
+        "build_id": "ac16218adbb6c6d9fb85ffadcb63fa52",
+        "matching_sdk_assets": [
+          "target/qnx/x86_64/usr/bin/toybox",
+          "target/qnx/x86_64/usr/bin/toybox.sym"
+        ]
+      },
+      {
+        "path": "/system/bin/rmdir",
+        "package": "com.qnx.qnx800.osr.toybox",
+        "version": "0.8.11.00051T202603161435L",
+        "package_source": "guest_use_info",
+        "release_version_matches": true,
+        "build_id": "ac16218adbb6c6d9fb85ffadcb63fa52",
+        "matching_sdk_assets": [
+          "target/qnx/x86_64/usr/bin/toybox",
+          "target/qnx/x86_64/usr/bin/toybox.sym"
+        ]
+      },
+      {
+        "path": "/system/bin/route",
+        "package": "com.qnx.qnx800.target.net.utils",
+        "version": "0.6.0.00011T202610012146L",
+        "package_source": "guest_use_info",
+        "release_version_matches": true,
+        "build_id": "f4ca17ca4f6d299aff192c1ba98db6ef",
+        "matching_sdk_assets": [
+          "target/qnx/x86_64/sbin/route"
+        ]
+      },
+      {
+        "path": "/system/bin/scp",
+        "package": "com.qnx.qnx800.target.net.openSSH",
+        "version": "0.5.1.00009T202608101640L",
+        "package_source": "guest_use_info",
+        "release_version_matches": true,
+        "build_id": "f314bcc8d0da7154b1e70ee64fad515d",
+        "matching_sdk_assets": [
+          "target/qnx/x86_64/usr/bin/scp"
+        ]
+      },
+      {
+        "path": "/system/bin/secpol",
+        "package": "com.qnx.qnx800.target.security.secpol.support",
+        "version": "0.6.0.06031T202610011839L",
+        "package_source": "guest_use_info",
+        "release_version_matches": true,
+        "build_id": "6c85d68ec0056cec90ef0dd94b4acf1b",
+        "matching_sdk_assets": [
+          "target/qnx/x86_64/bin/secpol"
+        ]
+      },
+      {
+        "path": "/system/bin/secpolmonitor",
+        "package": "com.qnx.qnx800.target.security.secpol.support",
+        "version": "0.6.0.06031T202610011839L",
+        "package_source": "guest_use_info",
+        "release_version_matches": true,
+        "build_id": "a2594c7051035e4eb74b5d48ae30ede8",
+        "matching_sdk_assets": [
+          "target/qnx/x86_64/bin/secpolmonitor"
+        ]
+      },
+      {
+        "path": "/system/bin/sed",
+        "package": "com.qnx.qnx800.osr.toybox",
+        "version": "0.8.11.00051T202603161435L",
+        "package_source": "guest_use_info",
+        "release_version_matches": true,
+        "build_id": "ac16218adbb6c6d9fb85ffadcb63fa52",
+        "matching_sdk_assets": [
+          "target/qnx/x86_64/usr/bin/toybox",
+          "target/qnx/x86_64/usr/bin/toybox.sym"
+        ]
+      },
+      {
+        "path": "/system/bin/seq",
+        "package": "com.qnx.qnx800.osr.toybox",
+        "version": "0.8.11.00051T202603161435L",
+        "package_source": "guest_use_info",
+        "release_version_matches": true,
+        "build_id": "ac16218adbb6c6d9fb85ffadcb63fa52",
+        "matching_sdk_assets": [
+          "target/qnx/x86_64/usr/bin/toybox",
+          "target/qnx/x86_64/usr/bin/toybox.sym"
+        ]
+      },
+      {
+        "path": "/system/bin/setkey",
+        "package": "com.qnx.qnx800.target.net.devutils",
+        "version": "0.6.0.00011T202610012146L",
+        "package_source": "guest_use_info",
+        "release_version_matches": true,
+        "build_id": "f4560c5b53048258073840f40d3dae70",
+        "matching_sdk_assets": [
+          "target/qnx/x86_64/sbin/setkey"
+        ]
+      },
+      {
+        "path": "/system/bin/sftp-server",
+        "package": "com.qnx.qnx800.target.net.openSSH",
+        "version": "0.5.1.00009T202608101640L",
+        "package_source": "guest_use_info",
+        "release_version_matches": true,
+        "build_id": "2282ceda624ecd37d001f1ced0a064c6",
+        "matching_sdk_assets": [
+          "target/qnx/x86_64/usr/libexec/sftp-server"
+        ]
+      },
+      {
+        "path": "/system/bin/sha1sum",
+        "package": "com.qnx.qnx800.osr.toybox",
+        "version": "0.8.11.00051T202603161435L",
+        "package_source": "guest_use_info",
+        "release_version_matches": true,
+        "build_id": "ac16218adbb6c6d9fb85ffadcb63fa52",
+        "matching_sdk_assets": [
+          "target/qnx/x86_64/usr/bin/toybox",
+          "target/qnx/x86_64/usr/bin/toybox.sym"
+        ]
+      },
+      {
+        "path": "/system/bin/showmount",
+        "package": "com.qnx.qnx800.target.net.nfs",
+        "version": "0.6.0.00012T202610210714L",
+        "package_source": "guest_use_info",
+        "release_version_matches": true,
+        "build_id": "de7f0d274058ce9db5f66edd617b1328",
+        "matching_sdk_assets": [
+          "target/qnx/x86_64/usr/bin/showmount"
+        ]
+      },
+      {
+        "path": "/system/bin/shutdown",
+        "package": "com.qnx.qnx800.target.base.shutdown",
+        "version": "0.0.1.00135T202311191043L",
+        "package_source": "guest_use_info",
+        "release_version_matches": true,
+        "build_id": "c3e23c61f6c2b7db2589b74cc06ec088",
+        "matching_sdk_assets": [
+          "target/qnx/x86_64/sbin/shutdown"
+        ]
+      },
+      {
+        "path": "/system/bin/slay",
+        "package": "com.qnx.qnx800.target.utils.system",
+        "version": "0.2.1.06031T202610011839L",
+        "package_source": "guest_use_info",
+        "release_version_matches": true,
+        "build_id": "ee44a3a9de72a155dc69f74dd68cfed4",
+        "matching_sdk_assets": [
+          "target/qnx/x86_64/bin/slay"
+        ]
+      },
+      {
+        "path": "/system/bin/sleep",
+        "package": "com.qnx.qnx800.osr.toybox",
+        "version": "0.8.11.00051T202603161435L",
+        "package_source": "guest_use_info",
+        "release_version_matches": true,
+        "build_id": "ac16218adbb6c6d9fb85ffadcb63fa52",
+        "matching_sdk_assets": [
+          "target/qnx/x86_64/usr/bin/toybox",
+          "target/qnx/x86_64/usr/bin/toybox.sym"
+        ]
+      },
+      {
+        "path": "/system/bin/slog2info",
+        "package": "com.qnx.qnx800.target.microkernel.slogger2",
+        "version": "0.6.0.06031T202610011839L",
+        "package_source": "guest_use_info",
+        "release_version_matches": true,
+        "build_id": "b24c5c0dac62d06a8537831e33af506f",
+        "matching_sdk_assets": [
+          "target/qnx/x86_64/bin/slog2info"
+        ]
+      },
+      {
+        "path": "/system/bin/sntp",
+        "package": "com.qnx.qnx800.target.net.ntp",
+        "version": "0.0.2.00417T202407041502L",
+        "package_source": "guest_use_info",
+        "release_version_matches": true,
+        "build_id": "700cea87206328721b1ec630ccce2dd5",
+        "matching_sdk_assets": [
+          "target/qnx/x86_64/bin/sntp"
+        ]
+      },
+      {
+        "path": "/system/bin/sockstat",
+        "package": "com.qnx.qnx800.target.net.devutils",
+        "version": "0.6.0.00011T202610012146L",
+        "package_source": "guest_use_info",
+        "release_version_matches": true,
+        "build_id": "1e3453276e4fd826f6a6cc2420bc62b2",
+        "matching_sdk_assets": [
+          "target/qnx/x86_64/usr/bin/sockstat"
+        ]
+      },
+      {
+        "path": "/system/bin/sort",
+        "package": "com.qnx.qnx800.osr.toybox",
+        "version": "0.8.11.00051T202603161435L",
+        "package_source": "guest_use_info",
+        "release_version_matches": true,
+        "build_id": "ac16218adbb6c6d9fb85ffadcb63fa52",
+        "matching_sdk_assets": [
+          "target/qnx/x86_64/usr/bin/toybox",
+          "target/qnx/x86_64/usr/bin/toybox.sym"
+        ]
+      },
+      {
+        "path": "/system/bin/split",
+        "package": "com.qnx.qnx800.osr.toybox",
+        "version": "0.8.11.00051T202603161435L",
+        "package_source": "guest_use_info",
+        "release_version_matches": true,
+        "build_id": "ac16218adbb6c6d9fb85ffadcb63fa52",
+        "matching_sdk_assets": [
+          "target/qnx/x86_64/usr/bin/toybox",
+          "target/qnx/x86_64/usr/bin/toybox.sym"
+        ]
+      },
+      {
+        "path": "/system/bin/sqlite3",
+        "package": "com.qnx.qnx800.osr.sqlite3",
+        "version": "0.0.1.03082T202512161159L",
+        "package_source": "guest_use_info",
+        "release_version_matches": true,
+        "build_id": "ec22a26dd0d2263498d723fc5c932804",
+        "matching_sdk_assets": [
+          "target/qnx/x86_64/usr/bin/sqlite3"
+        ]
+      },
+      {
+        "path": "/system/bin/ssh",
+        "package": "com.qnx.qnx800.target.net.openSSH",
+        "version": "0.5.1.00009T202608101640L",
+        "package_source": "guest_use_info",
+        "release_version_matches": true,
+        "build_id": "322dbe0cf15335aec21d861b18d3ebe7",
+        "matching_sdk_assets": [
+          "target/qnx/x86_64/usr/bin/ssh"
+        ]
+      },
+      {
+        "path": "/system/bin/ssh-keygen",
+        "package": "com.qnx.qnx800.target.net.openSSH",
+        "version": "0.5.1.00009T202608101640L",
+        "package_source": "guest_use_info",
+        "release_version_matches": true,
+        "build_id": "7b9cb6971842b5c9d2825cea6b64f807",
+        "matching_sdk_assets": [
+          "target/qnx/x86_64/usr/bin/ssh-keygen"
+        ]
+      },
+      {
+        "path": "/system/bin/sshd",
+        "package": "com.qnx.qnx800.target.net.openSSH",
+        "version": "0.5.1.00009T202608101640L",
+        "package_source": "guest_use_info",
+        "release_version_matches": true,
+        "build_id": "0fa1ba6459990696a30c2ac43fe4670b",
+        "matching_sdk_assets": [
+          "target/qnx/x86_64/usr/sbin/sshd"
+        ]
+      },
+      {
+        "path": "/system/bin/sshd-auth",
+        "package": "com.qnx.qnx800.target.net.openSSH",
+        "version": "0.5.1.00009T202608101640L",
+        "package_source": "guest_use_info",
+        "release_version_matches": true,
+        "build_id": "63dc55fb0b01d48617d8598290e57e88",
+        "matching_sdk_assets": [
+          "target/qnx/x86_64/usr/libexec/sshd-auth"
+        ]
+      },
+      {
+        "path": "/system/bin/sshd-session",
+        "package": "com.qnx.qnx800.target.net.openSSH",
+        "version": "0.5.1.00009T202608101640L",
+        "package_source": "guest_use_info",
+        "release_version_matches": true,
+        "build_id": "25ad3ac8be147e0c7cf9b9c2a4883d1f",
+        "matching_sdk_assets": [
+          "target/qnx/x86_64/usr/libexec/sshd-session"
+        ]
+      },
+      {
+        "path": "/system/bin/stat",
+        "package": "com.qnx.qnx800.osr.toybox",
+        "version": "0.8.11.00051T202603161435L",
+        "package_source": "guest_use_info",
+        "release_version_matches": true,
+        "build_id": "ac16218adbb6c6d9fb85ffadcb63fa52",
+        "matching_sdk_assets": [
+          "target/qnx/x86_64/usr/bin/toybox",
+          "target/qnx/x86_64/usr/bin/toybox.sym"
+        ]
+      },
+      {
+        "path": "/system/bin/strings",
+        "package": "com.qnx.qnx800.osr.toybox",
+        "version": "0.8.11.00051T202603161435L",
+        "package_source": "guest_use_info",
+        "release_version_matches": true,
+        "build_id": "ac16218adbb6c6d9fb85ffadcb63fa52",
+        "matching_sdk_assets": [
+          "target/qnx/x86_64/usr/bin/toybox",
+          "target/qnx/x86_64/usr/bin/toybox.sym"
+        ]
+      },
+      {
+        "path": "/system/bin/stty",
+        "package": "com.qnx.qnx800.target.utils.qnx",
+        "version": "0.6.0.06031T202610011839L",
+        "package_source": "guest_use_info",
+        "release_version_matches": true,
+        "build_id": "ca687ba03428c42bbc78f87a8ae72ab7",
+        "matching_sdk_assets": [
+          "target/qnx/x86_64/bin/stty"
+        ]
+      },
+      {
+        "path": "/system/bin/su",
+        "package": "com.qnx.qnx800.target.security.authentication",
+        "version": "0.0.1.00135T202311191043L",
+        "package_source": "guest_use_info",
+        "release_version_matches": true,
+        "build_id": "a086e648d226fbe61e51132fd2bc853e",
+        "matching_sdk_assets": [
+          "target/qnx/x86_64/bin/su"
+        ]
+      },
+      {
+        "path": "/system/bin/sync",
+        "package": "com.qnx.qnx800.target.utils.base.s",
+        "version": "0.0.1.00135T202311191043L",
+        "package_source": "guest_use_info",
+        "release_version_matches": true,
+        "build_id": "513d2f1601b2b44e195e0d35dca69607",
+        "matching_sdk_assets": [
+          "target/qnx/x86_64/bin/sync"
+        ]
+      },
+      {
+        "path": "/system/bin/sysctl",
+        "package": "com.qnx.qnx800.target.net.utils",
+        "version": "0.6.0.00011T202610012146L",
+        "package_source": "guest_use_info",
+        "release_version_matches": true,
+        "build_id": "a05af01df675f01c2d040f7fac1967a7",
+        "matching_sdk_assets": [
+          "target/qnx/x86_64/sbin/sysctl"
+        ]
+      },
+      {
+        "path": "/system/bin/tail",
+        "package": "com.qnx.qnx800.osr.toybox",
+        "version": "0.8.11.00051T202603161435L",
+        "package_source": "guest_use_info",
+        "release_version_matches": true,
+        "build_id": "ac16218adbb6c6d9fb85ffadcb63fa52",
+        "matching_sdk_assets": [
+          "target/qnx/x86_64/usr/bin/toybox",
+          "target/qnx/x86_64/usr/bin/toybox.sym"
+        ]
+      },
+      {
+        "path": "/system/bin/tar",
+        "package": "com.qnx.qnx800.osr.toybox",
+        "version": "0.8.11.00051T202603161435L",
+        "package_source": "guest_use_info",
+        "release_version_matches": true,
+        "build_id": "ac16218adbb6c6d9fb85ffadcb63fa52",
+        "matching_sdk_assets": [
+          "target/qnx/x86_64/usr/bin/toybox",
+          "target/qnx/x86_64/usr/bin/toybox.sym"
+        ]
+      },
+      {
+        "path": "/system/bin/tcpdump",
+        "package": "com.qnx.qnx800.target.net.tcpdump",
+        "version": "0.2.0.02504T202504081900L",
+        "package_source": "guest_use_info",
+        "release_version_matches": true,
+        "build_id": "7e4b6dbb933a25887295e82efac118e7",
+        "matching_sdk_assets": [
+          "target/qnx/x86_64/usr/sbin/tcpdump"
+        ]
+      },
+      {
+        "path": "/system/bin/tee",
+        "package": "com.qnx.qnx800.osr.toybox",
+        "version": "0.8.11.00051T202603161435L",
+        "package_source": "guest_use_info",
+        "release_version_matches": true,
+        "build_id": "ac16218adbb6c6d9fb85ffadcb63fa52",
+        "matching_sdk_assets": [
+          "target/qnx/x86_64/usr/bin/toybox",
+          "target/qnx/x86_64/usr/bin/toybox.sym"
+        ]
+      },
+      {
+        "path": "/system/bin/test",
+        "package": "com.qnx.qnx800.osr.toybox",
+        "version": "0.8.11.00051T202603161435L",
+        "package_source": "guest_use_info",
+        "release_version_matches": true,
+        "build_id": "ac16218adbb6c6d9fb85ffadcb63fa52",
+        "matching_sdk_assets": [
+          "target/qnx/x86_64/usr/bin/toybox",
+          "target/qnx/x86_64/usr/bin/toybox.sym"
+        ]
+      },
+      {
+        "path": "/system/bin/time",
+        "package": "com.qnx.qnx800.osr.toybox",
+        "version": "0.8.11.00051T202603161435L",
+        "package_source": "guest_use_info",
+        "release_version_matches": true,
+        "build_id": "ac16218adbb6c6d9fb85ffadcb63fa52",
+        "matching_sdk_assets": [
+          "target/qnx/x86_64/usr/bin/toybox",
+          "target/qnx/x86_64/usr/bin/toybox.sym"
+        ]
+      },
+      {
+        "path": "/system/bin/timeout",
+        "package": "com.qnx.qnx800.osr.toybox",
+        "version": "0.8.11.00051T202603161435L",
+        "package_source": "guest_use_info",
+        "release_version_matches": true,
+        "build_id": "ac16218adbb6c6d9fb85ffadcb63fa52",
+        "matching_sdk_assets": [
+          "target/qnx/x86_64/usr/bin/toybox",
+          "target/qnx/x86_64/usr/bin/toybox.sym"
+        ]
+      },
+      {
+        "path": "/system/bin/top",
+        "package": "com.qnx.qnx800.target.utils.base.t",
+        "version": "0.6.0.06031T202610011839L",
+        "package_source": "guest_use_info",
+        "release_version_matches": true,
+        "build_id": "30e85a8db1754f6a82982b04d6ee6a60",
+        "matching_sdk_assets": [
+          "target/qnx/x86_64/usr/bin/top"
+        ]
+      },
+      {
+        "path": "/system/bin/touch",
+        "package": "com.qnx.qnx800.osr.toybox",
+        "version": "0.8.11.00051T202603161435L",
+        "package_source": "guest_use_info",
+        "release_version_matches": true,
+        "build_id": "ac16218adbb6c6d9fb85ffadcb63fa52",
+        "matching_sdk_assets": [
+          "target/qnx/x86_64/usr/bin/toybox",
+          "target/qnx/x86_64/usr/bin/toybox.sym"
+        ]
+      },
+      {
+        "path": "/system/bin/toybox",
+        "package": "com.qnx.qnx800.osr.toybox",
+        "version": "0.8.11.00051T202603161435L",
+        "package_source": "guest_use_info",
+        "release_version_matches": true,
+        "build_id": "ac16218adbb6c6d9fb85ffadcb63fa52",
+        "matching_sdk_assets": [
+          "target/qnx/x86_64/usr/bin/toybox",
+          "target/qnx/x86_64/usr/bin/toybox.sym"
+        ]
+      },
+      {
+        "path": "/system/bin/tr",
+        "package": "com.qnx.qnx800.osr.toybox",
+        "version": "0.8.11.00051T202603161435L",
+        "package_source": "guest_use_info",
+        "release_version_matches": true,
+        "build_id": "ac16218adbb6c6d9fb85ffadcb63fa52",
+        "matching_sdk_assets": [
+          "target/qnx/x86_64/usr/bin/toybox",
+          "target/qnx/x86_64/usr/bin/toybox.sym"
+        ]
+      },
+      {
+        "path": "/system/bin/tracelogger",
+        "package": "com.qnx.qnx800.target.microkernel.tools",
+        "version": "0.2.0.06031T202610011839L",
+        "package_source": "guest_use_info",
+        "release_version_matches": true,
+        "build_id": "f99c6e0b69697d162afd4a71fe0d72ca",
+        "matching_sdk_assets": [
+          "target/qnx/x86_64/usr/sbin/tracelogger"
+        ]
+      },
+      {
+        "path": "/system/bin/traceroute",
+        "package": "com.qnx.qnx800.target.net.devutils",
+        "version": "0.6.0.00011T202610012146L",
+        "package_source": "guest_use_info",
+        "release_version_matches": true,
+        "build_id": "93bdfb31d7673dc27242511304d03484",
+        "matching_sdk_assets": [
+          "target/qnx/x86_64/usr/sbin/traceroute"
+        ]
+      },
+      {
+        "path": "/system/bin/traceroute6",
+        "package": "com.qnx.qnx800.target.net.devutils",
+        "version": "0.6.0.00011T202610012146L",
+        "package_source": "guest_use_info",
+        "release_version_matches": true,
+        "build_id": "89a289acc83468eb81750532c92f9df4",
+        "matching_sdk_assets": [
+          "target/qnx/x86_64/usr/sbin/traceroute6"
+        ]
+      },
+      {
+        "path": "/system/bin/true",
+        "package": "com.qnx.qnx800.osr.toybox",
+        "version": "0.8.11.00051T202603161435L",
+        "package_source": "guest_use_info",
+        "release_version_matches": true,
+        "build_id": "ac16218adbb6c6d9fb85ffadcb63fa52",
+        "matching_sdk_assets": [
+          "target/qnx/x86_64/usr/bin/toybox",
+          "target/qnx/x86_64/usr/bin/toybox.sym"
+        ]
+      },
+      {
+        "path": "/system/bin/truncate",
+        "package": "com.qnx.qnx800.osr.toybox",
+        "version": "0.8.11.00051T202603161435L",
+        "package_source": "guest_use_info",
+        "release_version_matches": true,
+        "build_id": "ac16218adbb6c6d9fb85ffadcb63fa52",
+        "matching_sdk_assets": [
+          "target/qnx/x86_64/usr/bin/toybox",
+          "target/qnx/x86_64/usr/bin/toybox.sym"
+        ]
+      },
+      {
+        "path": "/system/bin/tty",
+        "package": "com.qnx.qnx800.osr.toybox",
+        "version": "0.8.11.00051T202603161435L",
+        "package_source": "guest_use_info",
+        "release_version_matches": true,
+        "build_id": "ac16218adbb6c6d9fb85ffadcb63fa52",
+        "matching_sdk_assets": [
+          "target/qnx/x86_64/usr/bin/toybox",
+          "target/qnx/x86_64/usr/bin/toybox.sym"
+        ]
+      },
+      {
+        "path": "/system/bin/uname",
+        "package": "com.qnx.qnx800.osr.toybox",
+        "version": "0.8.11.00051T202603161435L",
+        "package_source": "guest_use_info",
+        "release_version_matches": true,
+        "build_id": "ac16218adbb6c6d9fb85ffadcb63fa52",
+        "matching_sdk_assets": [
+          "target/qnx/x86_64/usr/bin/toybox",
+          "target/qnx/x86_64/usr/bin/toybox.sym"
+        ]
+      },
+      {
+        "path": "/system/bin/uniq",
+        "package": "com.qnx.qnx800.osr.toybox",
+        "version": "0.8.11.00051T202603161435L",
+        "package_source": "guest_use_info",
+        "release_version_matches": true,
+        "build_id": "ac16218adbb6c6d9fb85ffadcb63fa52",
+        "matching_sdk_assets": [
+          "target/qnx/x86_64/usr/bin/toybox",
+          "target/qnx/x86_64/usr/bin/toybox.sym"
+        ]
+      },
+      {
+        "path": "/system/bin/unix2dos",
+        "package": "com.qnx.qnx800.osr.toybox",
+        "version": "0.8.11.00051T202603161435L",
+        "package_source": "guest_use_info",
+        "release_version_matches": true,
+        "build_id": "ac16218adbb6c6d9fb85ffadcb63fa52",
+        "matching_sdk_assets": [
+          "target/qnx/x86_64/usr/bin/toybox",
+          "target/qnx/x86_64/usr/bin/toybox.sym"
+        ]
+      },
+      {
+        "path": "/system/bin/unlink",
+        "package": "com.qnx.qnx800.osr.toybox",
+        "version": "0.8.11.00051T202603161435L",
+        "package_source": "guest_use_info",
+        "release_version_matches": true,
+        "build_id": "ac16218adbb6c6d9fb85ffadcb63fa52",
+        "matching_sdk_assets": [
+          "target/qnx/x86_64/usr/bin/toybox",
+          "target/qnx/x86_64/usr/bin/toybox.sym"
+        ]
+      },
+      {
+        "path": "/system/bin/usb",
+        "package": "com.qnx.qnx800.target.usb.base",
+        "version": "0.2.0.00070T202609111428L",
+        "package_source": "guest_use_info",
+        "release_version_matches": true,
+        "build_id": "02714371f2176102f7e4514cf6ef82f1",
+        "matching_sdk_assets": [
+          "target/qnx/x86_64/sbin/usb"
+        ]
+      },
+      {
+        "path": "/system/bin/use",
+        "package": "com.qnx.qnx800.target.utils.system",
+        "version": "0.2.1.06031T202610011839L",
+        "package_source": "guest_use_info",
+        "release_version_matches": true,
+        "build_id": "c56858bf3aac36eeab231645c36b1a30",
+        "matching_sdk_assets": [
+          "target/qnx/x86_64/usr/bin/use"
+        ]
+      },
+      {
+        "path": "/system/bin/uudecode",
+        "package": "com.qnx.qnx800.osr.toybox",
+        "version": "0.8.11.00051T202603161435L",
+        "package_source": "guest_use_info",
+        "release_version_matches": true,
+        "build_id": "ac16218adbb6c6d9fb85ffadcb63fa52",
+        "matching_sdk_assets": [
+          "target/qnx/x86_64/usr/bin/toybox",
+          "target/qnx/x86_64/usr/bin/toybox.sym"
+        ]
+      },
+      {
+        "path": "/system/bin/uuencode",
+        "package": "com.qnx.qnx800.osr.toybox",
+        "version": "0.8.11.00051T202603161435L",
+        "package_source": "guest_use_info",
+        "release_version_matches": true,
+        "build_id": "ac16218adbb6c6d9fb85ffadcb63fa52",
+        "matching_sdk_assets": [
+          "target/qnx/x86_64/usr/bin/toybox",
+          "target/qnx/x86_64/usr/bin/toybox.sym"
+        ]
+      },
+      {
+        "path": "/system/bin/uuidgen",
+        "package": "com.qnx.qnx800.osr.toybox",
+        "version": "0.8.11.00051T202603161435L",
+        "package_source": "guest_use_info",
+        "release_version_matches": true,
+        "build_id": "ac16218adbb6c6d9fb85ffadcb63fa52",
+        "matching_sdk_assets": [
+          "target/qnx/x86_64/usr/bin/toybox",
+          "target/qnx/x86_64/usr/bin/toybox.sym"
+        ]
+      },
+      {
+        "path": "/system/bin/vi",
+        "package": "com.qnx.qnx800.target.utils.base.e",
+        "version": "0.0.1.00135T202311191043L",
+        "package_source": "guest_use_info",
+        "release_version_matches": true,
+        "build_id": "8bd3d2b796363568ef55cadcb0554dcd",
+        "matching_sdk_assets": [
+          "target/qnx/x86_64/bin/elvis"
+        ]
+      },
+      {
+        "path": "/system/bin/wc",
+        "package": "com.qnx.qnx800.osr.toybox",
+        "version": "0.8.11.00051T202603161435L",
+        "package_source": "guest_use_info",
+        "release_version_matches": true,
+        "build_id": "ac16218adbb6c6d9fb85ffadcb63fa52",
+        "matching_sdk_assets": [
+          "target/qnx/x86_64/usr/bin/toybox",
+          "target/qnx/x86_64/usr/bin/toybox.sym"
+        ]
+      },
+      {
+        "path": "/system/bin/which",
+        "package": "com.qnx.qnx800.osr.toybox",
+        "version": "0.8.11.00051T202603161435L",
+        "package_source": "guest_use_info",
+        "release_version_matches": true,
+        "build_id": "ac16218adbb6c6d9fb85ffadcb63fa52",
+        "matching_sdk_assets": [
+          "target/qnx/x86_64/usr/bin/toybox",
+          "target/qnx/x86_64/usr/bin/toybox.sym"
+        ]
+      },
+      {
+        "path": "/system/bin/whoami",
+        "package": "com.qnx.qnx800.osr.toybox",
+        "version": "0.8.11.00051T202603161435L",
+        "package_source": "guest_use_info",
+        "release_version_matches": true,
+        "build_id": "ac16218adbb6c6d9fb85ffadcb63fa52",
+        "matching_sdk_assets": [
+          "target/qnx/x86_64/usr/bin/toybox",
+          "target/qnx/x86_64/usr/bin/toybox.sym"
+        ]
+      },
+      {
+        "path": "/system/bin/xargs",
+        "package": "com.qnx.qnx800.osr.toybox",
+        "version": "0.8.11.00051T202603161435L",
+        "package_source": "guest_use_info",
+        "release_version_matches": true,
+        "build_id": "ac16218adbb6c6d9fb85ffadcb63fa52",
+        "matching_sdk_assets": [
+          "target/qnx/x86_64/usr/bin/toybox",
+          "target/qnx/x86_64/usr/bin/toybox.sym"
+        ]
+      },
+      {
+        "path": "/system/bin/xxd",
+        "package": "com.qnx.qnx800.osr.toybox",
+        "version": "0.8.11.00051T202603161435L",
+        "package_source": "guest_use_info",
+        "release_version_matches": true,
+        "build_id": "ac16218adbb6c6d9fb85ffadcb63fa52",
+        "matching_sdk_assets": [
+          "target/qnx/x86_64/usr/bin/toybox",
+          "target/qnx/x86_64/usr/bin/toybox.sym"
+        ]
+      },
+      {
+        "path": "/system/bin/yes",
+        "package": "com.qnx.qnx800.osr.toybox",
+        "version": "0.8.11.00051T202603161435L",
+        "package_source": "guest_use_info",
+        "release_version_matches": true,
+        "build_id": "ac16218adbb6c6d9fb85ffadcb63fa52",
+        "matching_sdk_assets": [
+          "target/qnx/x86_64/usr/bin/toybox",
+          "target/qnx/x86_64/usr/bin/toybox.sym"
+        ]
+      },
+      {
+        "path": "/system/bin/zcat",
+        "package": "com.qnx.qnx800.osr.toybox",
+        "version": "0.8.11.00051T202603161435L",
+        "package_source": "guest_use_info",
+        "release_version_matches": true,
+        "build_id": "ac16218adbb6c6d9fb85ffadcb63fa52",
+        "matching_sdk_assets": [
+          "target/qnx/x86_64/usr/bin/toybox",
+          "target/qnx/x86_64/usr/bin/toybox.sym"
+        ]
+      },
+      {
+        "path": "/system/lib/libbz2.so.1",
+        "package": "com.qnx.qnx800.target.base.compression.bz2",
+        "version": "0.4.0.00132T202605281115L",
+        "package_source": "guest_use_info",
+        "release_version_matches": true,
+        "build_id": "993a5e1718be65a90bfa4ad28dfaee6c",
+        "matching_sdk_assets": [
+          "target/qnx/x86_64/usr/lib/libbz2.so.1"
+        ]
+      },
+      {
+        "path": "/system/lib/libc++.so.2",
+        "package": "com.qnx.qnx800.target.base.cpp",
+        "version": "18.0.0.01506T202610011617L",
+        "package_source": "guest_use_info",
+        "release_version_matches": true,
+        "build_id": "2f3a87c8fc87ac5b73338739f9c076b7",
+        "matching_sdk_assets": [
+          "target/qnx/x86_64/usr/lib/libc++.so.2.0"
+        ]
+      },
+      {
+        "path": "/system/lib/libcares.so.8",
+        "package": "com.qnx.qnx800.target.net.curl",
+        "version": "0.0.2.00446T202407261305L",
+        "package_source": "guest_use_info",
+        "release_version_matches": true,
+        "build_id": "22d2dcbe2428b82118371361871466b1",
+        "matching_sdk_assets": [
+          "target/qnx/x86_64/usr/lib/libcares.so.8"
+        ]
+      },
+      {
+        "path": "/system/lib/libcatalog.so.1",
+        "package": "com.qnx.qnx800.target.base.libcatalog",
+        "version": "1.1.0.00132T202605281115L",
+        "package_source": "guest_use_info",
+        "release_version_matches": true,
+        "build_id": "a41e2180c6630687358ba6755428a541",
+        "matching_sdk_assets": [
+          "target/qnx/x86_64/lib/libcatalog.so.1"
+        ]
+      },
+      {
+        "path": "/system/lib/libcurl.so.12",
+        "package": "com.qnx.qnx800.target.net.curl",
+        "version": "0.0.2.00446T202407261305L",
+        "package_source": "guest_use_info",
+        "release_version_matches": true,
+        "build_id": "fe5db7c0210d9b5d2986ae7109a14b10",
+        "matching_sdk_assets": [
+          "target/qnx/x86_64/usr/lib/libcurl.so.12"
+        ]
+      },
+      {
+        "path": "/system/lib/libedit.so.0",
+        "package": "com.qnx.qnx800.target.base",
+        "version": "0.0.1.00135T202311191043L",
+        "package_source": "guest_use_info",
+        "release_version_matches": true,
+        "build_id": "4f9c43aa97ad66989eb47740b42cb6c4",
+        "matching_sdk_assets": [
+          "target/qnx/x86_64/usr/lib/libedit.so.0"
+        ]
+      },
+      {
+        "path": "/system/lib/libexpat.so.2",
+        "package": "com.qnx.qnx800.target.base.libexpat",
+        "version": "2.8.0.00382T202605041557L",
+        "package_source": "guest_use_info",
+        "release_version_matches": true,
+        "build_id": "86f0cddf07cbf512bb9387ae37b37b40",
+        "matching_sdk_assets": [
+          "target/qnx/x86_64/usr/lib/libexpat.so.2"
+        ]
+      },
+      {
+        "path": "/system/lib/libfdt.so.1",
+        "package": "com.qnx.qnx800.target.drivers.libfdt",
+        "version": "0.1.0.00392T202406181101L",
+        "package_source": "guest_use_info",
+        "release_version_matches": true,
+        "build_id": "562f411c38c858eca6eef4f5675cf264",
+        "matching_sdk_assets": [
+          "target/qnx/x86_64/usr/lib/libfdt.so.1"
+        ]
+      },
+      {
+        "path": "/system/lib/libiconv.so.1",
+        "package": "com.qnx.qnx800.target.text.charconv",
+        "version": "0.0.1.00135T202311191043L",
+        "package_source": "guest_use_info",
+        "release_version_matches": true,
+        "build_id": "301f7cdae8b7ffef07881623dfd2f71c",
+        "matching_sdk_assets": [
+          "target/qnx/x86_64/usr/lib/libiconv.so.1"
+        ]
+      },
+      {
+        "path": "/system/lib/libintl.so.1",
+        "package": "com.qnx.qnx800.target.base",
+        "version": "0.0.1.00135T202311191043L",
+        "package_source": "guest_use_info",
+        "release_version_matches": true,
+        "build_id": "ce68841cb7a9541e1cbd88eeff7eccaa",
+        "matching_sdk_assets": [
+          "target/qnx/x86_64/usr/lib/libintl.so.1"
+        ]
+      },
+      {
+        "path": "/system/lib/libiperf.so.0",
+        "package": "com.qnx.qnx800.target.net.iperf3",
+        "version": "0.5.0.00005T202601190904L",
+        "package_source": "guest_use_info",
+        "release_version_matches": true,
+        "build_id": "ff4a080060a308661c89415a429bbe0c",
+        "matching_sdk_assets": [
+          "target/qnx/x86_64/usr/lib/libiperf.so.0"
+        ]
+      },
+      {
+        "path": "/system/lib/liblzma.so.5",
+        "package": "com.qnx.qnx800.target.base.compression.lzma",
+        "version": "0.4.0.00132T202605281115L",
+        "package_source": "sdk_build_id_lookup",
+        "release_version_matches": true,
+        "build_id": "d3a23429af144ab639e4897d93a44d19",
+        "matching_sdk_assets": [
+          "target/qnx/x86_64/usr/lib/liblzma.so.5"
+        ]
+      },
+      {
+        "path": "/system/lib/libncursesw.so.1",
+        "package": "com.qnx.qnx800.target.base.text.ncurses",
+        "version": "0.0.2.00012T202411230232L",
+        "package_source": "guest_use_info",
+        "release_version_matches": true,
+        "build_id": "2ad228e1a4f80dcfb70508ac514d2ba5",
+        "matching_sdk_assets": [
+          "target/qnx/x86_64/usr/lib/libncursesw.so.6.4"
+        ]
+      },
+      {
+        "path": "/system/lib/libpam.so.2",
+        "package": "com.qnx.qnx800.target.security.pam",
+        "version": "0.0.1.00135T202311191043L",
+        "package_source": "guest_use_info",
+        "release_version_matches": true,
+        "build_id": "10e34f0196422cc3355fc9ae42973593",
+        "matching_sdk_assets": [
+          "target/qnx/x86_64/usr/lib/libpam.so.2"
+        ]
+      },
+      {
+        "path": "/system/lib/libpanelw.so.1",
+        "package": "com.qnx.qnx800.target.base.text.ncurses",
+        "version": "0.0.2.00012T202411230232L",
+        "package_source": "guest_use_info",
+        "release_version_matches": true,
+        "build_id": "65e216930dea2ed05744dc468bffa032",
+        "matching_sdk_assets": [
+          "target/qnx/x86_64/usr/lib/libpanelw.so.6.4"
+        ]
+      },
+      {
+        "path": "/system/lib/librcheck.so",
+        "package": "com.qnx.qnx800.target.utils.debugtools",
+        "version": "0.2.0.06031T202610011839L",
+        "package_source": "guest_use_info",
+        "release_version_matches": true,
+        "build_id": "1f19c371fcc576c66bd17a5134264bf5",
+        "matching_sdk_assets": [
+          "target/qnx/x86_64/usr/lib/librcheck.so.1"
+        ]
+      },
+      {
+        "path": "/system/lib/librcheck.so.1",
+        "package": "com.qnx.qnx800.target.utils.debugtools",
+        "version": "0.2.0.06031T202610011839L",
+        "package_source": "guest_use_info",
+        "release_version_matches": true,
+        "build_id": "1f19c371fcc576c66bd17a5134264bf5",
+        "matching_sdk_assets": [
+          "target/qnx/x86_64/usr/lib/librcheck.so.1"
+        ]
+      },
+      {
+        "path": "/system/lib/librpc.so.2",
+        "package": "com.qnx.qnx800.target.net.nfs",
+        "version": "0.6.0.00012T202610210714L",
+        "package_source": "guest_use_info",
+        "release_version_matches": true,
+        "build_id": "c54437971a02e1e6d66061ab67ed3c8d",
+        "matching_sdk_assets": [
+          "target/qnx/x86_64/usr/lib/librpc.so.2"
+        ]
+      },
+      {
+        "path": "/system/lib/libssl.so.3",
+        "package": "com.qnx.qnx800.target.security.crypto.openssl3",
+        "version": "3.0.22.00012T202610012115L",
+        "package_source": "guest_use_info",
+        "release_version_matches": true,
+        "build_id": "07c92bfc633825f5eb8c00ab1195371c",
+        "matching_sdk_assets": [
+          "target/qnx/x86_64/usr/lib/libssl.so.3",
+          "target/qnx/x86_64/usr/lib/libssl.so.3.sym"
+        ]
+      },
+      {
+        "path": "/system/lib/libstdc++.so.6",
+        "package": "com.qnx.qnx800.target.tools.cpp",
+        "version": "12.2.0.01008T202610011452L",
+        "package_source": "guest_use_info",
+        "release_version_matches": true,
+        "build_id": "23413683ebe91da6128ca52c9cf93a51",
+        "matching_sdk_assets": [
+          "target/qnx/x86_64/lib/libstdc++.so.6.0.30"
+        ]
+      },
+      {
+        "path": "/system/lib/libtracelog.so.1",
+        "package": "com.qnx.qnx800.target.microkernel.tools",
+        "version": "0.2.0.06031T202610011839L",
+        "package_source": "guest_use_info",
+        "release_version_matches": true,
+        "build_id": "e01843b8ef3163d0ba2687c8d54c9dc6",
+        "matching_sdk_assets": [
+          "target/qnx/x86_64/lib/libtracelog.so.1"
+        ]
+      },
+      {
+        "path": "/system/lib/libunwind.so.8",
+        "package": "com.qnx.qnx800.target.utils.libunwind",
+        "version": "1.8.2.00175T202605211154L",
+        "package_source": "guest_use_info",
+        "release_version_matches": true,
+        "build_id": "44615a529237ddaf4c61302af6d257e5",
+        "matching_sdk_assets": [
+          "target/qnx/x86_64/usr/lib/libunwind.so.8.2.0"
+        ]
+      },
+      {
+        "path": "/system/lib/libusbdci.so.2",
+        "package": "com.qnx.qnx800.target.usb.dcd",
+        "version": "0.1.0.00060T202605201516L",
+        "package_source": "guest_use_info",
+        "release_version_matches": true,
+        "build_id": "3e6b70937dc7ad482ada91fc8be17888",
+        "matching_sdk_assets": [
+          "target/qnx/x86_64/lib/libusbdci.so.2"
+        ]
+      },
+      {
+        "path": "/system/lib/libusbdi.so.2",
+        "package": "com.qnx.qnx800.target.usb.base",
+        "version": "0.2.0.00070T202609111428L",
+        "package_source": "guest_use_info",
+        "release_version_matches": true,
+        "build_id": "d576eadebc3002b0ec15c883ad5b543a",
+        "matching_sdk_assets": [
+          "target/qnx/x86_64/lib/libusbdi.so.2"
+        ]
+      },
+      {
+        "path": "/system/lib/libxml2.so.16",
+        "package": "com.qnx.qnx800.target.base.libxml2",
+        "version": "2.15.2.00014T202604201444L",
+        "package_source": "guest_use_info",
+        "release_version_matches": true,
+        "build_id": "93cdc4ad59db43782085692339e4c3a4",
+        "matching_sdk_assets": [
+          "target/qnx/x86_64/usr/lib/libxml2.so.16.1.2"
+        ]
+      },
+      {
+        "path": "/system/lib/libxo.so.0",
+        "package": "com.qnx.qnx800.target.net.utils",
+        "version": "0.6.0.00011T202610012146L",
+        "package_source": "guest_use_info",
+        "release_version_matches": true,
+        "build_id": "7bf7b5c1d840b23a7f052957cf781baf",
+        "matching_sdk_assets": [
+          "target/qnx/x86_64/usr/lib/libxo.so.0"
+        ]
+      },
+      {
+        "path": "/system/lib/dll/devs-vtnet_pci.so",
+        "package": "com.qnx.qnx800.target.net.devsvirtio",
+        "version": "0.6.0.00014T202610210541L",
+        "package_source": "guest_use_info",
+        "release_version_matches": true,
+        "build_id": "add6a4afbd571c80d88b3032c988a360",
+        "matching_sdk_assets": [
+          "target/qnx/x86_64/lib/dll/devs-vtnet_pci.so"
+        ]
+      },
+      {
+        "path": "/system/lib/dll/devu-hcd-ehci.so",
+        "package": "com.qnx.qnx800.target.usb.base",
+        "version": "0.2.0.00070T202609111428L",
+        "package_source": "guest_use_info",
+        "release_version_matches": true,
+        "build_id": "f8e9a1fa1b9c28e97035b99a6485d4fe",
+        "matching_sdk_assets": [
+          "target/qnx/x86_64/lib/dll/devu-hcd-ehci.so"
+        ]
+      },
+      {
+        "path": "/system/lib/dll/devu-hcd-uhci.so",
+        "package": "com.qnx.qnx800.target.usb.base",
+        "version": "0.2.0.00070T202609111428L",
+        "package_source": "guest_use_info",
+        "release_version_matches": true,
+        "build_id": "abf06d7287d49e0ecd3ca7578bef7242",
+        "matching_sdk_assets": [
+          "target/qnx/x86_64/lib/dll/devu-hcd-uhci.so"
+        ]
+      },
+      {
+        "path": "/system/lib/dll/devu-hcd-xhci.so",
+        "package": "com.qnx.qnx800.target.usb.base",
+        "version": "0.2.0.00070T202609111428L",
+        "package_source": "guest_use_info",
+        "release_version_matches": true,
+        "build_id": "de80c7f55fa23685962a011d8a00043a",
+        "matching_sdk_assets": [
+          "target/qnx/x86_64/lib/dll/devu-hcd-xhci.so"
+        ]
+      },
+      {
+        "path": "/system/lib/dll/fs-dos.so",
+        "package": "com.qnx.qnx800.target.fs.dosfs",
+        "version": "0.3.0.00020T202610012324L",
+        "package_source": "guest_use_info",
+        "release_version_matches": true,
+        "build_id": "a2fa1ee1c80d20f4f175d727a089665b",
+        "matching_sdk_assets": [
+          "target/qnx/x86_64/lib/dll/fs-dos.so"
+        ]
+      },
+      {
+        "path": "/system/lib/dll/mods-pci.so",
+        "package": "com.qnx.qnx800.target.net.devspci",
+        "version": "0.6.0.00011T202610012146L",
+        "package_source": "guest_use_info",
+        "release_version_matches": true,
+        "build_id": "57b904a59a7612ab3a9d491c98972904",
+        "matching_sdk_assets": [
+          "target/qnx/x86_64/lib/dll/mods-pci.so"
+        ]
+      },
+      {
+        "path": "/system/lib/dll/mods-phy.so",
+        "package": "com.qnx.qnx800.target.net.modsphy",
+        "version": "0.6.0.00011T202610012146L",
+        "package_source": "guest_use_info",
+        "release_version_matches": true,
+        "build_id": "f19ee6bc41516e18c25439010458f532",
+        "matching_sdk_assets": [
+          "target/qnx/x86_64/lib/dll/mods-phy.so"
+        ]
+      },
+      {
+        "path": "/system/lib/dll/mods-usb.so",
+        "package": "com.qnx.qnx800.target.net.devsusb",
+        "version": "0.6.0.00011T202610012146L",
+        "package_source": "guest_use_info",
+        "release_version_matches": true,
+        "build_id": "39fde15b20041d6c5f124e6fd5a3f1c7",
+        "matching_sdk_assets": [
+          "target/qnx/x86_64/lib/dll/mods-usb.so"
+        ]
+      },
+      {
+        "path": "/system/lib/dll/pam/pam_deny.so",
+        "package": "com.qnx.qnx800.target.security.pam",
+        "version": "0.0.1.00135T202311191043L",
+        "package_source": "guest_use_info",
+        "release_version_matches": true,
+        "build_id": "96964f63acc9238af25bc755bcaca6a1",
+        "matching_sdk_assets": [
+          "target/qnx/x86_64/usr/lib/pam_deny.so.2"
+        ]
+      },
+      {
+        "path": "/system/lib/dll/pam/pam_echo.so",
+        "package": "com.qnx.qnx800.target.security.pam",
+        "version": "0.0.1.00135T202311191043L",
+        "package_source": "guest_use_info",
+        "release_version_matches": true,
+        "build_id": "b148a93e7cd0af19ed21432da2354b5c",
+        "matching_sdk_assets": [
+          "target/qnx/x86_64/usr/lib/pam_echo.so.2"
+        ]
+      },
+      {
+        "path": "/system/lib/dll/pam/pam_exec.so",
+        "package": "com.qnx.qnx800.target.security.pam",
+        "version": "0.0.1.00135T202311191043L",
+        "package_source": "guest_use_info",
+        "release_version_matches": true,
+        "build_id": "153f53dc38b3a31d44dec3f92ee74cac",
+        "matching_sdk_assets": [
+          "target/qnx/x86_64/usr/lib/pam_exec.so.2"
+        ]
+      },
+      {
+        "path": "/system/lib/dll/pam/pam_group.so",
+        "package": "com.qnx.qnx800.target.security.pam",
+        "version": "0.0.1.00135T202311191043L",
+        "package_source": "guest_use_info",
+        "release_version_matches": true,
+        "build_id": "0d94ed1bc545e2eb801aa46bb96cd4d3",
+        "matching_sdk_assets": [
+          "target/qnx/x86_64/usr/lib/pam_group.so.2"
+        ]
+      },
+      {
+        "path": "/system/lib/dll/pam/pam_permit.so",
+        "package": "com.qnx.qnx800.target.security.pam",
+        "version": "0.0.1.00135T202311191043L",
+        "package_source": "guest_use_info",
+        "release_version_matches": true,
+        "build_id": "25b6a56e5991dde7ed1e275020d20076",
+        "matching_sdk_assets": [
+          "target/qnx/x86_64/usr/lib/pam_permit.so.2"
+        ]
+      },
+      {
+        "path": "/system/lib/dll/pam/pam_qnx.so",
+        "package": "com.qnx.qnx800.target.security.pam",
+        "version": "0.0.1.00135T202311191043L",
+        "package_source": "guest_use_info",
+        "release_version_matches": true,
+        "build_id": "f072a463e9062edcd98411f787da9cc8",
+        "matching_sdk_assets": [
+          "target/qnx/x86_64/usr/lib/pam_qnx.so.2"
+        ]
+      },
+      {
+        "path": "/system/lib/dll/pam/pam_rootok.so",
+        "package": "com.qnx.qnx800.target.security.pam",
+        "version": "0.0.1.00135T202311191043L",
+        "package_source": "guest_use_info",
+        "release_version_matches": true,
+        "build_id": "e4ac893b879cddea4c070ff16910598b",
+        "matching_sdk_assets": [
+          "target/qnx/x86_64/usr/lib/pam_rootok.so.2"
+        ]
+      },
+      {
+        "path": "/system/lib/dll/pam/pam_self.so",
+        "package": "com.qnx.qnx800.target.security.pam",
+        "version": "0.0.1.00135T202311191043L",
+        "package_source": "guest_use_info",
+        "release_version_matches": true,
+        "build_id": "6105bc8faaec3e23a0baac17142cfb77",
+        "matching_sdk_assets": [
+          "target/qnx/x86_64/usr/lib/pam_self.so.2"
+        ]
+      }
+    ],
+    "package_inferred_from_build_id": [
+      "/system/bin/awk",
+      "/system/bin/gawk",
+      "/system/lib/liblzma.so.5"
+    ],
+    "kernel": {
+      "guest_package_matches": true,
+      "sdk_build_id": "5d307f7740bfbe30497938ac130c0e1f",
+      "sdk_sha512_matches_descriptor": true,
+      "guest_build_id_available": false,
+      "scope": "The boot kernel exposes package/version but no GNU build ID through use -i. SDK integrity is a separate check, not a byte-for-byte guest kernel comparison."
+    }
+  },
+  "limitations": [
+    "Release membership is checked against a locally cached vendor catalog; no catalog refresh or independent signature validation was performed.",
+    "Package inventory agreement does not hash every SDK file or prove vendor-supported installation.",
+    "Guest scan covers regular files in /proc/boot, /system/bin, /system/lib, /system/lib/dll and /system/lib/dll/pam; aliases are counted as separate paths.",
+    "Build IDs identify vendor builds; they are not cryptographic integrity proofs of every guest byte.",
+    "No execution-time robustness or real-time hardware guarantee follows from release alignment."
+  ]
+}

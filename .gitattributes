@@ -5,3 +5,4 @@ docs/evidence/qnx-validation-2026-11-23/shadow-validation/*.log -whitespace
 docs/evidence/qnx-validation-2026-11-23/shadow-validation/*.fds -whitespace
 docs/evidence/qnx-validation-2026-11-23/shadow-validation/*.threads -whitespace
 docs/evidence/qnx-validation-2026-11-23/shadow-validation/*.processes -whitespace
+docs/evidence/qnx-release-audit-2026-11-23/*.log -text -whitespace

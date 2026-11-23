@@ -1,0 +1,1714 @@
+FILE /proc/boot/ability
+QNX_BUILDID=(GNU)ea45c3c0342645e5ac25a9d56bc73ba5
+NAME=on
+DATE=2026/10/01-19:22:10-EDT
+VERSION=qnxcore_be-800_B6031
+PACKAGE=com.qnx.qnx800.target.utils.system/0.2.1.06031T202610011839L
+FILE /proc/boot/build.date
+FILE /proc/boot/cam-disk.so
+QNX_BUILDID=(GNU)51c6f2e1550f8494ace41cb0a518869e
+NAME=cam-disk.so
+DATE=2023/11/20-10:08:01-EST
+VERSION=hardware_br-rel_be-800_B443
+PACKAGE=com.qnx.qnx800.target.fs.cam/0.0.1.00443T202311201012L
+FILE /proc/boot/cat
+QNX_BUILDID=(GNU)ac16218adbb6c6d9fb85ffadcb63fa52
+NAME=toybox
+DATE=2026/03/16-14:35:41-EDT
+VERSION=OSR-toybox-git_br-qnx-sdp8-master_be-800_B51
+PACKAGE=com.qnx.qnx800.osr.toybox/0.8.11.00051T202603161435L
+FILE /proc/boot/chmod
+QNX_BUILDID=(GNU)ac16218adbb6c6d9fb85ffadcb63fa52
+NAME=toybox
+DATE=2026/03/16-14:35:41-EDT
+VERSION=OSR-toybox-git_br-qnx-sdp8-master_be-800_B51
+PACKAGE=com.qnx.qnx800.osr.toybox/0.8.11.00051T202603161435L
+FILE /proc/boot/dd
+QNX_BUILDID=(GNU)ac16218adbb6c6d9fb85ffadcb63fa52
+NAME=toybox
+DATE=2026/03/16-14:35:41-EDT
+VERSION=OSR-toybox-git_br-qnx-sdp8-master_be-800_B51
+PACKAGE=com.qnx.qnx800.osr.toybox/0.8.11.00051T202603161435L
+FILE /proc/boot/devb-eide
+QNX_BUILDID=(GNU)b22fb38e1cda95f3d42e1df9c6409984
+NAME=devb-eide
+DATE=2023/11/20-10:08:09-EST
+VERSION=hardware_br-rel_be-800_B443
+PACKAGE=com.qnx.qnx800.target.fs.cam/0.0.1.00443T202311201012L
+FILE /proc/boot/devc-ser8250
+QNX_BUILDID=(GNU)bc42b1224b53d4409d919de3fd020e2a
+NAME=devc-ser8250
+DATE=2026/06/19-14:07:31-EDT
+VERSION=bsp_char_br-release-1xx_be-800_B52
+PACKAGE=com.qnx.qnx800.target.connectivity.devc/0.2.1.00052T202606191407L
+FILE /proc/boot/echo
+QNX_BUILDID=(GNU)ac16218adbb6c6d9fb85ffadcb63fa52
+NAME=toybox
+DATE=2026/03/16-14:35:41-EDT
+VERSION=OSR-toybox-git_br-qnx-sdp8-master_be-800_B51
+PACKAGE=com.qnx.qnx800.osr.toybox/0.8.11.00051T202603161435L
+FILE /proc/boot/fs-dos.so
+QNX_BUILDID=(GNU)a2fa1ee1c80d20f4f175d727a089665b
+NAME=fs-dos.so
+DATE=2026/10/01-23:24:51-EDT
+VERSION=blkfsys_be-800_B20
+PACKAGE=com.qnx.qnx800.target.fs.dosfs/0.3.0.00020T202610012324L
+FILE /proc/boot/fs-qnx6.so
+QNX_BUILDID=(GNU)9488dc9ac3c2c36396f269268649da91
+NAME=fs-qnx6.so
+DATE=2026/10/01-23:24:56-EDT
+VERSION=blkfsys_be-800_B20
+PACKAGE=com.qnx.qnx800.target.fs.qnx6fs/0.3.2.00020T202610012324L
+FILE /proc/boot/fs-qtd.so
+QNX_BUILDID=(GNU)8c4e00aaed85889d71859fffab2d00e8
+NAME=fs-qtd.so
+DATE=2026/10/01-19:16:28-EDT
+VERSION=qnxcore_be-800_B6031
+PACKAGE=com.qnx.qnx800.target.fs.qtdfs/0.6.0.06031T202610011839L
+FILE /proc/boot/fsevmgr
+QNX_BUILDID=(GNU)3c29a23ce5f8c7b94bc11610df8e8852
+NAME=fsevmgr
+DATE=2026/10/01-23:23:21-EDT
+VERSION=fsnotify_be-800_B13
+PACKAGE=com.qnx.qnx800.target.fs.notify/0.3.2.00013T202610012323L
+FILE /proc/boot/getconf
+QNX_BUILDID=(GNU)e1072ad6bd75c58010ea77dc44124e32
+NAME=getconf
+DATE=2026/10/01-19:21:41-EDT
+VERSION=qnxcore_be-800_B6031
+PACKAGE=com.qnx.qnx800.target.utils.system/0.2.1.06031T202610011839L
+FILE /proc/boot/grep
+QNX_BUILDID=(GNU)ac16218adbb6c6d9fb85ffadcb63fa52
+NAME=toybox
+DATE=2026/03/16-14:35:41-EDT
+VERSION=OSR-toybox-git_br-qnx-sdp8-master_be-800_B51
+PACKAGE=com.qnx.qnx800.osr.toybox/0.8.11.00051T202603161435L
+FILE /proc/boot/io-blk.so
+QNX_BUILDID=(GNU)239994a669f30af867bfb265b0f2dd08
+NAME=io-blk.so
+DATE=2026/10/20-17:26:52-EDT
+VERSION=blkfsys_be-800_B21
+PACKAGE=com.qnx.qnx800.target.fs.base/0.3.6.00021T202610201726L
+FILE /proc/boot/ksh
+QNX_BUILDID=(GNU)3d3255bf0ec208377129ffd403a7a975
+NAME=ksh
+DATE=2024/04/15-12:47:45-EDT
+VERSION=QNXOS_main
+PACKAGE=com.qnx.qnx800.target.utils.base.k/0.0.1.00282T202404151301L
+FILE /proc/boot/ldqnx-64.so.2
+QNX_BUILDID=(GNU)6fa7e2c564a26985e2cae4ad199e5d06
+NAME=ldqnx-64.so.2
+DATE=2026/10/30-09:09:44-EDT
+VERSION=qnxos_be-800_B47
+PACKAGE=com.qnx.qnx800.target.microkernel.core/2.8.0.00047T202610300907L
+FILE /proc/boot/libc.so.6
+QNX_BUILDID=(GNU)655b868d1695a21beb088b9e10318d99
+NAME=libc.so.6
+DATE=2026/10/30-09:09:32-EDT
+VERSION=8.0.0
+PACKAGE=com.qnx.qnx800.target.microkernel.core/2.8.0.00047T202610300907L
+FILE /proc/boot/libcam.so.2
+QNX_BUILDID=(GNU)3f7e2b3c1c69e84905741ef663705181
+NAME=libcam.so.2
+DATE=2023/11/20-10:07:55-EST
+VERSION=hardware_br-rel_be-800_B443
+PACKAGE=com.qnx.qnx800.target.fs.cam/0.0.1.00443T202311201012L
+FILE /proc/boot/libcrypto.so.3
+QNX_BUILDID=(GNU)08286352043fbc516d669b79c2ebc8c4
+NAME=libcrypto.so.3
+DATE=2026/10/01-21:18:01-EDT
+VERSION=OSR-openssl-git_br-qnx-sdp8-openssl-3.0.x_be-800_B12
+PACKAGE=com.qnx.qnx800.target.security.crypto.openssl3/3.0.22.00012T202610012115L
+FILE /proc/boot/libfsnotify.so.1
+QNX_BUILDID=(GNU)9aece447fa658a2468a695442218fc57
+NAME=libfsnotify.so.1
+DATE=2026/10/01-23:23:20-EDT
+VERSION=fsnotify_be-800_B13
+PACKAGE=com.qnx.qnx800.target.fs.notify/0.3.2.00013T202610012323L
+FILE /proc/boot/libgcc_s.so.1
+QNX_BUILDID=(GNU)a90999bbdd7ab2f4acfd885846147d34
+NAME=libgcc_s.so.1
+DATE=2026/10/01-14:12:51-EDT
+VERSION=GCC-12.2.0
+PACKAGE=com.qnx.qnx800.target.tools.cpp/12.2.0.01008T202610011452L
+FILE /proc/boot/libjail.so.1
+QNX_BUILDID=(GNU)880c16d86783326cf2b1d480bf106808
+NAME=libjail.so.1
+DATE=2026/10/01-21:46:18-EDT
+VERSION=networking_io-sock_br-qnx-806-rel_be-800_B11
+PACKAGE=com.qnx.qnx800.target.net.utils/0.6.0.00011T202610012146L
+FILE /proc/boot/libjson.so.1
+QNX_BUILDID=(GNU)5957dd4f68625680be3758e69ceccfd5
+NAME=libjson.so.1
+DATE=2026/10/01-18:42:04-EDT
+VERSION=qnxcore_be-800_B6031
+PACKAGE=com.qnx.qnx800.target.os_services.libjson/0.6.0.06031T202610011839L
+FILE /proc/boot/libm.so.3
+QNX_BUILDID=(GNU)42332cc9ac1f48ee63ced28387c7e28a
+NAME=libm.so.3
+DATE=2024/11/22-23:40:59-EST
+VERSION=QNXOS_802_B2005
+PACKAGE=com.qnx.qnx800.target.base.libm/0.0.2.02005T202411230033L
+FILE /proc/boot/libpci.so.3.0
+QNX_BUILDID=(GNU)62224bb5b855f99cffa13f9fe9f6fd35
+NAME=libpci.so.3.0
+DATE=2026/05/21-13:40:18-EDT
+VERSION=bsp_pci_br-release-3xx_be-800_B3075
+PACKAGE=com.qnx.qnx800.target.pci.lib/3.0.4.03075T202605211339L
+FILE /proc/boot/libpci_hw_common.so
+QNX_BUILDID=(GNU)94bd11f707a7199303342867763cf430
+NAME=libpci_hw_common.so.3.0
+DATE=2026/05/21-13:40:30-EDT
+VERSION=bsp_pci_br-release-3xx_be-800_B3075
+PACKAGE=com.qnx.qnx800.target.pci.lib_hw_common/3.0.0.03075T202605211339L
+FILE /proc/boot/libpci_hw_common.so.3.0
+QNX_BUILDID=(GNU)94bd11f707a7199303342867763cf430
+NAME=libpci_hw_common.so.3.0
+DATE=2026/05/21-13:40:30-EDT
+VERSION=bsp_pci_br-release-3xx_be-800_B3075
+PACKAGE=com.qnx.qnx800.target.pci.lib_hw_common/3.0.0.03075T202605211339L
+FILE /proc/boot/libqcrypto.so.1.0
+QNX_BUILDID=(GNU)9d536087985d41881f58d998cb35df95
+NAME=libqcrypto.so.1.0
+DATE=2026/05/28-10:54:11-EDT
+VERSION=QNXOS_805_B132
+PACKAGE=com.qnx.qnx800.target.security.crypto.qcrypto.core/0.5.0.00132T202605281115L
+FILE /proc/boot/libqh.so.1
+QNX_BUILDID=(GNU)edbd3e93ab30a338668eded151d9d286
+NAME=libqh.so.1
+DATE=2023/11/19-09:55:28-EST
+VERSION=QNXOS_main
+PACKAGE=com.qnx.qnx800.target.os_services.libqh/0.0.1.00135T202311191043L
+FILE /proc/boot/libregex.so.1
+QNX_BUILDID=(GNU)c4fdebf635924fdbb46180199b8218a5
+NAME=libregex.so.1
+DATE=2025/07/30-18:28:35-EDT
+VERSION=QNXOS_803_B600
+PACKAGE=com.qnx.qnx800.target.base.libregex/1.0.0.00600T202507302003L
+FILE /proc/boot/libsecpol.so.1
+QNX_BUILDID=(GNU)1fcb47329d39d1d8de9aebf1f07bced4
+NAME=libsecpol.so.1
+DATE=2026/10/01-18:56:14-EDT
+VERSION=qnxcore_be-800_B6031
+PACKAGE=com.qnx.qnx800.target.security.secpol/0.6.0.06031T202610011839L
+FILE /proc/boot/libslog2.so
+QNX_BUILDID=(GNU)b5f0357e2eadcab089026decf97e3e55
+NAME=libslog2.so.1
+DATE=2025/07/30-18:40:19-EDT
+VERSION=QNXOS_803_B600
+PACKAGE=com.qnx.qnx800.target.microkernel.libslog2/0.2.2.00600T202507302003L
+FILE /proc/boot/libslog2.so.1
+QNX_BUILDID=(GNU)b5f0357e2eadcab089026decf97e3e55
+NAME=libslog2.so.1
+DATE=2025/07/30-18:40:19-EDT
+VERSION=QNXOS_803_B600
+PACKAGE=com.qnx.qnx800.target.microkernel.libslog2/0.2.2.00600T202507302003L
+FILE /proc/boot/libslog2parse.so.1
+QNX_BUILDID=(GNU)2fb00bbc874171ba2231dd0145b868f8
+NAME=libslog2parse.so.1
+DATE=2026/10/01-18:57:31-EDT
+VERSION=qnxcore_be-800_B6031
+PACKAGE=com.qnx.qnx800.target.microkernel.slogger2/0.6.0.06031T202610011839L
+FILE /proc/boot/libslog2shim.so.1
+QNX_BUILDID=(GNU)f9bd08f55c97247555cdc2c184d574f9
+NAME=libslog2shim.so.1
+DATE=2026/10/01-18:57:32-EDT
+VERSION=qnxcore_be-800_B6031
+PACKAGE=com.qnx.qnx800.target.microkernel.slogger2/0.6.0.06031T202610011839L
+FILE /proc/boot/libsocket.so
+QNX_BUILDID=(GNU)98df7ae8315ec7c9aa416a45eea2a32e
+NAME=libsocket.so.4
+DATE=2026/10/01-21:46:13-EDT
+VERSION=networking_io-sock_br-qnx-806-rel_be-800_B11
+PACKAGE=com.qnx.qnx800.target.net.iosock/0.6.0.00011T202610012146L
+FILE /proc/boot/libsocket.so.4
+QNX_BUILDID=(GNU)98df7ae8315ec7c9aa416a45eea2a32e
+NAME=libsocket.so.4
+DATE=2026/10/01-21:46:13-EDT
+VERSION=networking_io-sock_br-qnx-806-rel_be-800_B11
+PACKAGE=com.qnx.qnx800.target.net.iosock/0.6.0.00011T202610012146L
+FILE /proc/boot/libz.so.2
+QNX_BUILDID=(GNU)ad286fbaeeffd3b9adf009b40145dd63
+NAME=libz.so.2
+DATE=2026/05/28-10:37:13-EDT
+VERSION=QNXOS_805_B132
+PACKAGE=com.qnx.qnx800.target.base.compression.libz/0.4.0.00132T202605281115L
+FILE /proc/boot/ln
+QNX_BUILDID=(GNU)ac16218adbb6c6d9fb85ffadcb63fa52
+NAME=toybox
+DATE=2026/03/16-14:35:41-EDT
+VERSION=OSR-toybox-git_br-qnx-sdp8-master_be-800_B51
+PACKAGE=com.qnx.qnx800.osr.toybox/0.8.11.00051T202603161435L
+FILE /proc/boot/ls
+QNX_BUILDID=(GNU)ac16218adbb6c6d9fb85ffadcb63fa52
+NAME=toybox
+DATE=2026/03/16-14:35:41-EDT
+VERSION=OSR-toybox-git_br-qnx-sdp8-master_be-800_B51
+PACKAGE=com.qnx.qnx800.osr.toybox/0.8.11.00051T202603161435L
+FILE /proc/boot/mount
+QNX_BUILDID=(GNU)90c10f8957b766aa135dc66ad97f9e34
+NAME=mount
+DATE=2026/10/01-19:22:07-EDT
+VERSION=qnxcore_be-800_B6031
+PACKAGE=com.qnx.qnx800.target.utils.base.m/0.6.0.06031T202610011839L
+FILE /proc/boot/mount_fs.sh
+FILE /proc/boot/on
+QNX_BUILDID=(GNU)ea45c3c0342645e5ac25a9d56bc73ba5
+NAME=on
+DATE=2026/10/01-19:22:10-EDT
+VERSION=qnxcore_be-800_B6031
+PACKAGE=com.qnx.qnx800.target.utils.system/0.2.1.06031T202610011839L
+FILE /proc/boot/pci-server
+QNX_BUILDID=(GNU)04b660ae4426fde9a222dd7ec96f2478
+NAME=pci-server
+DATE=2026/05/21-13:42:13-EDT
+VERSION=bsp_pci_br-release-3xx_be-800_B3075
+PACKAGE=com.qnx.qnx800.target.pci.server/3.2.1.03075T202605211339L
+FILE /proc/boot/pci_bkwd_compat.so
+QNX_BUILDID=(GNU)7be85681759b5aaca1f6117ccf98deda
+NAME=pci_bkwd_compat.so.3.0
+DATE=2024/11/22-23:51:11-EST
+VERSION=QNXOS_802_B2005
+PACKAGE=com.qnx.qnx800.target.pci.compat/3.0.0.02005T202411230033L
+FILE /proc/boot/pci_bkwd_compat.so.3.0
+QNX_BUILDID=(GNU)7be85681759b5aaca1f6117ccf98deda
+NAME=pci_bkwd_compat.so.3.0
+DATE=2024/11/22-23:51:11-EST
+VERSION=QNXOS_802_B2005
+PACKAGE=com.qnx.qnx800.target.pci.compat/3.0.0.02005T202411230033L
+FILE /proc/boot/pci_cap-0x01.so
+QNX_BUILDID=(GNU)a3b2d21e18aec6e518fd1ed47a088a4c
+NAME=pci_cap-0x01.so.3.0
+DATE=2026/05/21-13:40:44-EDT
+VERSION=bsp_pci_br-release-3xx_be-800_B3075
+PACKAGE=com.qnx.qnx800.target.pci.capabilities/3.0.1.03075T202605211339L
+FILE /proc/boot/pci_cap-0x01.so.3.0
+QNX_BUILDID=(GNU)a3b2d21e18aec6e518fd1ed47a088a4c
+NAME=pci_cap-0x01.so.3.0
+DATE=2026/05/21-13:40:44-EDT
+VERSION=bsp_pci_br-release-3xx_be-800_B3075
+PACKAGE=com.qnx.qnx800.target.pci.capabilities/3.0.1.03075T202605211339L
+FILE /proc/boot/pci_cap-0x05.so
+QNX_BUILDID=(GNU)6638af0504d5d422da57ca1ac443de92
+NAME=pci_cap-0x05.so.3.0
+DATE=2026/05/21-13:40:46-EDT
+VERSION=bsp_pci_br-release-3xx_be-800_B3075
+PACKAGE=com.qnx.qnx800.target.pci.capabilities/3.0.1.03075T202605211339L
+FILE /proc/boot/pci_cap-0x05.so.3.0
+QNX_BUILDID=(GNU)6638af0504d5d422da57ca1ac443de92
+NAME=pci_cap-0x05.so.3.0
+DATE=2026/05/21-13:40:46-EDT
+VERSION=bsp_pci_br-release-3xx_be-800_B3075
+PACKAGE=com.qnx.qnx800.target.pci.capabilities/3.0.1.03075T202605211339L
+FILE /proc/boot/pci_cap-0x10.so
+QNX_BUILDID=(GNU)60320577417c3622f68833a0dcf4254e
+NAME=pci_cap-0x10.so.3.0
+DATE=2026/05/21-13:40:51-EDT
+VERSION=bsp_pci_br-release-3xx_be-800_B3075
+PACKAGE=com.qnx.qnx800.target.pci.capabilities/3.0.1.03075T202605211339L
+FILE /proc/boot/pci_cap-0x10.so.3.0
+QNX_BUILDID=(GNU)60320577417c3622f68833a0dcf4254e
+NAME=pci_cap-0x10.so.3.0
+DATE=2026/05/21-13:40:51-EDT
+VERSION=bsp_pci_br-release-3xx_be-800_B3075
+PACKAGE=com.qnx.qnx800.target.pci.capabilities/3.0.1.03075T202605211339L
+FILE /proc/boot/pci_cap-0x11.so
+QNX_BUILDID=(GNU)497d7b683cccfb899a3a2875d1680c58
+NAME=pci_cap-0x11.so.3.0
+DATE=2026/05/21-13:40:59-EDT
+VERSION=bsp_pci_br-release-3xx_be-800_B3075
+PACKAGE=com.qnx.qnx800.target.pci.capabilities/3.0.1.03075T202605211339L
+FILE /proc/boot/pci_cap-0x11.so.3.0
+QNX_BUILDID=(GNU)497d7b683cccfb899a3a2875d1680c58
+NAME=pci_cap-0x11.so.3.0
+DATE=2026/05/21-13:40:59-EDT
+VERSION=bsp_pci_br-release-3xx_be-800_B3075
+PACKAGE=com.qnx.qnx800.target.pci.capabilities/3.0.1.03075T202605211339L
+FILE /proc/boot/pci_debug2.so
+QNX_BUILDID=(GNU)967e18b387aef21550fdb3ac725b1ebf
+NAME=pci_debug2.so.3.0
+DATE=2024/11/22-23:50:53-EST
+VERSION=QNXOS_802_B2005
+PACKAGE=com.qnx.qnx800.target.pci.debug/3.0.0.02005T202411230033L
+FILE /proc/boot/pci_debug2.so.3.0
+QNX_BUILDID=(GNU)967e18b387aef21550fdb3ac725b1ebf
+NAME=pci_debug2.so.3.0
+DATE=2024/11/22-23:50:53-EST
+VERSION=QNXOS_802_B2005
+PACKAGE=com.qnx.qnx800.target.pci.debug/3.0.0.02005T202411230033L
+FILE /proc/boot/pci_hw-Intel_x86.so
+QNX_BUILDID=(GNU)c39ba6d0240fbfb84e4332b0ed75d413
+NAME=pci_hw-Intel_x86.so.3.1
+DATE=2024/11/22-23:50:54-EST
+VERSION=QNXOS_802_B2005
+PACKAGE=com.qnx.qnx800.target.pci.hw.x86/3.1.0.02005T202411230033L
+FILE /proc/boot/pci_hw-Intel_x86.so.3.1
+QNX_BUILDID=(GNU)c39ba6d0240fbfb84e4332b0ed75d413
+NAME=pci_hw-Intel_x86.so.3.1
+DATE=2024/11/22-23:50:54-EST
+VERSION=QNXOS_802_B2005
+PACKAGE=com.qnx.qnx800.target.pci.hw.x86/3.1.0.02005T202411230033L
+FILE /proc/boot/pci_hw.cfg
+FILE /proc/boot/pci_server.cfg
+FILE /proc/boot/pci_slog2.so
+QNX_BUILDID=(GNU)1672d7e2b7066c07f7e6bcea414a0665
+NAME=pci_slog2.so.3.0
+DATE=2024/11/22-23:51:11-EST
+VERSION=QNXOS_802_B2005
+PACKAGE=com.qnx.qnx800.target.pci.debug/3.0.0.02005T202411230033L
+FILE /proc/boot/pci_slog2.so.3.0
+QNX_BUILDID=(GNU)1672d7e2b7066c07f7e6bcea414a0665
+NAME=pci_slog2.so.3.0
+DATE=2024/11/22-23:51:11-EST
+VERSION=QNXOS_802_B2005
+PACKAGE=com.qnx.qnx800.target.pci.debug/3.0.0.02005T202411230033L
+FILE /proc/boot/pci_strings.so
+QNX_BUILDID=(GNU)ba276dd2fa3053ecf712e9a4167698a5
+NAME=pci_strings.so.3.0
+DATE=2026/05/21-13:42:05-EDT
+VERSION=bsp_pci_br-release-3xx_be-800_B3075
+PACKAGE=com.qnx.qnx800.target.pci.uisupport/3.0.1.03075T202605211339L
+FILE /proc/boot/pci_strings.so.3.0
+QNX_BUILDID=(GNU)ba276dd2fa3053ecf712e9a4167698a5
+NAME=pci_strings.so.3.0
+DATE=2026/05/21-13:42:05-EDT
+VERSION=bsp_pci_br-release-3xx_be-800_B3075
+PACKAGE=com.qnx.qnx800.target.pci.uisupport/3.0.1.03075T202605211339L
+FILE /proc/boot/pidin
+QNX_BUILDID=(GNU)7ff1df8b352291e41f476a2078cb0855
+NAME=pidin
+DATE=2026/10/01-19:22:18-EDT
+VERSION=qnxcore_be-800_B6031
+PACKAGE=com.qnx.qnx800.target.utils.system/0.2.1.06031T202610011839L
+FILE /proc/boot/procnto-smp-instr
+NAME=procnto-smp-instr
+DATE=2026/10/30-09:10:05-EDT
+VERSION=8.0.0
+PACKAGE=com.qnx.qnx800.target.microkernel.core/2.8.0.00047T202610300907L
+FILE /proc/boot/qcrypto-openssl-3.so
+QNX_BUILDID=(GNU)7dd754add2ffd5f4336031c02f73f3f1
+NAME=qcrypto-openssl-3.so
+DATE=2025/01/17-16:30:34-EST
+VERSION=QNXOS_802_B2029
+PACKAGE=com.qnx.qnx800.target.security.crypto.qcrypto.openssl3/0.0.2.02029T202501171702L
+FILE /proc/boot/qcrypto.conf
+FILE /proc/boot/qtd_public_key.pem
+FILE /proc/boot/rm
+QNX_BUILDID=(GNU)ac16218adbb6c6d9fb85ffadcb63fa52
+NAME=toybox
+DATE=2026/03/16-14:35:41-EDT
+VERSION=OSR-toybox-git_br-qnx-sdp8-master_be-800_B51
+PACKAGE=com.qnx.qnx800.osr.toybox/0.8.11.00051T202603161435L
+FILE /proc/boot/rtc
+QNX_BUILDID=(GNU)650b8ad1eb27d876c4bcbc5f3d78cfd8
+NAME=rtc
+DATE=2024/11/23-00:52:04-EST
+VERSION=bsp_hardware_support_br-release-1xx_be-800_B14
+PACKAGE=com.qnx.qnx800.target.utils.hw/0.2.0.00014T202411230051L
+FILE /proc/boot/setconf
+QNX_BUILDID=(GNU)e1072ad6bd75c58010ea77dc44124e32
+NAME=getconf
+DATE=2026/10/01-19:21:41-EDT
+VERSION=qnxcore_be-800_B6031
+PACKAGE=com.qnx.qnx800.target.utils.system/0.2.1.06031T202610011839L
+FILE /proc/boot/setfacl
+QNX_BUILDID=(GNU)0347484d7b88ce215f44640de6fcd520
+NAME=setfacl
+DATE=2026/10/01-19:22:40-EDT
+VERSION=qnxcore_be-800_B6031
+PACKAGE=com.qnx.qnx800.target.utils.system/0.2.1.06031T202610011839L
+FILE /proc/boot/sh
+QNX_BUILDID=(GNU)3d3255bf0ec208377129ffd403a7a975
+NAME=ksh
+DATE=2024/04/15-12:47:45-EDT
+VERSION=QNXOS_main
+PACKAGE=com.qnx.qnx800.target.utils.base.k/0.0.1.00282T202404151301L
+FILE /proc/boot/sleep
+QNX_BUILDID=(GNU)ac16218adbb6c6d9fb85ffadcb63fa52
+NAME=toybox
+DATE=2026/03/16-14:35:41-EDT
+VERSION=OSR-toybox-git_br-qnx-sdp8-master_be-800_B51
+PACKAGE=com.qnx.qnx800.osr.toybox/0.8.11.00051T202603161435L
+FILE /proc/boot/slog2info
+QNX_BUILDID=(GNU)b24c5c0dac62d06a8537831e33af506f
+NAME=slog2info
+DATE=2026/10/01-19:22:42-EDT
+VERSION=qnxcore_be-800_B6031
+PACKAGE=com.qnx.qnx800.target.microkernel.slogger2/0.6.0.06031T202610011839L
+FILE /proc/boot/slogger2
+QNX_BUILDID=(GNU)572868d27a63b2b5712fed9ce7f28371
+NAME=slogger2
+DATE=2026/10/01-19:17:01-EDT
+VERSION=qnxcore_be-800_B6031
+PACKAGE=com.qnx.qnx800.target.microkernel.slogger2/0.6.0.06031T202610011839L
+FILE /proc/boot/startup-script
+FILE /proc/boot/startup.sh
+FILE /proc/boot/toybox
+QNX_BUILDID=(GNU)ac16218adbb6c6d9fb85ffadcb63fa52
+NAME=toybox
+DATE=2026/03/16-14:35:41-EDT
+VERSION=OSR-toybox-git_br-qnx-sdp8-master_be-800_B51
+PACKAGE=com.qnx.qnx800.osr.toybox/0.8.11.00051T202603161435L
+FILE /proc/boot/umount
+QNX_BUILDID=(GNU)f7a5418e83b352ca3db927aee95cf7aa
+NAME=umount
+DATE=2023/11/19-10:31:06-EST
+VERSION=QNXOS_main
+PACKAGE=com.qnx.qnx800.target.utils.base.u/0.0.1.00135T202311191043L
+FILE /proc/boot/waitfor
+QNX_BUILDID=(GNU)ea45c3c0342645e5ac25a9d56bc73ba5
+NAME=on
+DATE=2026/10/01-19:22:10-EDT
+VERSION=qnxcore_be-800_B6031
+PACKAGE=com.qnx.qnx800.target.utils.system/0.2.1.06031T202610011839L
+FILE /system/bin/arp
+QNX_BUILDID=(GNU)e06f1c23053f4928fcef63b9a1d86637
+NAME=arp
+DATE=2026/10/01-21:50:19-EDT
+VERSION=networking_io-sock_br-qnx-806-rel_be-800_B11
+PACKAGE=com.qnx.qnx800.target.net.utils/0.6.0.00011T202610012146L
+FILE /system/bin/ascii
+QNX_BUILDID=(GNU)ac16218adbb6c6d9fb85ffadcb63fa52
+NAME=toybox
+DATE=2026/03/16-14:35:41-EDT
+VERSION=OSR-toybox-git_br-qnx-sdp8-master_be-800_B51
+PACKAGE=com.qnx.qnx800.osr.toybox/0.8.11.00051T202603161435L
+FILE /system/bin/awk
+QNX_BUILDID=(GNU)cb7a103818b67044d1935d4e6ba19bf2
+FILE /system/bin/base64
+QNX_BUILDID=(GNU)ac16218adbb6c6d9fb85ffadcb63fa52
+NAME=toybox
+DATE=2026/03/16-14:35:41-EDT
+VERSION=OSR-toybox-git_br-qnx-sdp8-master_be-800_B51
+PACKAGE=com.qnx.qnx800.osr.toybox/0.8.11.00051T202603161435L
+FILE /system/bin/basename
+QNX_BUILDID=(GNU)ac16218adbb6c6d9fb85ffadcb63fa52
+NAME=toybox
+DATE=2026/03/16-14:35:41-EDT
+VERSION=OSR-toybox-git_br-qnx-sdp8-master_be-800_B51
+PACKAGE=com.qnx.qnx800.osr.toybox/0.8.11.00051T202603161435L
+FILE /system/bin/bc
+QNX_BUILDID=(GNU)ac16218adbb6c6d9fb85ffadcb63fa52
+NAME=toybox
+DATE=2026/03/16-14:35:41-EDT
+VERSION=OSR-toybox-git_br-qnx-sdp8-master_be-800_B51
+PACKAGE=com.qnx.qnx800.osr.toybox/0.8.11.00051T202603161435L
+FILE /system/bin/bsdtar
+QNX_BUILDID=(GNU)cb0e96c908088b34fb65f2cc63dc7a60
+NAME=bsdtar
+DATE=2026/07/14-14:11:18-EDT
+VERSION=OSR-libarchive-git_br-qnx-master_be-800_B91
+PACKAGE=com.qnx.qnx800.osr.bsdtar/3.8.8.00091T202607141410L
+FILE /system/bin/bunzip2
+QNX_BUILDID=(GNU)ac16218adbb6c6d9fb85ffadcb63fa52
+NAME=toybox
+DATE=2026/03/16-14:35:41-EDT
+VERSION=OSR-toybox-git_br-qnx-sdp8-master_be-800_B51
+PACKAGE=com.qnx.qnx800.osr.toybox/0.8.11.00051T202603161435L
+FILE /system/bin/bzcat
+QNX_BUILDID=(GNU)ac16218adbb6c6d9fb85ffadcb63fa52
+NAME=toybox
+DATE=2026/03/16-14:35:41-EDT
+VERSION=OSR-toybox-git_br-qnx-sdp8-master_be-800_B51
+PACKAGE=com.qnx.qnx800.osr.toybox/0.8.11.00051T202603161435L
+FILE /system/bin/cal
+QNX_BUILDID=(GNU)ac16218adbb6c6d9fb85ffadcb63fa52
+NAME=toybox
+DATE=2026/03/16-14:35:41-EDT
+VERSION=OSR-toybox-git_br-qnx-sdp8-master_be-800_B51
+PACKAGE=com.qnx.qnx800.osr.toybox/0.8.11.00051T202603161435L
+FILE /system/bin/chgrp
+QNX_BUILDID=(GNU)ac16218adbb6c6d9fb85ffadcb63fa52
+NAME=toybox
+DATE=2026/03/16-14:35:41-EDT
+VERSION=OSR-toybox-git_br-qnx-sdp8-master_be-800_B51
+PACKAGE=com.qnx.qnx800.osr.toybox/0.8.11.00051T202603161435L
+FILE /system/bin/chkqnx6fs
+QNX_BUILDID=(GNU)593fbec228907c27d6b8284eec842391
+NAME=chkqnx6fs
+DATE=2026/10/01-23:25:06-EDT
+VERSION=blkfsys_be-800_B20
+PACKAGE=com.qnx.qnx800.target.fs.qnx6fs/0.3.2.00020T202610012324L
+FILE /system/bin/chown
+QNX_BUILDID=(GNU)ac16218adbb6c6d9fb85ffadcb63fa52
+NAME=toybox
+DATE=2026/03/16-14:35:41-EDT
+VERSION=OSR-toybox-git_br-qnx-sdp8-master_be-800_B51
+PACKAGE=com.qnx.qnx800.osr.toybox/0.8.11.00051T202603161435L
+FILE /system/bin/cksum
+QNX_BUILDID=(GNU)ac16218adbb6c6d9fb85ffadcb63fa52
+NAME=toybox
+DATE=2026/03/16-14:35:41-EDT
+VERSION=OSR-toybox-git_br-qnx-sdp8-master_be-800_B51
+PACKAGE=com.qnx.qnx800.osr.toybox/0.8.11.00051T202603161435L
+FILE /system/bin/cleanup_tmp
+FILE /system/bin/clear
+QNX_BUILDID=(GNU)ac16218adbb6c6d9fb85ffadcb63fa52
+NAME=toybox
+DATE=2026/03/16-14:35:41-EDT
+VERSION=OSR-toybox-git_br-qnx-sdp8-master_be-800_B51
+PACKAGE=com.qnx.qnx800.osr.toybox/0.8.11.00051T202603161435L
+FILE /system/bin/cmp
+QNX_BUILDID=(GNU)ac16218adbb6c6d9fb85ffadcb63fa52
+NAME=toybox
+DATE=2026/03/16-14:35:41-EDT
+VERSION=OSR-toybox-git_br-qnx-sdp8-master_be-800_B51
+PACKAGE=com.qnx.qnx800.osr.toybox/0.8.11.00051T202603161435L
+FILE /system/bin/comm
+QNX_BUILDID=(GNU)ac16218adbb6c6d9fb85ffadcb63fa52
+NAME=toybox
+DATE=2026/03/16-14:35:41-EDT
+VERSION=OSR-toybox-git_br-qnx-sdp8-master_be-800_B51
+PACKAGE=com.qnx.qnx800.osr.toybox/0.8.11.00051T202603161435L
+FILE /system/bin/copy_settings.sh
+FILE /system/bin/cp
+QNX_BUILDID=(GNU)ac16218adbb6c6d9fb85ffadcb63fa52
+NAME=toybox
+DATE=2026/03/16-14:35:41-EDT
+VERSION=OSR-toybox-git_br-qnx-sdp8-master_be-800_B51
+PACKAGE=com.qnx.qnx800.osr.toybox/0.8.11.00051T202603161435L
+FILE /system/bin/cpio
+QNX_BUILDID=(GNU)ac16218adbb6c6d9fb85ffadcb63fa52
+NAME=toybox
+DATE=2026/03/16-14:35:41-EDT
+VERSION=OSR-toybox-git_br-qnx-sdp8-master_be-800_B51
+PACKAGE=com.qnx.qnx800.osr.toybox/0.8.11.00051T202603161435L
+FILE /system/bin/crc32
+QNX_BUILDID=(GNU)ac16218adbb6c6d9fb85ffadcb63fa52
+NAME=toybox
+DATE=2026/03/16-14:35:41-EDT
+VERSION=OSR-toybox-git_br-qnx-sdp8-master_be-800_B51
+PACKAGE=com.qnx.qnx800.osr.toybox/0.8.11.00051T202603161435L
+FILE /system/bin/curl
+QNX_BUILDID=(GNU)7527b6ba90ea6f31d49fcfee1c509335
+NAME=curl
+DATE=2024/07/26-12:30:52-EDT
+VERSION=QNXOS_main
+PACKAGE=com.qnx.qnx800.target.net.curl/0.0.2.00446T202407261305L
+FILE /system/bin/cut
+QNX_BUILDID=(GNU)ac16218adbb6c6d9fb85ffadcb63fa52
+NAME=toybox
+DATE=2026/03/16-14:35:41-EDT
+VERSION=OSR-toybox-git_br-qnx-sdp8-master_be-800_B51
+PACKAGE=com.qnx.qnx800.osr.toybox/0.8.11.00051T202603161435L
+FILE /system/bin/date
+QNX_BUILDID=(GNU)ac16218adbb6c6d9fb85ffadcb63fa52
+NAME=toybox
+DATE=2026/03/16-14:35:41-EDT
+VERSION=OSR-toybox-git_br-qnx-sdp8-master_be-800_B51
+PACKAGE=com.qnx.qnx800.osr.toybox/0.8.11.00051T202603161435L
+FILE /system/bin/devb-loopback
+QNX_BUILDID=(GNU)194720507bab7816b7943e05d23bc55b
+NAME=devb-loopback
+DATE=2023/11/20-10:08:13-EST
+VERSION=hardware_br-rel_be-800_B443
+PACKAGE=com.qnx.qnx800.target.fs.cam/0.0.1.00443T202311201012L
+FILE /system/bin/devb-umass
+QNX_BUILDID=(GNU)ec5749368b37a1aba28872ad24192397
+NAME=devb-umass
+DATE=2023/11/20-10:08:37-EST
+VERSION=hardware_br-rel_be-800_B443
+PACKAGE=com.qnx.qnx800.target.fs.cam/0.0.1.00443T202311201012L
+FILE /system/bin/devc-pty
+QNX_BUILDID=(GNU)f84595667fca62db9a56d053f1ba4c50
+NAME=devc-pty
+DATE=2026/06/19-14:07:31-EDT
+VERSION=bsp_char_br-release-1xx_be-800_B52
+PACKAGE=com.qnx.qnx800.target.connectivity.devc/0.2.1.00052T202606191407L
+FILE /system/bin/df
+QNX_BUILDID=(GNU)d019040fe62863de4cbcf26a83e5809a
+NAME=df
+DATE=2023/11/19-10:27:15-EST
+VERSION=QNXOS_main
+PACKAGE=com.qnx.qnx800.target.utils.base.d/0.0.1.00135T202311191043L
+FILE /system/bin/dhcpcd
+QNX_BUILDID=(GNU)971010b12039de45ff6b8a69f773d755
+NAME=dhcpcd
+DATE=2025/07/31-13:13:49-EDT
+VERSION=OSR-dhcpcd-git_br-qnx-sdp-master_be-800_B17
+PACKAGE=com.qnx.qnx800.target.net.dhcp/0.3.0.00017T202507311313L
+FILE /system/bin/diff
+QNX_BUILDID=(GNU)ac16218adbb6c6d9fb85ffadcb63fa52
+NAME=toybox
+DATE=2026/03/16-14:35:41-EDT
+VERSION=OSR-toybox-git_br-qnx-sdp8-master_be-800_B51
+PACKAGE=com.qnx.qnx800.osr.toybox/0.8.11.00051T202603161435L
+FILE /system/bin/dirname
+QNX_BUILDID=(GNU)ac16218adbb6c6d9fb85ffadcb63fa52
+NAME=toybox
+DATE=2026/03/16-14:35:41-EDT
+VERSION=OSR-toybox-git_br-qnx-sdp8-master_be-800_B51
+PACKAGE=com.qnx.qnx800.osr.toybox/0.8.11.00051T202603161435L
+FILE /system/bin/dos2unix
+QNX_BUILDID=(GNU)ac16218adbb6c6d9fb85ffadcb63fa52
+NAME=toybox
+DATE=2026/03/16-14:35:41-EDT
+VERSION=OSR-toybox-git_br-qnx-sdp8-master_be-800_B51
+PACKAGE=com.qnx.qnx800.osr.toybox/0.8.11.00051T202603161435L
+FILE /system/bin/du
+QNX_BUILDID=(GNU)ac16218adbb6c6d9fb85ffadcb63fa52
+NAME=toybox
+DATE=2026/03/16-14:35:41-EDT
+VERSION=OSR-toybox-git_br-qnx-sdp8-master_be-800_B51
+PACKAGE=com.qnx.qnx800.osr.toybox/0.8.11.00051T202603161435L
+FILE /system/bin/dumper
+QNX_BUILDID=(GNU)6dbf3a71d4164e64920162987b7f936d
+NAME=dumper
+DATE=2026/10/01-19:16:30-EDT
+VERSION=qnxcore_be-800_B6031
+PACKAGE=com.qnx.qnx800.target.microkernel.tools/0.2.0.06031T202610011839L
+FILE /system/bin/egrep
+QNX_BUILDID=(GNU)ac16218adbb6c6d9fb85ffadcb63fa52
+NAME=toybox
+DATE=2026/03/16-14:35:41-EDT
+VERSION=OSR-toybox-git_br-qnx-sdp8-master_be-800_B51
+PACKAGE=com.qnx.qnx800.osr.toybox/0.8.11.00051T202603161435L
+FILE /system/bin/env
+QNX_BUILDID=(GNU)ac16218adbb6c6d9fb85ffadcb63fa52
+NAME=toybox
+DATE=2026/03/16-14:35:41-EDT
+VERSION=OSR-toybox-git_br-qnx-sdp8-master_be-800_B51
+PACKAGE=com.qnx.qnx800.osr.toybox/0.8.11.00051T202603161435L
+FILE /system/bin/expand
+QNX_BUILDID=(GNU)ac16218adbb6c6d9fb85ffadcb63fa52
+NAME=toybox
+DATE=2026/03/16-14:35:41-EDT
+VERSION=OSR-toybox-git_br-qnx-sdp8-master_be-800_B51
+PACKAGE=com.qnx.qnx800.osr.toybox/0.8.11.00051T202603161435L
+FILE /system/bin/expr
+QNX_BUILDID=(GNU)ac16218adbb6c6d9fb85ffadcb63fa52
+NAME=toybox
+DATE=2026/03/16-14:35:41-EDT
+VERSION=OSR-toybox-git_br-qnx-sdp8-master_be-800_B51
+PACKAGE=com.qnx.qnx800.osr.toybox/0.8.11.00051T202603161435L
+FILE /system/bin/false
+QNX_BUILDID=(GNU)ac16218adbb6c6d9fb85ffadcb63fa52
+NAME=toybox
+DATE=2026/03/16-14:35:41-EDT
+VERSION=OSR-toybox-git_br-qnx-sdp8-master_be-800_B51
+PACKAGE=com.qnx.qnx800.osr.toybox/0.8.11.00051T202603161435L
+FILE /system/bin/fdisk
+QNX_BUILDID=(GNU)f00f404d0d9f3f7bfe326a99d7d344c9
+NAME=fdisk
+DATE=2026/10/01-19:20:57-EDT
+VERSION=qnxcore_be-800_B6031
+PACKAGE=com.qnx.qnx800.target.fs.utils/0.2.0.06031T202610011839L
+FILE /system/bin/fgrep
+QNX_BUILDID=(GNU)ac16218adbb6c6d9fb85ffadcb63fa52
+NAME=toybox
+DATE=2026/03/16-14:35:41-EDT
+VERSION=OSR-toybox-git_br-qnx-sdp8-master_be-800_B51
+PACKAGE=com.qnx.qnx800.osr.toybox/0.8.11.00051T202603161435L
+FILE /system/bin/file
+QNX_BUILDID=(GNU)ac16218adbb6c6d9fb85ffadcb63fa52
+NAME=toybox
+DATE=2026/03/16-14:35:41-EDT
+VERSION=OSR-toybox-git_br-qnx-sdp8-master_be-800_B51
+PACKAGE=com.qnx.qnx800.osr.toybox/0.8.11.00051T202603161435L
+FILE /system/bin/find
+QNX_BUILDID=(GNU)ac16218adbb6c6d9fb85ffadcb63fa52
+NAME=toybox
+DATE=2026/03/16-14:35:41-EDT
+VERSION=OSR-toybox-git_br-qnx-sdp8-master_be-800_B51
+PACKAGE=com.qnx.qnx800.osr.toybox/0.8.11.00051T202603161435L
+FILE /system/bin/fmt
+QNX_BUILDID=(GNU)ac16218adbb6c6d9fb85ffadcb63fa52
+NAME=toybox
+DATE=2026/03/16-14:35:41-EDT
+VERSION=OSR-toybox-git_br-qnx-sdp8-master_be-800_B51
+PACKAGE=com.qnx.qnx800.osr.toybox/0.8.11.00051T202603161435L
+FILE /system/bin/fs-nfs3
+QNX_BUILDID=(GNU)01513352863b6f78777262669d52ac9b
+NAME=fs-nfs3
+DATE=2026/10/21-07:14:08-EDT
+VERSION=networking_services_br-qnx-8.0.0-8.0.6_be-800_B12
+PACKAGE=com.qnx.qnx800.target.net.nfs/0.6.0.00012T202610210714L
+FILE /system/bin/fullpath
+QNX_BUILDID=(GNU)915cd297c4f60ba9468fdf309b58fdf9
+NAME=fullpath
+DATE=2023/11/19-10:27:38-EST
+VERSION=QNXOS_main
+PACKAGE=com.qnx.qnx800.target.utils.base.f/0.0.1.00135T202311191043L
+FILE /system/bin/gawk
+QNX_BUILDID=(GNU)cb7a103818b67044d1935d4e6ba19bf2
+FILE /system/bin/getfacl
+QNX_BUILDID=(GNU)34102038c07b346238cd3e7c9ca81e39
+NAME=getfacl
+DATE=2026/10/01-19:21:41-EDT
+VERSION=qnxcore_be-800_B6031
+PACKAGE=com.qnx.qnx800.target.utils.system/0.2.1.06031T202610011839L
+FILE /system/bin/groups
+QNX_BUILDID=(GNU)ac16218adbb6c6d9fb85ffadcb63fa52
+NAME=toybox
+DATE=2026/03/16-14:35:41-EDT
+VERSION=OSR-toybox-git_br-qnx-sdp8-master_be-800_B51
+PACKAGE=com.qnx.qnx800.osr.toybox/0.8.11.00051T202603161435L
+FILE /system/bin/gunzip
+QNX_BUILDID=(GNU)ac16218adbb6c6d9fb85ffadcb63fa52
+NAME=toybox
+DATE=2026/03/16-14:35:41-EDT
+VERSION=OSR-toybox-git_br-qnx-sdp8-master_be-800_B51
+PACKAGE=com.qnx.qnx800.osr.toybox/0.8.11.00051T202603161435L
+FILE /system/bin/gzip
+QNX_BUILDID=(GNU)ac16218adbb6c6d9fb85ffadcb63fa52
+NAME=toybox
+DATE=2026/03/16-14:35:41-EDT
+VERSION=OSR-toybox-git_br-qnx-sdp8-master_be-800_B51
+PACKAGE=com.qnx.qnx800.osr.toybox/0.8.11.00051T202603161435L
+FILE /system/bin/hd
+QNX_BUILDID=(GNU)ac16218adbb6c6d9fb85ffadcb63fa52
+NAME=toybox
+DATE=2026/03/16-14:35:41-EDT
+VERSION=OSR-toybox-git_br-qnx-sdp8-master_be-800_B51
+PACKAGE=com.qnx.qnx800.osr.toybox/0.8.11.00051T202603161435L
+FILE /system/bin/head
+QNX_BUILDID=(GNU)ac16218adbb6c6d9fb85ffadcb63fa52
+NAME=toybox
+DATE=2026/03/16-14:35:41-EDT
+VERSION=OSR-toybox-git_br-qnx-sdp8-master_be-800_B51
+PACKAGE=com.qnx.qnx800.osr.toybox/0.8.11.00051T202603161435L
+FILE /system/bin/hexdump
+QNX_BUILDID=(GNU)ac16218adbb6c6d9fb85ffadcb63fa52
+NAME=toybox
+DATE=2026/03/16-14:35:41-EDT
+VERSION=OSR-toybox-git_br-qnx-sdp8-master_be-800_B51
+PACKAGE=com.qnx.qnx800.osr.toybox/0.8.11.00051T202603161435L
+FILE /system/bin/hogs
+QNX_BUILDID=(GNU)8d955bf7c6355078093101bdae5f5dec
+NAME=hogs
+DATE=2026/10/01-19:21:55-EDT
+VERSION=qnxcore_be-800_B6031
+PACKAGE=com.qnx.qnx800.target.utils.qnx/0.6.0.06031T202610011839L
+FILE /system/bin/hostname
+QNX_BUILDID=(GNU)a76ee9f5eaed521a20cd1b5e82318bbe
+NAME=hostname
+DATE=2023/11/19-10:28:32-EST
+VERSION=QNXOS_main
+PACKAGE=com.qnx.qnx800.target.utils.base.h/0.0.1.00135T202311191043L
+FILE /system/bin/id
+QNX_BUILDID=(GNU)ac16218adbb6c6d9fb85ffadcb63fa52
+NAME=toybox
+DATE=2026/03/16-14:35:41-EDT
+VERSION=OSR-toybox-git_br-qnx-sdp8-master_be-800_B51
+PACKAGE=com.qnx.qnx800.osr.toybox/0.8.11.00051T202603161435L
+FILE /system/bin/if_up
+QNX_BUILDID=(GNU)d6f238f7a815b6e36fd12a4963c8e48f
+NAME=if_up
+DATE=2025/07/31-13:14:21-EDT
+VERSION=networking_utils_br-qnx-800-803_be-800_B103
+PACKAGE=com.qnx.qnx800.target.net.utils.if_up/0.3.0.00103T202507311314L
+FILE /system/bin/ifconfig
+QNX_BUILDID=(GNU)ce3fcc1fefbd870bf166d22076566b33
+NAME=ifconfig
+DATE=2026/10/01-21:46:33-EDT
+VERSION=networking_io-sock_br-qnx-806-rel_be-800_B11
+PACKAGE=com.qnx.qnx800.target.net.utils/0.6.0.00011T202610012146L
+FILE /system/bin/ifmcstat
+QNX_BUILDID=(GNU)c043f5b42c04117727b45cbb92caf308
+NAME=ifmcstat
+DATE=2026/10/01-21:50:20-EDT
+VERSION=networking_io-sock_br-qnx-806-rel_be-800_B11
+PACKAGE=com.qnx.qnx800.target.net.devutils/0.6.0.00011T202610012146L
+FILE /system/bin/ifwatchd
+QNX_BUILDID=(GNU)ee60c4af27d768d84853b5d4b495d71e
+NAME=ifwatchd
+DATE=2025/07/31-13:14:22-EDT
+VERSION=networking_utils_br-qnx-800-803_be-800_B103
+PACKAGE=com.qnx.qnx800.target.net.utils.ifwatchd/0.3.0.00103T202507311314L
+FILE /system/bin/install
+QNX_BUILDID=(GNU)ac16218adbb6c6d9fb85ffadcb63fa52
+NAME=toybox
+DATE=2026/03/16-14:35:41-EDT
+VERSION=OSR-toybox-git_br-qnx-sdp8-master_be-800_B51
+PACKAGE=com.qnx.qnx800.osr.toybox/0.8.11.00051T202603161435L
+FILE /system/bin/io-sock
+QNX_BUILDID=(GNU)77dadaf63c2d4c8bc13f4a2c84694ed2
+NAME=io-sock
+DATE=2026/10/01-21:49:24-EDT
+VERSION=networking_io-sock_br-qnx-806-rel_be-800_B11
+PACKAGE=com.qnx.qnx800.target.net.iosock/0.6.0.00011T202610012146L
+FILE /system/bin/io-usb-otg
+QNX_BUILDID=(GNU)508f7b397361ba229792e41cc90fbee9
+NAME=io-usb-otg
+DATE=2026/09/11-14:30:25-EDT
+VERSION=bsp_usb_br-release-1xx_be-800_B70
+PACKAGE=com.qnx.qnx800.target.usb.base/0.2.0.00070T202609111428L
+FILE /system/bin/iperf2
+QNX_BUILDID=(GNU)15ab2afa01ff09f5a715ec4a1183a667
+NAME=iperf2
+DATE=2024/07/04-14:47:54-EDT
+VERSION=QNXOS_main
+PACKAGE=com.qnx.qnx800.target.net.iperf2/0.0.2.00417T202407041502L
+FILE /system/bin/iperf3
+QNX_BUILDID=(GNU)6a73c31d9ee9f855ba62ce26c37897f7
+NAME=iperf3
+DATE=2026/01/19-09:04:38-EST
+VERSION=OSR-iperf3-git_br-qnx-sdp-master_be-800_B5
+PACKAGE=com.qnx.qnx800.target.net.iperf3/0.5.0.00005T202601190904L
+FILE /system/bin/ldd
+QNX_BUILDID=(GNU)ae781d2345d540115648e6309ab1110b
+NAME=ldd
+DATE=2026/10/01-19:21:59-EDT
+VERSION=qnxcore_be-800_B6031
+PACKAGE=com.qnx.qnx800.target.utils.qnx/0.6.0.06031T202610011839L
+FILE /system/bin/less
+QNX_BUILDID=(GNU)565f0087036b97e206268e9079a3d2f8
+NAME=less
+DATE=2025/01/11-19:07:09-EST
+VERSION=OSR-less-git_br-qnx-master_be-800_B40
+PACKAGE=com.qnx.qnx800.osr.less/0.0.670.00040T202501111907L
+FILE /system/bin/link
+QNX_BUILDID=(GNU)ac16218adbb6c6d9fb85ffadcb63fa52
+NAME=toybox
+DATE=2026/03/16-14:35:41-EDT
+VERSION=OSR-toybox-git_br-qnx-sdp8-master_be-800_B51
+PACKAGE=com.qnx.qnx800.osr.toybox/0.8.11.00051T202603161435L
+FILE /system/bin/login
+QNX_BUILDID=(GNU)544e0723ece3d42c26bf4d7f0c8a1fc4
+NAME=login
+DATE=2023/11/19-10:29:01-EST
+VERSION=QNXOS_main
+PACKAGE=com.qnx.qnx800.target.security.authentication/0.0.1.00135T202311191043L
+FILE /system/bin/logname
+QNX_BUILDID=(GNU)ac16218adbb6c6d9fb85ffadcb63fa52
+NAME=toybox
+DATE=2026/03/16-14:35:41-EDT
+VERSION=OSR-toybox-git_br-qnx-sdp8-master_be-800_B51
+PACKAGE=com.qnx.qnx800.osr.toybox/0.8.11.00051T202603161435L
+FILE /system/bin/md5sum
+QNX_BUILDID=(GNU)ac16218adbb6c6d9fb85ffadcb63fa52
+NAME=toybox
+DATE=2026/03/16-14:35:41-EDT
+VERSION=OSR-toybox-git_br-qnx-sdp8-master_be-800_B51
+PACKAGE=com.qnx.qnx800.osr.toybox/0.8.11.00051T202603161435L
+FILE /system/bin/mkdir
+QNX_BUILDID=(GNU)ac16218adbb6c6d9fb85ffadcb63fa52
+NAME=toybox
+DATE=2026/03/16-14:35:41-EDT
+VERSION=OSR-toybox-git_br-qnx-sdp8-master_be-800_B51
+PACKAGE=com.qnx.qnx800.osr.toybox/0.8.11.00051T202603161435L
+FILE /system/bin/mkdosfs
+QNX_BUILDID=(GNU)426b3ca38959e7498d5e46243b694e76
+NAME=mkdosfs
+DATE=2026/10/01-23:25:10-EDT
+VERSION=blkfsys_be-800_B20
+PACKAGE=com.qnx.qnx800.target.fs.dosfs/0.3.0.00020T202610012324L
+FILE /system/bin/mkfifo
+QNX_BUILDID=(GNU)ac16218adbb6c6d9fb85ffadcb63fa52
+NAME=toybox
+DATE=2026/03/16-14:35:41-EDT
+VERSION=OSR-toybox-git_br-qnx-sdp8-master_be-800_B51
+PACKAGE=com.qnx.qnx800.osr.toybox/0.8.11.00051T202603161435L
+FILE /system/bin/mktemp
+QNX_BUILDID=(GNU)ac16218adbb6c6d9fb85ffadcb63fa52
+NAME=toybox
+DATE=2026/03/16-14:35:41-EDT
+VERSION=OSR-toybox-git_br-qnx-sdp8-master_be-800_B51
+PACKAGE=com.qnx.qnx800.osr.toybox/0.8.11.00051T202603161435L
+FILE /system/bin/more
+QNX_BUILDID=(GNU)ac16218adbb6c6d9fb85ffadcb63fa52
+NAME=toybox
+DATE=2026/03/16-14:35:41-EDT
+VERSION=OSR-toybox-git_br-qnx-sdp8-master_be-800_B51
+PACKAGE=com.qnx.qnx800.osr.toybox/0.8.11.00051T202603161435L
+FILE /system/bin/mqueue
+QNX_BUILDID=(GNU)db230f329e18b6290eae66b95b2e4f34
+NAME=mqueue
+DATE=2026/05/28-10:57:24-EDT
+VERSION=QNXOS_805_B132
+PACKAGE=com.qnx.qnx800.target.os_services.mqueue/1.2.0.00132T202605281115L
+FILE /system/bin/mv
+QNX_BUILDID=(GNU)ac16218adbb6c6d9fb85ffadcb63fa52
+NAME=toybox
+DATE=2026/03/16-14:35:41-EDT
+VERSION=OSR-toybox-git_br-qnx-sdp8-master_be-800_B51
+PACKAGE=com.qnx.qnx800.osr.toybox/0.8.11.00051T202603161435L
+FILE /system/bin/ndp
+QNX_BUILDID=(GNU)87d65843933612bee18bc40c76a35c1a
+NAME=ndp
+DATE=2026/10/01-21:50:23-EDT
+VERSION=networking_io-sock_br-qnx-806-rel_be-800_B11
+PACKAGE=com.qnx.qnx800.target.net.devutils/0.6.0.00011T202610012146L
+FILE /system/bin/netstat
+QNX_BUILDID=(GNU)32da0aaf025f6ba1d764e2c26abeed21
+NAME=netstat
+DATE=2026/10/01-21:50:16-EDT
+VERSION=networking_io-sock_br-qnx-806-rel_be-800_B11
+PACKAGE=com.qnx.qnx800.target.net.devutils/0.6.0.00011T202610012146L
+FILE /system/bin/nl
+QNX_BUILDID=(GNU)ac16218adbb6c6d9fb85ffadcb63fa52
+NAME=toybox
+DATE=2026/03/16-14:35:41-EDT
+VERSION=OSR-toybox-git_br-qnx-sdp8-master_be-800_B51
+PACKAGE=com.qnx.qnx800.osr.toybox/0.8.11.00051T202603161435L
+FILE /system/bin/nohup
+QNX_BUILDID=(GNU)ac16218adbb6c6d9fb85ffadcb63fa52
+NAME=toybox
+DATE=2026/03/16-14:35:41-EDT
+VERSION=OSR-toybox-git_br-qnx-sdp8-master_be-800_B51
+PACKAGE=com.qnx.qnx800.osr.toybox/0.8.11.00051T202603161435L
+FILE /system/bin/ntp-keygen
+QNX_BUILDID=(GNU)e18ac0f4adbdcba71797a4cccb8aa42f
+NAME=ntp-keygen
+DATE=2024/07/04-14:39:38-EDT
+VERSION=QNXOS_main
+PACKAGE=com.qnx.qnx800.target.net.ntp/0.0.2.00417T202407041502L
+FILE /system/bin/ntpd
+QNX_BUILDID=(GNU)8c01d00d55162d764da78432517ddbc8
+NAME=ntpd
+DATE=2024/07/04-14:39:38-EDT
+VERSION=QNXOS_main
+PACKAGE=com.qnx.qnx800.target.net.ntp/0.0.2.00417T202407041502L
+FILE /system/bin/ntpdate
+QNX_BUILDID=(GNU)92c2d32eab0ba1e4a00e00a7ef86eba2
+NAME=ntpdate
+DATE=2024/07/04-14:39:38-EDT
+VERSION=QNXOS_main
+PACKAGE=com.qnx.qnx800.target.net.ntp/0.0.2.00417T202407041502L
+FILE /system/bin/ntpq
+QNX_BUILDID=(GNU)f1cb82c72215b1487bfc57e770d170ff
+NAME=ntpq
+DATE=2024/07/04-14:39:38-EDT
+VERSION=QNXOS_main
+PACKAGE=com.qnx.qnx800.target.net.ntp/0.0.2.00417T202407041502L
+FILE /system/bin/od
+QNX_BUILDID=(GNU)ac16218adbb6c6d9fb85ffadcb63fa52
+NAME=toybox
+DATE=2026/03/16-14:35:41-EDT
+VERSION=OSR-toybox-git_br-qnx-sdp8-master_be-800_B51
+PACKAGE=com.qnx.qnx800.osr.toybox/0.8.11.00051T202603161435L
+FILE /system/bin/openssl
+QNX_BUILDID=(GNU)3dda15862bd7a8963d16be5106e240e4
+NAME=openssl
+DATE=2026/10/01-21:18:01-EDT
+VERSION=OSR-openssl-git_br-qnx-sdp8-openssl-3.0.x_be-800_B12
+PACKAGE=com.qnx.qnx800.target.security.crypto.openssl3/3.0.22.00012T202610012115L
+FILE /system/bin/passwd
+QNX_BUILDID=(GNU)bea9dbcd91547bcc2a517dbc5097bb69
+NAME=passwd
+DATE=2023/11/19-10:29:54-EST
+VERSION=QNXOS_main
+PACKAGE=com.qnx.qnx800.target.security.authentication/0.0.1.00135T202311191043L
+FILE /system/bin/paste
+QNX_BUILDID=(GNU)ac16218adbb6c6d9fb85ffadcb63fa52
+NAME=toybox
+DATE=2026/03/16-14:35:41-EDT
+VERSION=OSR-toybox-git_br-qnx-sdp8-master_be-800_B51
+PACKAGE=com.qnx.qnx800.osr.toybox/0.8.11.00051T202603161435L
+FILE /system/bin/patch
+QNX_BUILDID=(GNU)ac16218adbb6c6d9fb85ffadcb63fa52
+NAME=toybox
+DATE=2026/03/16-14:35:41-EDT
+VERSION=OSR-toybox-git_br-qnx-sdp8-master_be-800_B51
+PACKAGE=com.qnx.qnx800.osr.toybox/0.8.11.00051T202603161435L
+FILE /system/bin/pci-tool
+QNX_BUILDID=(GNU)db795a9ef7129d6f72f1cee0d69841b0
+NAME=pci-tool
+DATE=2024/11/22-23:51:16-EST
+VERSION=QNXOS_802_B2005
+PACKAGE=com.qnx.qnx800.target.pci.utils/3.0.0.02005T202411230033L
+FILE /system/bin/pdebug
+QNX_BUILDID=(GNU)90bade32821c1b64ec20f97dc0c642b0
+NAME=pdebug
+DATE=2026/10/01-19:22:12-EDT
+VERSION=qnxcore_be-800_B6031
+PACKAGE=com.qnx.qnx800.target.utils.debugtools/0.2.0.06031T202610011839L
+FILE /system/bin/pfctl
+QNX_BUILDID=(GNU)cde586fbdbe837c25f01a8d15dc3eac7
+NAME=pfctl
+DATE=2026/10/01-21:46:39-EDT
+VERSION=networking_io-sock_br-qnx-806-rel_be-800_B11
+PACKAGE=com.qnx.qnx800.target.net.utils/0.6.0.00011T202610012146L
+FILE /system/bin/ping
+QNX_BUILDID=(GNU)fa20411af4720118b0838b5e4e550d4e
+NAME=ping
+DATE=2026/10/01-21:46:42-EDT
+VERSION=networking_io-sock_br-qnx-806-rel_be-800_B11
+PACKAGE=com.qnx.qnx800.target.net.devutils/0.6.0.00011T202610012146L
+FILE /system/bin/pipe
+QNX_BUILDID=(GNU)68aab09f44585c9fa9a8d660e0e2ddaf
+NAME=pipe
+DATE=2025/11/27-12:52:21-EST
+VERSION=QNXOS_803_B3063
+PACKAGE=com.qnx.qnx800.target.os_services.base/1.0.0.03063T202511271306L
+FILE /system/bin/printenv
+QNX_BUILDID=(GNU)ac16218adbb6c6d9fb85ffadcb63fa52
+NAME=toybox
+DATE=2026/03/16-14:35:41-EDT
+VERSION=OSR-toybox-git_br-qnx-sdp8-master_be-800_B51
+PACKAGE=com.qnx.qnx800.osr.toybox/0.8.11.00051T202603161435L
+FILE /system/bin/printf
+QNX_BUILDID=(GNU)ac16218adbb6c6d9fb85ffadcb63fa52
+NAME=toybox
+DATE=2026/03/16-14:35:41-EDT
+VERSION=OSR-toybox-git_br-qnx-sdp8-master_be-800_B51
+PACKAGE=com.qnx.qnx800.osr.toybox/0.8.11.00051T202603161435L
+FILE /system/bin/pwd
+QNX_BUILDID=(GNU)ac16218adbb6c6d9fb85ffadcb63fa52
+NAME=toybox
+DATE=2026/03/16-14:35:41-EDT
+VERSION=OSR-toybox-git_br-qnx-sdp8-master_be-800_B51
+PACKAGE=com.qnx.qnx800.osr.toybox/0.8.11.00051T202603161435L
+FILE /system/bin/qconn
+QNX_BUILDID=(GNU)fe9f9c03a365ae8915ea31e1c3d15158
+NAME=qconn
+DATE=2026/10/01-19:16:54-EDT
+VERSION=qnxcore_be-800_B6031
+PACKAGE=com.qnx.qnx800.target.utils.debugtools/0.2.0.06031T202610011839L
+FILE /system/bin/random
+QNX_BUILDID=(GNU)2d7a9ee3a5f9f20aed023798d41ac93e
+NAME=random
+DATE=2023/11/19-10:22:13-EST
+VERSION=QNXOS_main
+PACKAGE=com.qnx.qnx800.target.security.random/0.0.1.00135T202311191043L
+FILE /system/bin/readlink
+QNX_BUILDID=(GNU)ac16218adbb6c6d9fb85ffadcb63fa52
+NAME=toybox
+DATE=2026/03/16-14:35:41-EDT
+VERSION=OSR-toybox-git_br-qnx-sdp8-master_be-800_B51
+PACKAGE=com.qnx.qnx800.osr.toybox/0.8.11.00051T202603161435L
+FILE /system/bin/realpath
+QNX_BUILDID=(GNU)ac16218adbb6c6d9fb85ffadcb63fa52
+NAME=toybox
+DATE=2026/03/16-14:35:41-EDT
+VERSION=OSR-toybox-git_br-qnx-sdp8-master_be-800_B51
+PACKAGE=com.qnx.qnx800.osr.toybox/0.8.11.00051T202603161435L
+FILE /system/bin/rmdir
+QNX_BUILDID=(GNU)ac16218adbb6c6d9fb85ffadcb63fa52
+NAME=toybox
+DATE=2026/03/16-14:35:41-EDT
+VERSION=OSR-toybox-git_br-qnx-sdp8-master_be-800_B51
+PACKAGE=com.qnx.qnx800.osr.toybox/0.8.11.00051T202603161435L
+FILE /system/bin/route
+QNX_BUILDID=(GNU)f4ca17ca4f6d299aff192c1ba98db6ef
+NAME=route
+DATE=2026/10/01-21:46:44-EDT
+VERSION=networking_io-sock_br-qnx-806-rel_be-800_B11
+PACKAGE=com.qnx.qnx800.target.net.utils/0.6.0.00011T202610012146L
+FILE /system/bin/scp
+QNX_BUILDID=(GNU)f314bcc8d0da7154b1e70ee64fad515d
+NAME=scp
+DATE=2026/08/10-16:42:18-EDT
+VERSION=OSR-openssh-git_br-qnx-sdp-master_be-800_B9
+PACKAGE=com.qnx.qnx800.target.net.openSSH/0.5.1.00009T202608101640L
+FILE /system/bin/secpol
+QNX_BUILDID=(GNU)6c85d68ec0056cec90ef0dd94b4acf1b
+NAME=secpol
+DATE=2026/10/01-19:22:27-EDT
+VERSION=qnxcore_be-800_B6031
+PACKAGE=com.qnx.qnx800.target.security.secpol.support/0.6.0.06031T202610011839L
+FILE /system/bin/secpolmonitor
+QNX_BUILDID=(GNU)a2594c7051035e4eb74b5d48ae30ede8
+NAME=secpolmonitor
+DATE=2026/10/01-19:22:36-EDT
+VERSION=qnxcore_be-800_B6031
+PACKAGE=com.qnx.qnx800.target.security.secpol.support/0.6.0.06031T202610011839L
+FILE /system/bin/sed
+QNX_BUILDID=(GNU)ac16218adbb6c6d9fb85ffadcb63fa52
+NAME=toybox
+DATE=2026/03/16-14:35:41-EDT
+VERSION=OSR-toybox-git_br-qnx-sdp8-master_be-800_B51
+PACKAGE=com.qnx.qnx800.osr.toybox/0.8.11.00051T202603161435L
+FILE /system/bin/seq
+QNX_BUILDID=(GNU)ac16218adbb6c6d9fb85ffadcb63fa52
+NAME=toybox
+DATE=2026/03/16-14:35:41-EDT
+VERSION=OSR-toybox-git_br-qnx-sdp8-master_be-800_B51
+PACKAGE=com.qnx.qnx800.osr.toybox/0.8.11.00051T202603161435L
+FILE /system/bin/setkey
+QNX_BUILDID=(GNU)f4560c5b53048258073840f40d3dae70
+NAME=setkey
+DATE=2026/10/01-21:46:45-EDT
+VERSION=networking_io-sock_br-qnx-806-rel_be-800_B11
+PACKAGE=com.qnx.qnx800.target.net.devutils/0.6.0.00011T202610012146L
+FILE /system/bin/sftp-server
+QNX_BUILDID=(GNU)2282ceda624ecd37d001f1ced0a064c6
+NAME=sftp-server
+DATE=2026/08/10-16:42:18-EDT
+VERSION=OSR-openssh-git_br-qnx-sdp-master_be-800_B9
+PACKAGE=com.qnx.qnx800.target.net.openSSH/0.5.1.00009T202608101640L
+FILE /system/bin/sha1sum
+QNX_BUILDID=(GNU)ac16218adbb6c6d9fb85ffadcb63fa52
+NAME=toybox
+DATE=2026/03/16-14:35:41-EDT
+VERSION=OSR-toybox-git_br-qnx-sdp8-master_be-800_B51
+PACKAGE=com.qnx.qnx800.osr.toybox/0.8.11.00051T202603161435L
+FILE /system/bin/showmount
+QNX_BUILDID=(GNU)de7f0d274058ce9db5f66edd617b1328
+NAME=showmount
+DATE=2026/10/21-07:14:13-EDT
+VERSION=networking_services_br-qnx-8.0.0-8.0.6_be-800_B12
+PACKAGE=com.qnx.qnx800.target.net.nfs/0.6.0.00012T202610210714L
+FILE /system/bin/shutdown
+QNX_BUILDID=(GNU)c3e23c61f6c2b7db2589b74cc06ec088
+NAME=shutdown
+DATE=2023/11/19-10:30:45-EST
+VERSION=QNXOS_main
+PACKAGE=com.qnx.qnx800.target.base.shutdown/0.0.1.00135T202311191043L
+FILE /system/bin/slay
+QNX_BUILDID=(GNU)ee44a3a9de72a155dc69f74dd68cfed4
+NAME=slay
+DATE=2026/10/01-19:22:41-EDT
+VERSION=qnxcore_be-800_B6031
+PACKAGE=com.qnx.qnx800.target.utils.system/0.2.1.06031T202610011839L
+FILE /system/bin/sleep
+QNX_BUILDID=(GNU)ac16218adbb6c6d9fb85ffadcb63fa52
+NAME=toybox
+DATE=2026/03/16-14:35:41-EDT
+VERSION=OSR-toybox-git_br-qnx-sdp8-master_be-800_B51
+PACKAGE=com.qnx.qnx800.osr.toybox/0.8.11.00051T202603161435L
+FILE /system/bin/slog2info
+QNX_BUILDID=(GNU)b24c5c0dac62d06a8537831e33af506f
+NAME=slog2info
+DATE=2026/10/01-19:22:42-EDT
+VERSION=qnxcore_be-800_B6031
+PACKAGE=com.qnx.qnx800.target.microkernel.slogger2/0.6.0.06031T202610011839L
+FILE /system/bin/sntp
+QNX_BUILDID=(GNU)700cea87206328721b1ec630ccce2dd5
+NAME=sntp
+DATE=2024/07/04-14:39:38-EDT
+VERSION=QNXOS_main
+PACKAGE=com.qnx.qnx800.target.net.ntp/0.0.2.00417T202407041502L
+FILE /system/bin/sockstat
+QNX_BUILDID=(GNU)1e3453276e4fd826f6a6cc2420bc62b2
+NAME=sockstat
+DATE=2026/10/01-21:50:17-EDT
+VERSION=networking_io-sock_br-qnx-806-rel_be-800_B11
+PACKAGE=com.qnx.qnx800.target.net.devutils/0.6.0.00011T202610012146L
+FILE /system/bin/sort
+QNX_BUILDID=(GNU)ac16218adbb6c6d9fb85ffadcb63fa52
+NAME=toybox
+DATE=2026/03/16-14:35:41-EDT
+VERSION=OSR-toybox-git_br-qnx-sdp8-master_be-800_B51
+PACKAGE=com.qnx.qnx800.osr.toybox/0.8.11.00051T202603161435L
+FILE /system/bin/split
+QNX_BUILDID=(GNU)ac16218adbb6c6d9fb85ffadcb63fa52
+NAME=toybox
+DATE=2026/03/16-14:35:41-EDT
+VERSION=OSR-toybox-git_br-qnx-sdp8-master_be-800_B51
+PACKAGE=com.qnx.qnx800.osr.toybox/0.8.11.00051T202603161435L
+FILE /system/bin/sqlite3
+QNX_BUILDID=(GNU)ec22a26dd0d2263498d723fc5c932804
+NAME=sqlite3
+DATE=2025/12/16-11:00:31-EST
+VERSION=QNXOS_803_B3082
+PACKAGE=com.qnx.qnx800.osr.sqlite3/0.0.1.03082T202512161159L
+FILE /system/bin/ssh
+QNX_BUILDID=(GNU)322dbe0cf15335aec21d861b18d3ebe7
+NAME=ssh
+DATE=2026/08/10-16:42:18-EDT
+VERSION=OSR-openssh-git_br-qnx-sdp-master_be-800_B9
+PACKAGE=com.qnx.qnx800.target.net.openSSH/0.5.1.00009T202608101640L
+FILE /system/bin/ssh-keygen
+QNX_BUILDID=(GNU)7b9cb6971842b5c9d2825cea6b64f807
+NAME=ssh-keygen
+DATE=2026/08/10-16:42:18-EDT
+VERSION=OSR-openssh-git_br-qnx-sdp-master_be-800_B9
+PACKAGE=com.qnx.qnx800.target.net.openSSH/0.5.1.00009T202608101640L
+FILE /system/bin/sshd
+QNX_BUILDID=(GNU)0fa1ba6459990696a30c2ac43fe4670b
+NAME=sshd
+DATE=2026/08/10-16:42:18-EDT
+VERSION=OSR-openssh-git_br-qnx-sdp-master_be-800_B9
+PACKAGE=com.qnx.qnx800.target.net.openSSH/0.5.1.00009T202608101640L
+FILE /system/bin/sshd-auth
+QNX_BUILDID=(GNU)63dc55fb0b01d48617d8598290e57e88
+NAME=sshd-auth
+DATE=2026/08/10-16:42:18-EDT
+VERSION=OSR-openssh-git_br-qnx-sdp-master_be-800_B9
+PACKAGE=com.qnx.qnx800.target.net.openSSH/0.5.1.00009T202608101640L
+FILE /system/bin/sshd-session
+QNX_BUILDID=(GNU)25ad3ac8be147e0c7cf9b9c2a4883d1f
+NAME=sshd-session
+DATE=2026/08/10-16:42:18-EDT
+VERSION=OSR-openssh-git_br-qnx-sdp-master_be-800_B9
+PACKAGE=com.qnx.qnx800.target.net.openSSH/0.5.1.00009T202608101640L
+FILE /system/bin/start_net.sh
+FILE /system/bin/stat
+QNX_BUILDID=(GNU)ac16218adbb6c6d9fb85ffadcb63fa52
+NAME=toybox
+DATE=2026/03/16-14:35:41-EDT
+VERSION=OSR-toybox-git_br-qnx-sdp8-master_be-800_B51
+PACKAGE=com.qnx.qnx800.osr.toybox/0.8.11.00051T202603161435L
+FILE /system/bin/strings
+QNX_BUILDID=(GNU)ac16218adbb6c6d9fb85ffadcb63fa52
+NAME=toybox
+DATE=2026/03/16-14:35:41-EDT
+VERSION=OSR-toybox-git_br-qnx-sdp8-master_be-800_B51
+PACKAGE=com.qnx.qnx800.osr.toybox/0.8.11.00051T202603161435L
+FILE /system/bin/stty
+QNX_BUILDID=(GNU)ca687ba03428c42bbc78f87a8ae72ab7
+NAME=stty
+DATE=2026/10/01-19:22:44-EDT
+VERSION=qnxcore_be-800_B6031
+PACKAGE=com.qnx.qnx800.target.utils.qnx/0.6.0.06031T202610011839L
+FILE /system/bin/su
+QNX_BUILDID=(GNU)a086e648d226fbe61e51132fd2bc853e
+NAME=su
+DATE=2023/11/19-10:30:48-EST
+VERSION=QNXOS_main
+PACKAGE=com.qnx.qnx800.target.security.authentication/0.0.1.00135T202311191043L
+FILE /system/bin/sync
+QNX_BUILDID=(GNU)513d2f1601b2b44e195e0d35dca69607
+NAME=sync
+DATE=2023/11/19-10:30:48-EST
+VERSION=QNXOS_main
+PACKAGE=com.qnx.qnx800.target.utils.base.s/0.0.1.00135T202311191043L
+FILE /system/bin/sysctl
+QNX_BUILDID=(GNU)a05af01df675f01c2d040f7fac1967a7
+NAME=sysctl
+DATE=2026/10/01-21:46:46-EDT
+VERSION=networking_io-sock_br-qnx-806-rel_be-800_B11
+PACKAGE=com.qnx.qnx800.target.net.utils/0.6.0.00011T202610012146L
+FILE /system/bin/tail
+QNX_BUILDID=(GNU)ac16218adbb6c6d9fb85ffadcb63fa52
+NAME=toybox
+DATE=2026/03/16-14:35:41-EDT
+VERSION=OSR-toybox-git_br-qnx-sdp8-master_be-800_B51
+PACKAGE=com.qnx.qnx800.osr.toybox/0.8.11.00051T202603161435L
+FILE /system/bin/tar
+QNX_BUILDID=(GNU)ac16218adbb6c6d9fb85ffadcb63fa52
+NAME=toybox
+DATE=2026/03/16-14:35:41-EDT
+VERSION=OSR-toybox-git_br-qnx-sdp8-master_be-800_B51
+PACKAGE=com.qnx.qnx800.osr.toybox/0.8.11.00051T202603161435L
+FILE /system/bin/tcpdump
+QNX_BUILDID=(GNU)7e4b6dbb933a25887295e82efac118e7
+NAME=tcpdump
+DATE=2025/04/08-18:46:11-EDT
+VERSION=QNXOS_802_B2504
+PACKAGE=com.qnx.qnx800.target.net.tcpdump/0.2.0.02504T202504081900L
+FILE /system/bin/tee
+QNX_BUILDID=(GNU)ac16218adbb6c6d9fb85ffadcb63fa52
+NAME=toybox
+DATE=2026/03/16-14:35:41-EDT
+VERSION=OSR-toybox-git_br-qnx-sdp8-master_be-800_B51
+PACKAGE=com.qnx.qnx800.osr.toybox/0.8.11.00051T202603161435L
+FILE /system/bin/test
+QNX_BUILDID=(GNU)ac16218adbb6c6d9fb85ffadcb63fa52
+NAME=toybox
+DATE=2026/03/16-14:35:41-EDT
+VERSION=OSR-toybox-git_br-qnx-sdp8-master_be-800_B51
+PACKAGE=com.qnx.qnx800.osr.toybox/0.8.11.00051T202603161435L
+FILE /system/bin/time
+QNX_BUILDID=(GNU)ac16218adbb6c6d9fb85ffadcb63fa52
+NAME=toybox
+DATE=2026/03/16-14:35:41-EDT
+VERSION=OSR-toybox-git_br-qnx-sdp8-master_be-800_B51
+PACKAGE=com.qnx.qnx800.osr.toybox/0.8.11.00051T202603161435L
+FILE /system/bin/timeout
+QNX_BUILDID=(GNU)ac16218adbb6c6d9fb85ffadcb63fa52
+NAME=toybox
+DATE=2026/03/16-14:35:41-EDT
+VERSION=OSR-toybox-git_br-qnx-sdp8-master_be-800_B51
+PACKAGE=com.qnx.qnx800.osr.toybox/0.8.11.00051T202603161435L
+FILE /system/bin/top
+QNX_BUILDID=(GNU)30e85a8db1754f6a82982b04d6ee6a60
+NAME=top
+DATE=2026/10/01-19:22:47-EDT
+VERSION=qnxcore_be-800_B6031
+PACKAGE=com.qnx.qnx800.target.utils.base.t/0.6.0.06031T202610011839L
+FILE /system/bin/touch
+QNX_BUILDID=(GNU)ac16218adbb6c6d9fb85ffadcb63fa52
+NAME=toybox
+DATE=2026/03/16-14:35:41-EDT
+VERSION=OSR-toybox-git_br-qnx-sdp8-master_be-800_B51
+PACKAGE=com.qnx.qnx800.osr.toybox/0.8.11.00051T202603161435L
+FILE /system/bin/toybox
+QNX_BUILDID=(GNU)ac16218adbb6c6d9fb85ffadcb63fa52
+NAME=toybox
+DATE=2026/03/16-14:35:41-EDT
+VERSION=OSR-toybox-git_br-qnx-sdp8-master_be-800_B51
+PACKAGE=com.qnx.qnx800.osr.toybox/0.8.11.00051T202603161435L
+FILE /system/bin/tr
+QNX_BUILDID=(GNU)ac16218adbb6c6d9fb85ffadcb63fa52
+NAME=toybox
+DATE=2026/03/16-14:35:41-EDT
+VERSION=OSR-toybox-git_br-qnx-sdp8-master_be-800_B51
+PACKAGE=com.qnx.qnx800.osr.toybox/0.8.11.00051T202603161435L
+FILE /system/bin/tracelogger
+QNX_BUILDID=(GNU)f99c6e0b69697d162afd4a71fe0d72ca
+NAME=tracelogger
+DATE=2026/10/01-19:17:08-EDT
+VERSION=qnxcore_be-800_B6031
+PACKAGE=com.qnx.qnx800.target.microkernel.tools/0.2.0.06031T202610011839L
+FILE /system/bin/traceroute
+QNX_BUILDID=(GNU)93bdfb31d7673dc27242511304d03484
+NAME=traceroute
+DATE=2026/10/01-21:50:28-EDT
+VERSION=networking_io-sock_br-qnx-806-rel_be-800_B11
+PACKAGE=com.qnx.qnx800.target.net.devutils/0.6.0.00011T202610012146L
+FILE /system/bin/traceroute6
+QNX_BUILDID=(GNU)89a289acc83468eb81750532c92f9df4
+NAME=traceroute6
+DATE=2026/10/01-21:50:29-EDT
+VERSION=networking_io-sock_br-qnx-806-rel_be-800_B11
+PACKAGE=com.qnx.qnx800.target.net.devutils/0.6.0.00011T202610012146L
+FILE /system/bin/true
+QNX_BUILDID=(GNU)ac16218adbb6c6d9fb85ffadcb63fa52
+NAME=toybox
+DATE=2026/03/16-14:35:41-EDT
+VERSION=OSR-toybox-git_br-qnx-sdp8-master_be-800_B51
+PACKAGE=com.qnx.qnx800.osr.toybox/0.8.11.00051T202603161435L
+FILE /system/bin/truncate
+QNX_BUILDID=(GNU)ac16218adbb6c6d9fb85ffadcb63fa52
+NAME=toybox
+DATE=2026/03/16-14:35:41-EDT
+VERSION=OSR-toybox-git_br-qnx-sdp8-master_be-800_B51
+PACKAGE=com.qnx.qnx800.osr.toybox/0.8.11.00051T202603161435L
+FILE /system/bin/tty
+QNX_BUILDID=(GNU)ac16218adbb6c6d9fb85ffadcb63fa52
+NAME=toybox
+DATE=2026/03/16-14:35:41-EDT
+VERSION=OSR-toybox-git_br-qnx-sdp8-master_be-800_B51
+PACKAGE=com.qnx.qnx800.osr.toybox/0.8.11.00051T202603161435L
+FILE /system/bin/uname
+QNX_BUILDID=(GNU)ac16218adbb6c6d9fb85ffadcb63fa52
+NAME=toybox
+DATE=2026/03/16-14:35:41-EDT
+VERSION=OSR-toybox-git_br-qnx-sdp8-master_be-800_B51
+PACKAGE=com.qnx.qnx800.osr.toybox/0.8.11.00051T202603161435L
+FILE /system/bin/uniq
+QNX_BUILDID=(GNU)ac16218adbb6c6d9fb85ffadcb63fa52
+NAME=toybox
+DATE=2026/03/16-14:35:41-EDT
+VERSION=OSR-toybox-git_br-qnx-sdp8-master_be-800_B51
+PACKAGE=com.qnx.qnx800.osr.toybox/0.8.11.00051T202603161435L
+FILE /system/bin/unix2dos
+QNX_BUILDID=(GNU)ac16218adbb6c6d9fb85ffadcb63fa52
+NAME=toybox
+DATE=2026/03/16-14:35:41-EDT
+VERSION=OSR-toybox-git_br-qnx-sdp8-master_be-800_B51
+PACKAGE=com.qnx.qnx800.osr.toybox/0.8.11.00051T202603161435L
+FILE /system/bin/unlink
+QNX_BUILDID=(GNU)ac16218adbb6c6d9fb85ffadcb63fa52
+NAME=toybox
+DATE=2026/03/16-14:35:41-EDT
+VERSION=OSR-toybox-git_br-qnx-sdp8-master_be-800_B51
+PACKAGE=com.qnx.qnx800.osr.toybox/0.8.11.00051T202603161435L
+FILE /system/bin/usb
+QNX_BUILDID=(GNU)02714371f2176102f7e4514cf6ef82f1
+NAME=usb
+DATE=2026/09/11-14:30:26-EDT
+VERSION=bsp_usb_br-release-1xx_be-800_B70
+PACKAGE=com.qnx.qnx800.target.usb.base/0.2.0.00070T202609111428L
+FILE /system/bin/use
+QNX_BUILDID=(GNU)c56858bf3aac36eeab231645c36b1a30
+NAME=use
+DATE=2026/10/01-19:22:58-EDT
+VERSION=qnxcore_be-800_B6031
+PACKAGE=com.qnx.qnx800.target.utils.system/0.2.1.06031T202610011839L
+FILE /system/bin/uudecode
+QNX_BUILDID=(GNU)ac16218adbb6c6d9fb85ffadcb63fa52
+NAME=toybox
+DATE=2026/03/16-14:35:41-EDT
+VERSION=OSR-toybox-git_br-qnx-sdp8-master_be-800_B51
+PACKAGE=com.qnx.qnx800.osr.toybox/0.8.11.00051T202603161435L
+FILE /system/bin/uuencode
+QNX_BUILDID=(GNU)ac16218adbb6c6d9fb85ffadcb63fa52
+NAME=toybox
+DATE=2026/03/16-14:35:41-EDT
+VERSION=OSR-toybox-git_br-qnx-sdp8-master_be-800_B51
+PACKAGE=com.qnx.qnx800.osr.toybox/0.8.11.00051T202603161435L
+FILE /system/bin/uuidgen
+QNX_BUILDID=(GNU)ac16218adbb6c6d9fb85ffadcb63fa52
+NAME=toybox
+DATE=2026/03/16-14:35:41-EDT
+VERSION=OSR-toybox-git_br-qnx-sdp8-master_be-800_B51
+PACKAGE=com.qnx.qnx800.osr.toybox/0.8.11.00051T202603161435L
+FILE /system/bin/vi
+QNX_BUILDID=(GNU)8bd3d2b796363568ef55cadcb0554dcd
+NAME=elvis
+DATE=2023/11/19-10:27:27-EST
+VERSION=QNXOS_main
+PACKAGE=com.qnx.qnx800.target.utils.base.e/0.0.1.00135T202311191043L
+FILE /system/bin/wc
+QNX_BUILDID=(GNU)ac16218adbb6c6d9fb85ffadcb63fa52
+NAME=toybox
+DATE=2026/03/16-14:35:41-EDT
+VERSION=OSR-toybox-git_br-qnx-sdp8-master_be-800_B51
+PACKAGE=com.qnx.qnx800.osr.toybox/0.8.11.00051T202603161435L
+FILE /system/bin/which
+QNX_BUILDID=(GNU)ac16218adbb6c6d9fb85ffadcb63fa52
+NAME=toybox
+DATE=2026/03/16-14:35:41-EDT
+VERSION=OSR-toybox-git_br-qnx-sdp8-master_be-800_B51
+PACKAGE=com.qnx.qnx800.osr.toybox/0.8.11.00051T202603161435L
+FILE /system/bin/whoami
+QNX_BUILDID=(GNU)ac16218adbb6c6d9fb85ffadcb63fa52
+NAME=toybox
+DATE=2026/03/16-14:35:41-EDT
+VERSION=OSR-toybox-git_br-qnx-sdp8-master_be-800_B51
+PACKAGE=com.qnx.qnx800.osr.toybox/0.8.11.00051T202603161435L
+FILE /system/bin/xargs
+QNX_BUILDID=(GNU)ac16218adbb6c6d9fb85ffadcb63fa52
+NAME=toybox
+DATE=2026/03/16-14:35:41-EDT
+VERSION=OSR-toybox-git_br-qnx-sdp8-master_be-800_B51
+PACKAGE=com.qnx.qnx800.osr.toybox/0.8.11.00051T202603161435L
+FILE /system/bin/xxd
+QNX_BUILDID=(GNU)ac16218adbb6c6d9fb85ffadcb63fa52
+NAME=toybox
+DATE=2026/03/16-14:35:41-EDT
+VERSION=OSR-toybox-git_br-qnx-sdp8-master_be-800_B51
+PACKAGE=com.qnx.qnx800.osr.toybox/0.8.11.00051T202603161435L
+FILE /system/bin/yes
+QNX_BUILDID=(GNU)ac16218adbb6c6d9fb85ffadcb63fa52
+NAME=toybox
+DATE=2026/03/16-14:35:41-EDT
+VERSION=OSR-toybox-git_br-qnx-sdp8-master_be-800_B51
+PACKAGE=com.qnx.qnx800.osr.toybox/0.8.11.00051T202603161435L
+FILE /system/bin/zcat
+QNX_BUILDID=(GNU)ac16218adbb6c6d9fb85ffadcb63fa52
+NAME=toybox
+DATE=2026/03/16-14:35:41-EDT
+VERSION=OSR-toybox-git_br-qnx-sdp8-master_be-800_B51
+PACKAGE=com.qnx.qnx800.osr.toybox/0.8.11.00051T202603161435L
+FILE /system/lib/libbz2.so.1
+QNX_BUILDID=(GNU)993a5e1718be65a90bfa4ad28dfaee6c
+NAME=libbz2.so.1
+DATE=2026/05/28-10:36:59-EDT
+VERSION=QNXOS_805_B132
+PACKAGE=com.qnx.qnx800.target.base.compression.bz2/0.4.0.00132T202605281115L
+FILE /system/lib/libc++.so.2
+QNX_BUILDID=(GNU)2f3a87c8fc87ac5b73338739f9c076b7
+NAME=libc++.so.2.0
+DATE=2026/10/01-16:18:42-EDT
+VERSION=tools_llvm-libcxx_be-800_B1506
+PACKAGE=com.qnx.qnx800.target.base.cpp/18.0.0.01506T202610011617L
+FILE /system/lib/libcares.so.8
+QNX_BUILDID=(GNU)22d2dcbe2428b82118371361871466b1
+NAME=libcares.so.8
+DATE=2024/07/26-12:28:31-EDT
+VERSION=QNXOS_main
+PACKAGE=com.qnx.qnx800.target.net.curl/0.0.2.00446T202407261305L
+FILE /system/lib/libcatalog.so.1
+QNX_BUILDID=(GNU)a41e2180c6630687358ba6755428a541
+NAME=libcatalog.so.1
+DATE=2026/05/28-10:36:58-EDT
+VERSION=QNXOS_805_B132
+PACKAGE=com.qnx.qnx800.target.base.libcatalog/1.1.0.00132T202605281115L
+FILE /system/lib/libcurl.so.12
+QNX_BUILDID=(GNU)fe5db7c0210d9b5d2986ae7109a14b10
+NAME=libcurl.so.12
+DATE=2024/07/26-12:30:52-EDT
+VERSION=QNXOS_main
+PACKAGE=com.qnx.qnx800.target.net.curl/0.0.2.00446T202407261305L
+FILE /system/lib/libedit.so.0
+QNX_BUILDID=(GNU)4f9c43aa97ad66989eb47740b42cb6c4
+NAME=libedit.so.0
+DATE=2023/11/19-09:59:15-EST
+VERSION=QNXOS_main
+PACKAGE=com.qnx.qnx800.target.base/0.0.1.00135T202311191043L
+FILE /system/lib/libexpat.so.2
+QNX_BUILDID=(GNU)86f0cddf07cbf512bb9387ae37b37b40
+NAME=libexpat.so.2
+DATE=2026/05/04-15:58:32-EDT
+VERSION=OSR-libexpat-git_br-qnx-master_be-800_B382
+PACKAGE=com.qnx.qnx800.target.base.libexpat/2.8.0.00382T202605041557L
+FILE /system/lib/libfdt.so.1
+QNX_BUILDID=(GNU)562f411c38c858eca6eef4f5675cf264
+NAME=libfdt.so.1
+DATE=2024/06/18-10:19:28-EDT
+VERSION=QNXOS_main
+PACKAGE=com.qnx.qnx800.target.drivers.libfdt/0.1.0.00392T202406181101L
+FILE /system/lib/libiconv.so.1
+QNX_BUILDID=(GNU)301f7cdae8b7ffef07881623dfd2f71c
+NAME=libiconv.so.1
+DATE=2023/11/19-09:55:36-EST
+VERSION=QNXOS_main
+PACKAGE=com.qnx.qnx800.target.text.charconv/0.0.1.00135T202311191043L
+FILE /system/lib/libintl.so.1
+QNX_BUILDID=(GNU)ce68841cb7a9541e1cbd88eeff7eccaa
+NAME=libintl.so.1
+DATE=2023/11/19-09:59:30-EST
+VERSION=QNXOS_main
+PACKAGE=com.qnx.qnx800.target.base/0.0.1.00135T202311191043L
+FILE /system/lib/libiperf.so.0
+QNX_BUILDID=(GNU)ff4a080060a308661c89415a429bbe0c
+NAME=libiperf.so.0
+DATE=2026/01/19-09:04:38-EST
+VERSION=OSR-iperf3-git_br-qnx-sdp-master_be-800_B5
+PACKAGE=com.qnx.qnx800.target.net.iperf3/0.5.0.00005T202601190904L
+FILE /system/lib/liblzma.so.5
+QNX_BUILDID=(GNU)d3a23429af144ab639e4897d93a44d19
+FILE /system/lib/libncursesw.so.1
+QNX_BUILDID=(GNU)2ad228e1a4f80dcfb70508ac514d2ba5
+NAME=libncursesw.so.6.4
+DATE=2024/11/23-02:33:36-EST
+VERSION=OSR-ncurses-git_br-qnx-sdp-main_be-800_B12
+PACKAGE=com.qnx.qnx800.target.base.text.ncurses/0.0.2.00012T202411230232L
+FILE /system/lib/libpam.so.2
+QNX_BUILDID=(GNU)10e34f0196422cc3355fc9ae42973593
+NAME=libpam.so.2
+DATE=2023/11/19-09:50:41-EST
+VERSION=QNXOS_main
+PACKAGE=com.qnx.qnx800.target.security.pam/0.0.1.00135T202311191043L
+FILE /system/lib/libpanelw.so.1
+QNX_BUILDID=(GNU)65e216930dea2ed05744dc468bffa032
+NAME=libpanelw.so.6.4
+DATE=2024/11/23-02:33:36-EST
+VERSION=OSR-ncurses-git_br-qnx-sdp-main_be-800_B12
+PACKAGE=com.qnx.qnx800.target.base.text.ncurses/0.0.2.00012T202411230232L
+FILE /system/lib/librcheck.so
+QNX_BUILDID=(GNU)1f19c371fcc576c66bd17a5134264bf5
+NAME=librcheck.so.1
+DATE=2026/10/01-18:57:20-EDT
+VERSION=qnxcore_be-800_B6031
+PACKAGE=com.qnx.qnx800.target.utils.debugtools/0.2.0.06031T202610011839L
+FILE /system/lib/librcheck.so.1
+QNX_BUILDID=(GNU)1f19c371fcc576c66bd17a5134264bf5
+NAME=librcheck.so.1
+DATE=2026/10/01-18:57:20-EDT
+VERSION=qnxcore_be-800_B6031
+PACKAGE=com.qnx.qnx800.target.utils.debugtools/0.2.0.06031T202610011839L
+FILE /system/lib/librpc.so.2
+QNX_BUILDID=(GNU)c54437971a02e1e6d66061ab67ed3c8d
+NAME=librpc.so.2
+DATE=2026/10/21-07:14:05-EDT
+VERSION=networking_services_br-qnx-8.0.0-8.0.6_be-800_B12
+PACKAGE=com.qnx.qnx800.target.net.nfs/0.6.0.00012T202610210714L
+FILE /system/lib/libssl.so.3
+QNX_BUILDID=(GNU)07c92bfc633825f5eb8c00ab1195371c
+NAME=libssl.so.3
+DATE=2026/10/01-21:18:01-EDT
+VERSION=OSR-openssl-git_br-qnx-sdp8-openssl-3.0.x_be-800_B12
+PACKAGE=com.qnx.qnx800.target.security.crypto.openssl3/3.0.22.00012T202610012115L
+FILE /system/lib/libstdc++.so.6
+QNX_BUILDID=(GNU)23413683ebe91da6128ca52c9cf93a51
+NAME=libstdc++.so.6.0.30
+DATE=2026/10/01-14:12:51-EDT
+VERSION=GCC-12.2.0
+PACKAGE=com.qnx.qnx800.target.tools.cpp/12.2.0.01008T202610011452L
+FILE /system/lib/libtracelog.so.1
+QNX_BUILDID=(GNU)e01843b8ef3163d0ba2687c8d54c9dc6
+NAME=libtracelog.so.1
+DATE=2026/10/01-19:02:49-EDT
+VERSION=qnxcore_be-800_B6031
+PACKAGE=com.qnx.qnx800.target.microkernel.tools/0.2.0.06031T202610011839L
+FILE /system/lib/libunwind.so.8
+QNX_BUILDID=(GNU)44615a529237ddaf4c61302af6d257e5
+NAME=libunwind.so.8.2.0
+DATE=2026/05/21-11:55:13-EDT
+VERSION=1.8.2
+PACKAGE=com.qnx.qnx800.target.utils.libunwind/1.8.2.00175T202605211154L
+FILE /system/lib/libusbdci.so.2
+QNX_BUILDID=(GNU)3e6b70937dc7ad482ada91fc8be17888
+NAME=libusbdci.so.2
+DATE=2026/05/20-15:16:39-EDT
+VERSION=bsp_usb_br-release-1xx_be-800_B60
+PACKAGE=com.qnx.qnx800.target.usb.dcd/0.1.0.00060T202605201516L
+FILE /system/lib/libusbdi.so.2
+QNX_BUILDID=(GNU)d576eadebc3002b0ec15c883ad5b543a
+NAME=libusbdi.so.2
+DATE=2026/09/11-14:29:11-EDT
+VERSION=bsp_usb_br-release-1xx_be-800_B70
+PACKAGE=com.qnx.qnx800.target.usb.base/0.2.0.00070T202609111428L
+FILE /system/lib/libxml2.so.16
+QNX_BUILDID=(GNU)93cdc4ad59db43782085692339e4c3a4
+NAME=libxml2.so.16.1.2
+DATE=2026/04/20-14:45:14-EDT
+VERSION=OSR-libxml2-git_br-qnx-sdp-master_be-800_B14
+PACKAGE=com.qnx.qnx800.target.base.libxml2/2.15.2.00014T202604201444L
+FILE /system/lib/libxo.so.0
+QNX_BUILDID=(GNU)7bf7b5c1d840b23a7f052957cf781baf
+NAME=libxo.so.0
+DATE=2026/10/01-21:46:22-EDT
+VERSION=networking_io-sock_br-qnx-806-rel_be-800_B11
+PACKAGE=com.qnx.qnx800.target.net.utils/0.6.0.00011T202610012146L
+FILE /system/lib/dll/devs-vtnet_pci.so
+QNX_BUILDID=(GNU)add6a4afbd571c80d88b3032c988a360
+NAME=devs-vtnet_pci.so
+DATE=2026/10/21-05:44:34-EDT
+VERSION=networking_io-sock_br-qnx-806-rel_be-800_B14
+PACKAGE=com.qnx.qnx800.target.net.devsvirtio/0.6.0.00014T202610210541L
+FILE /system/lib/dll/devu-hcd-ehci.so
+QNX_BUILDID=(GNU)f8e9a1fa1b9c28e97035b99a6485d4fe
+NAME=devu-hcd-ehci.so
+DATE=2026/09/11-14:29:26-EDT
+VERSION=bsp_usb_br-release-1xx_be-800_B70
+PACKAGE=com.qnx.qnx800.target.usb.base/0.2.0.00070T202609111428L
+FILE /system/lib/dll/devu-hcd-uhci.so
+QNX_BUILDID=(GNU)abf06d7287d49e0ecd3ca7578bef7242
+NAME=devu-hcd-uhci.so
+DATE=2026/09/11-14:29:32-EDT
+VERSION=bsp_usb_br-release-1xx_be-800_B70
+PACKAGE=com.qnx.qnx800.target.usb.base/0.2.0.00070T202609111428L
+FILE /system/lib/dll/devu-hcd-xhci.so
+QNX_BUILDID=(GNU)de80c7f55fa23685962a011d8a00043a
+NAME=devu-hcd-xhci.so
+DATE=2026/09/11-14:29:34-EDT
+VERSION=bsp_usb_br-release-1xx_be-800_B70
+PACKAGE=com.qnx.qnx800.target.usb.base/0.2.0.00070T202609111428L
+FILE /system/lib/dll/fs-dos.so
+QNX_BUILDID=(GNU)a2fa1ee1c80d20f4f175d727a089665b
+NAME=fs-dos.so
+DATE=2026/10/01-23:24:51-EDT
+VERSION=blkfsys_be-800_B20
+PACKAGE=com.qnx.qnx800.target.fs.dosfs/0.3.0.00020T202610012324L
+FILE /system/lib/dll/mods-pci.so
+QNX_BUILDID=(GNU)57b904a59a7612ab3a9d491c98972904
+NAME=mods-pci.so
+DATE=2026/10/01-21:48:18-EDT
+VERSION=networking_io-sock_br-qnx-806-rel_be-800_B11
+PACKAGE=com.qnx.qnx800.target.net.devspci/0.6.0.00011T202610012146L
+FILE /system/lib/dll/mods-phy.so
+QNX_BUILDID=(GNU)f19ee6bc41516e18c25439010458f532
+NAME=mods-phy.so
+DATE=2026/10/01-21:48:25-EDT
+VERSION=networking_io-sock_br-qnx-806-rel_be-800_B11
+PACKAGE=com.qnx.qnx800.target.net.modsphy/0.6.0.00011T202610012146L
+FILE /system/lib/dll/mods-usb.so
+QNX_BUILDID=(GNU)39fde15b20041d6c5f124e6fd5a3f1c7
+NAME=mods-usb.so
+DATE=2026/10/01-21:48:30-EDT
+VERSION=networking_io-sock_br-qnx-806-rel_be-800_B11
+PACKAGE=com.qnx.qnx800.target.net.devsusb/0.6.0.00011T202610012146L
+FILE /system/lib/dll/pam/pam_deny.so
+QNX_BUILDID=(GNU)96964f63acc9238af25bc755bcaca6a1
+NAME=pam_deny.so.2
+DATE=2023/11/19-10:21:57-EST
+VERSION=QNXOS_main
+PACKAGE=com.qnx.qnx800.target.security.pam/0.0.1.00135T202311191043L
+FILE /system/lib/dll/pam/pam_echo.so
+QNX_BUILDID=(GNU)b148a93e7cd0af19ed21432da2354b5c
+NAME=pam_echo.so.2
+DATE=2023/11/19-10:21:58-EST
+VERSION=QNXOS_main
+PACKAGE=com.qnx.qnx800.target.security.pam/0.0.1.00135T202311191043L
+FILE /system/lib/dll/pam/pam_exec.so
+QNX_BUILDID=(GNU)153f53dc38b3a31d44dec3f92ee74cac
+NAME=pam_exec.so.2
+DATE=2023/11/19-10:21:58-EST
+VERSION=QNXOS_main
+PACKAGE=com.qnx.qnx800.target.security.pam/0.0.1.00135T202311191043L
+FILE /system/lib/dll/pam/pam_group.so
+QNX_BUILDID=(GNU)0d94ed1bc545e2eb801aa46bb96cd4d3
+NAME=pam_group.so.2
+DATE=2023/11/19-10:21:58-EST
+VERSION=QNXOS_main
+PACKAGE=com.qnx.qnx800.target.security.pam/0.0.1.00135T202311191043L
+FILE /system/lib/dll/pam/pam_permit.so
+QNX_BUILDID=(GNU)25b6a56e5991dde7ed1e275020d20076
+NAME=pam_permit.so.2
+DATE=2023/11/19-10:21:58-EST
+VERSION=QNXOS_main
+PACKAGE=com.qnx.qnx800.target.security.pam/0.0.1.00135T202311191043L
+FILE /system/lib/dll/pam/pam_qnx.so
+QNX_BUILDID=(GNU)f072a463e9062edcd98411f787da9cc8
+NAME=pam_qnx.so.2
+DATE=2023/11/19-10:21:59-EST
+VERSION=QNXOS_main
+PACKAGE=com.qnx.qnx800.target.security.pam/0.0.1.00135T202311191043L
+FILE /system/lib/dll/pam/pam_rootok.so
+QNX_BUILDID=(GNU)e4ac893b879cddea4c070ff16910598b
+NAME=pam_rootok.so.2
+DATE=2023/11/19-10:21:59-EST
+VERSION=QNXOS_main
+PACKAGE=com.qnx.qnx800.target.security.pam/0.0.1.00135T202311191043L
+FILE /system/lib/dll/pam/pam_self.so
+QNX_BUILDID=(GNU)6105bc8faaec3e23a0baac17142cfb77
+NAME=pam_self.so.2
+DATE=2023/11/19-10:21:59-EST
+VERSION=QNXOS_main
+PACKAGE=com.qnx.qnx800.target.security.pam/0.0.1.00135T202311191043L

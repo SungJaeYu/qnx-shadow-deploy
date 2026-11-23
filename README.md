@@ -96,7 +96,7 @@ Default demonstration settings are a 20 ms nominal period, a 10 ms decision budg
 
 The intended target is **QNX SDP / OS 8.0.6, x86-64, QEMU**. The QNX build selects native message passing at compile time. A host build selects bounded POSIX pipes while using the same policy and example workloads.
 
-Follow [QNX setup and validation](docs/qnx-setup.md), including the Apple Silicon Mac container workflow. A licensed SDK with Linux host tools is required. The existing image booted using native macOS QEMU 11.1.3, TCG, 2 CPUs and 1 GiB RAM. The guest reports OS 8.0.0 with the October 30, 2026 kernel; five guest runtime build IDs match the installed SDK. Complete 8.0.6 release-set alignment still needs confirmation. No QNX binaries, headers, license files or VM images are distributed in this repository.
+Follow [QNX setup and validation](docs/qnx-setup.md), including the Apple Silicon Mac container workflow. A licensed SDK with Linux host tools is required. The existing image booted using native macOS QEMU 11.1.3, TCG, 2 CPUs and 1 GiB RAM. The [release audit](docs/evidence/qnx-release-audit-2026-11-23/README.md) matches all 260 installed package versions to the cached 8.0.6 definition and 164 distinct guest build IDs to SDK assets. The guest kernel package also matches, despite `uname` reporting 8.0.0. Reproduction with a supported development host and current QNX Software Center remains open. No QNX binaries, headers, license files or VM images are distributed in this repository.
 
 ## Project map
 

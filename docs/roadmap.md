@@ -12,7 +12,8 @@
 - [x] Cross-compile all five executables with the installed QNX SDK.
 - [x] Boot the existing image and validate native policy/staging, eleven functional scenarios and live deployment.
 - [x] Inventory 260 SDK packages and match five guest runtime build IDs to installed assets.
-- [ ] Confirm the complete 8.0.6 release package set; component matching alone is insufficient.
+- [x] Match all 260 installed package versions to the cached 8.0.6 release definition; match the guest kernel package and 164 distinct guest build IDs.
+- [ ] Reproduce the installation with QSC 2.0.4+ on a supported x86-64 host; the observed Mac QSC 1.7 installation is not vendor-supported.
 
 ## Milestone 2: Deploy into an already-running service
 

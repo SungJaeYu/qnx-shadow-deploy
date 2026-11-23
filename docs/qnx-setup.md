@@ -13,19 +13,21 @@
 
 The SDK's release notes do not support native macOS or ARM development hosts. QNX also publishes a macOS workflow that runs the Linux x86-64 host tools inside an emulated Docker container on Apple Silicon. That is the first cross-build route for this project on an M1 Mac; a supported x86-64 Ubuntu host remains the fallback. The blog workflow does not establish SDP 8.0.6 compatibility or successful target execution. A Docker container does not supply a QNX kernel.
 
-**Status: the existing image booted and native functional tests passed on 2026-11-23.** QNX Software Center installed the SDK and Linux x86-64 host tools on the development Mac. [Cross-build evidence](evidence/qnx-cross-build.json), [image evidence](evidence/qnx-image-build.json) and [native execution evidence](evidence/qnx-validation-2026-11-23/README.md) distinguish these stages. Default-budget timing failures and complete release-set alignment remain open.
+**Status: the existing image booted and native functional tests passed on 2026-11-23.** QNX Software Center installed the SDK and Linux x86-64 host tools on the development Mac. [Cross-build evidence](evidence/qnx-cross-build.json), [image evidence](evidence/qnx-image-build.json) and [native execution evidence](evidence/qnx-validation-2026-11-23/README.md) distinguish these stages. The [release audit](evidence/qnx-release-audit-2026-11-23/README.md) confirms package membership against the cached 8.0.6 definition and matches inspected guest components. Default-budget timing failures and supported-host installation reproduction remain open.
 
 ## Obtain and activate the SDK
 
-Use [QNX Everywhere](https://qnx.software/en/developers/get-started/qnx-everywhere) and QNX Software Center to obtain and activate an eligible license. In myQNX License Manager, deploy the license to your own myQNX email address; a newly issued license marked **Available** is not yet deployed. Then activate it locally in QNX Software Center. Install the complete SDP 8.0.6 baseline and matching target components. Do not mix partial SDK/OS update sets. Review and accept applicable terms yourself; never paste serial numbers or passwords into repository issues, scripts or chat.
+Use [QNX Everywhere](https://qnx.software/en/developers/get-started/qnx-everywhere) and QNX Software Center to obtain and activate an eligible license. In myQNX License Manager, deploy the license to your own myQNX email address; a newly issued license marked **Available** is not yet deployed. Then activate it locally in QNX Software Center. For a supported 8.0.6 installation, use QNX Software Center 2.0.4 or later on a supported x86-64 host and create a new baseline with the Conservative update policy, as specified by the [release notes](https://developers.qnx.com/developers/docs/relnotes8.0/com.qnx.doc.release_notes/topic/8.0.6_prod_release_notes/8.0.6_rn.html). Existing 8.0.x installations cannot currently be upgraded to 8.0.6 using a patch set. Install the complete baseline and matching target components. Do not mix partial SDK/OS update sets. Review and accept applicable terms yourself; never paste serial numbers or passwords into repository issues, scripts or chat.
 
 Do not commit SDK headers, binaries, activation files, account credentials or generated QNX images. The repository includes only project-owned source and build instructions.
 
-## Apple Silicon Mac: container cross-build
+## Apple Silicon Mac: observed container cross-build
+
+The steps below record how the existing artifacts were produced. The archived Mac QSC client is below the 8.0.6 minimum version; this is an experimental reproduction path, not the supported installation procedure above.
 
 1. Install and start Docker Desktop for Apple Silicon.
-2. Install [QNX Software Center for macOS](https://www.qnx.com/download/feature.html?programid=58068). The QNX macOS guide links the archived QSC 1.7 installer; its version is separate from the desired SDP 8.0.6 version. If the old client cannot install the required packages, use the current Linux QSC on a supported Ubuntu host instead of installing an older SDP silently.
-3. Sign in to QSC, activate the deployed license, and add an SDP 8.0 installation, normally at `~/qnx800`. Select the complete 8.0.6 update set. Under **Manage Installation > Available**, install **QNX SDP Host Tools (Linux 64-bit)**.
+2. The recorded installation used the archived [QNX Software Center for macOS](https://www.qnx.com/download/feature.html?programid=58068), version 1.7.0. Use the supported installation procedure above for a new development environment.
+3. The owner activated the license locally, selected the 8.0.6 set in QSC, and installed the SDK plus **QNX SDP Host Tools (Linux 64-bit)** at `~/qnx800`. The later audit verifies the resulting package inventory; it does not certify the old client's installation workflow.
 4. From the repository directory in your Mac terminal:
 
 ```sh
@@ -39,7 +41,7 @@ The image contains only Ubuntu packages. It mounts this repository, the SDK read
 
 Output goes to `build-qnx-container/`, separate from native host builds. `bash tools/qnx_container.sh shell` opens a diagnostic shell with the same mounts. This helper does not start a QNX VM, activate a license, or run QNX binaries on Linux. Emulator timing is not hardware timing evidence.
 
-**Setup checkpoint, 2026-11-23:** QSC installed the SDK after selecting the 8.0.6 patch set and displayed successful local license activation. The installed Linux GCC package is `12.2.0.01008T202610011452L`. The owner built the Ubuntu container and cross-compiled all five executables from the Mac terminal. Docker engine access remains blocked by the automated session sandbox; it was not bypassed. The later native run reused these artifacts. The [SDK audit](evidence/qnx-sdk-audit.json) inventories 260 packages and verifies nine selected installed assets against package size/SHA-512 metadata. Five guest library/loader build IDs match the installed SDK; complete release-set alignment remains unverified.
+**Setup checkpoint, 2026-11-23:** QSC installed the SDK after selecting the 8.0.6 patch set and displayed successful local license activation. The installed Linux GCC package is `12.2.0.01008T202610011452L`. The owner built the Ubuntu container and cross-compiled all five executables from the Mac terminal. Docker engine access remains blocked by the automated session sandbox; it was not bypassed. The later native run reused these artifacts. The [SDK audit](evidence/qnx-sdk-audit.json) inventories 260 packages and verifies nine selected installed assets against package size/SHA-512 metadata. The follow-up [release audit](evidence/qnx-release-audit-2026-11-23/README.md) matches all 260 IDs/versions to `com.qnx.qnx800.patchset806/8.0.6.00398T202611040724L`, with no missing, extra or mismatched package. The guest kernel package and 164 distinct guest build IDs also match. This uses cached vendor metadata and does not certify a supported installation or every filesystem byte.
 
 ## Cross-build
 
@@ -124,7 +126,8 @@ Capture the serial session on the Mac, for example with `script -q serial-origin
 ## Required evidence before declaring QNX support verified
 
 - [x] Record package inventory, existing compiler metadata, guest OS version and exact QEMU configuration.
-- [ ] Capture a fresh compiler transcript and confirm the complete 8.0.6 release package set.
+- [x] Match all installed package versions to the cached 8.0.6 release definition and inspect guest provenance.
+- [ ] Reproduce installation with QSC 2.0.4+ on a supported x86-64 host and capture a fresh compiler transcript.
 - [x] Compile every target with warnings treated as errors.
 - [x] Run target policy/staging tests, all eleven functional scenarios and late artifact attachment.
 - [x] Exercise cancel/retry, replay failure and backlog overflow; record baseline PID continuity in live runs.

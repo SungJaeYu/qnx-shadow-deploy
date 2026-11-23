@@ -1,0 +1,6 @@
+{
+  "positive_reproduction": "passed",
+  "package_version_negative_control": "rejected as expected",
+  "guest_build_id_negative_control": "rejected as expected",
+  "evidence_hashes": "passed"
+}

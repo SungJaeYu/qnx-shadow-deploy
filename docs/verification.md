@@ -2,7 +2,7 @@
 
 ## Scope
 
-Initial host verification was performed on 2026-11-23 using macOS, AppleClang 21.0.0 and CMake 4.3.3. A subsequent QNX cross-build produced all five target executables. **The existing image later booted and native functional tests passed in QEMU using `qnx-native-ipc`. Default 10 ms timing failures, complete release-set alignment and hardware timing validation remain open.**
+Initial host verification was performed on 2026-11-23 using macOS, AppleClang 21.0.0 and CMake 4.3.3. A subsequent QNX cross-build produced all five target executables. **The existing image later booted and native functional tests passed in QEMU using `qnx-native-ipc`. The complete installed package inventory matches the cached 8.0.6 definition, with inspected guest components aligned. Default 10 ms timing failures, supported-host installation reproduction and hardware timing validation remain open.**
 
 ## Executed checks
 
@@ -43,7 +43,7 @@ On 2026-11-23 the owner ran `qnx_container.sh image` and `qnx_container.sh build
 - Broker/staging binaries import `ConnectAttach`, `MsgSend`, `TimerTimeout` and `posix_spawn`; worker/candidate binaries import `ChannelCreate`, `MsgReceive` and `MsgReply`.
 - The generated manifest declares `os=qnx` and `architecture=x86_64`.
 
-The [machine-readable record](evidence/qnx-cross-build.json) includes SHA-256 hashes, sizes and runtime dependencies. The SDK was installed after selecting the 8.0.6 patch set; complete package alignment still needs auditing. Dynamic imports demonstrate that the QNX code path was compiled, not that its runtime behavior passed.
+The [machine-readable record](evidence/qnx-cross-build.json) includes SHA-256 hashes, sizes and runtime dependencies. The SDK was installed after selecting the 8.0.6 patch set; the subsequent [release audit](evidence/qnx-release-audit-2026-11-23/README.md) matches all 260 installed package versions to its cached definition. Dynamic imports demonstrate that the QNX code path was compiled, not that its runtime behavior passed.
 
 ## QNX image-generation checkpoint
 
@@ -69,7 +69,7 @@ The owner installed Homebrew QEMU after the automated installation failed to res
 | SDK integrity scope | 260 package records; nine selected assets match package size/SHA-512 metadata |
 | Runtime matching | libc, loader, libm, libgcc_s and libc++ build IDs match installed SDK package records |
 
-`qversion` and `uname` report 8.0.0. Component build IDs establish the inspected runtime's provenance, not the complete 8.0.6 release-set membership. Full alignment remains open. The no-network launcher caused expected `vtnet0` startup errors; the guest reached `Startup complete`. Boot also reported absent ACPI MCFG and PCID support. Host load measurement with `ps` was denied, so these runs used an uncontrolled host workload.
+`qversion` and `uname` report 8.0.0. The later [release audit](evidence/qnx-release-audit-2026-11-23/README.md) separately matches all 260 installed IDs/versions to the cached 8.0.6 package definition. A fresh guest scan matches 164 distinct build IDs and the kernel package/version to that SDK. The boot kernel exposes no GNU build ID through `use -i`; no byte-for-byte guest kernel match is claimed. No missing, extra or mismatched package was found. QSC 1.7 and macOS/ARM remain outside the current 8.0.6 installation requirements. The no-network launcher caused expected `vtnet0` startup errors; the guest reached `Startup complete`. Boot also reported absent ACPI MCFG and PCID support. Host load measurement with `ps` was denied, so these runs used an uncontrolled host workload.
 
 Policy and staging executables returned 0 on QNX. The eleven scenarios were first run at their unchanged 20 ms period / 10 ms decision budget / 7.5 ms IPC cutoff, with 180 requested samples and default qualification/probation. Five stopped early due to timing:
 
@@ -177,7 +177,7 @@ Under heavy scheduling interference, a timing scenario may fail closed. Preserve
 
 ## Remaining validation gates
 
-1. Confirm the complete 8.0.6 release set; installed component inventory and five guest runtime build IDs are recorded.
+1. Reproduce the installation with QSC 2.0.4+ on a supported x86-64 development host and capture fresh compiler output. Cached release membership and inspected guest provenance passed; independent catalog signature validation and a whole-filesystem integrity audit were not performed.
 2. Isolate SEND-blocked timeout behavior and broaden cancellation/unblock interleavings; observed REPLY timeouts and functional cleanup passed.
 3. Resolve default-budget timing failures under a declared scheduling/resource configuration and controlled load; emulation is not hardware timing proof.
 4. Separate selected-output delivery from telemetry and shadow waits; add target resource admission and validate repeated deployments under load.
