@@ -96,7 +96,7 @@ Default demonstration settings are a 20 ms nominal period, a 10 ms decision budg
 
 The intended target is **QNX SDP / OS 8.0.6, x86-64, QEMU**. The QNX build selects native message passing at compile time. A host build selects bounded POSIX pipes while using the same policy and example workloads.
 
-Follow [QNX setup and validation](docs/qnx-setup.md). A licensed SDK and a supported development host are required. No QNX binaries, headers, license files or VM images are distributed in this repository.
+Follow [QNX setup and validation](docs/qnx-setup.md), including the Apple Silicon Mac container workflow. A licensed SDK with Linux host tools is required. The supplied Ubuntu 24.04 container helper is prepared but has not yet built the QNX targets. No QNX binaries, headers, license files or VM images are distributed in this repository.
 
 ## Project map
 

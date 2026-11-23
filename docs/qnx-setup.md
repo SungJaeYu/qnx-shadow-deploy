@@ -11,15 +11,35 @@
 | Build | CMake 3.20+, C++17 |
 | Transport | Native QNX message passing |
 
-The SDK's release notes do not support macOS or ARM development hosts. A Mac can edit code and display the host workbench; the intended QNX cross-build and guest execution path is a supported x86-64 Linux environment. A Docker container does not supply a QNX kernel.
+The SDK's release notes do not support native macOS or ARM development hosts. QNX also publishes a macOS workflow that runs the Linux x86-64 host tools inside an emulated Docker container on Apple Silicon. That is the first cross-build route for this project on an M1 Mac; a supported x86-64 Ubuntu host remains the fallback. The blog workflow does not establish SDP 8.0.6 compatibility or successful target execution. A Docker container does not supply a QNX kernel.
 
 **Status: not yet executed.** These are target setup instructions and acceptance gates, not a transcript of successful target validation. The initial development environment had no discoverable `q++`, `mkqnximage`, `QNX_HOST`, or `QNX_TARGET`.
 
 ## Obtain and activate the SDK
 
-Use [QNX Everywhere](https://qnx.software/en/developers/get-started/qnx-everywhere) and QNX Software Center to obtain and activate an eligible license. Install the complete SDP 8.0.6 baseline and matching target components. Do not mix partial SDK/OS update sets. SDK download, license acceptance and account activation are performed by the account owner.
+Use [QNX Everywhere](https://qnx.software/en/developers/get-started/qnx-everywhere) and QNX Software Center to obtain and activate an eligible license. In myQNX License Manager, deploy the license to your own myQNX email address; a newly issued license marked **Available** is not yet deployed. Then activate it locally in QNX Software Center. Install the complete SDP 8.0.6 baseline and matching target components. Do not mix partial SDK/OS update sets. Review and accept applicable terms yourself; never paste serial numbers or passwords into repository issues, scripts or chat.
 
 Do not commit SDK headers, binaries, activation files, account credentials or generated QNX images. The repository includes only project-owned source and build instructions.
+
+## Apple Silicon Mac: container cross-build
+
+1. Install and start Docker Desktop for Apple Silicon.
+2. Install [QNX Software Center for macOS](https://www.qnx.com/download/feature.html?programid=58068). The QNX macOS guide links the archived QSC 1.7 installer; its version is separate from the desired SDP 8.0.6 version. If the old client cannot install the required packages, use the current Linux QSC on a supported Ubuntu host instead of installing an older SDP silently.
+3. Sign in to QSC, activate the deployed license, and add an SDP 8.0 installation, normally at `~/qnx800`. Select the complete 8.0.6 update set. Under **Manage Installation > Available**, install **QNX SDP Host Tools (Linux 64-bit)**.
+4. From the repository directory in your Mac terminal:
+
+```sh
+bash tools/qnx_container.sh image
+bash tools/qnx_container.sh build
+```
+
+If the SDK is elsewhere, set `SHADOW_QNX_SDP=/absolute/path/to/sdk` before the build command. If license storage is customized, set `SHADOW_QNX_LICENSE` to the actual **license directory**, not its parent. The script uses `~/.qnx/license` by default and does not read or print its contents.
+
+The image contains only Ubuntu packages. It mounts this repository, the SDK read-only, and the license directory writable for QNX licensing state. It does not mount the entire home directory or Docker socket, enable privileged mode, publish ports, or use host networking. It runs as the invoking user's UID/GID. Review `tools/qnx_container.sh` before execution. The license and SDK never enter the Docker build context or image layers.
+
+Output goes to `build-qnx-container/`, separate from native host builds. `bash tools/qnx_container.sh shell` opens a diagnostic shell with the same mounts. This helper does not start a QNX VM, activate a license, or run QNX binaries on Linux. Emulator timing is not hardware timing evidence.
+
+**Setup checkpoint, 2026-11-23:** Docker Desktop was present on the M1 development machine, and the myQNX license was deployed to the account owner. The automated session could not access the Docker engine because of its execution sandbox. The macOS QSC download was blocked by the in-app browser. The SDK, container image, license activation, cross-build and guest execution remain unverified. Shell syntax and command preflight are not a substitute for those checks.
 
 ## Cross-build
 
@@ -98,6 +118,9 @@ The current implementation does not use a resource manager, health-monitoring pu
 
 ## Official references
 
+- [QNX macOS development guide](https://qnx.software/en/blog/2026/how-to-use-macos-to-develop-for-qnx)
+- [QNX Docker macOS reference project](https://gitlab.com/qnx/projects/docker-mac)
+- [QSC license storage](https://www.qnx.com/developers/docs/qsc/com.qnx.doc.qsc.user_guide/topic/configure_default_location.html)
 - [QNX SDP 8.0.6 release notes and host requirements](https://qnx.com/developers/docs/relnotes8.0/com.qnx.doc.release_notes/topic/8.0.6_prod_release_notes/8.0.6_rn.html)
 - [CMake cross-compilation for QNX](https://cmake.org/cmake/help/latest/manual/cmake-toolchains.7.html#cross-compiling-for-qnx)
 - [mkqnximage](https://qnx.com/developers/docs/8.0/com.qnx.doc.neutrino.utilities/topic/m/mkqnximage.html)
