@@ -15,7 +15,7 @@ class ProcessIntegration(unittest.TestCase):
     def run_scenario(self, scenario, expected_phase, expected_event, code=0):
         result = subprocess.run(
             [DEMO, "--worker", WORKER, "--scenario", scenario, "--samples", "22",
-             "--qualify", "3", "--probation", "8", "--period-ms", "30", "--deadline-ms", "25"],
+             "--qualify", "3", "--probation", "8", "--period-ms", "100", "--deadline-ms", "75"],
             capture_output=True, text=True, timeout=8)
         self.assertEqual(result.returncode, code, result.stderr + result.stdout[-1200:])
         rows = [json.loads(line) for line in result.stdout.splitlines()]
@@ -26,6 +26,8 @@ class ProcessIntegration(unittest.TestCase):
                 os.kill(pid, 0)
         ticks = [row for row in rows if row["type"] == "sample"]
         self.assertEqual([row["sequence"] for row in ticks], list(range(1, len(ticks) + 1)))
+        for previous, current in zip(ticks, ticks[1:]):
+            self.assertGreaterEqual(current["time_s"] - previous["time_s"], 0.1 - 1e-6)
         self.assertEqual(rows[-1]["phase"], expected_phase)
         self.assertIn(expected_event, [row["event"] for row in ticks])
         self.assertEqual(rows[-1]["outputs"], sum(row["output"] is not None for row in ticks))

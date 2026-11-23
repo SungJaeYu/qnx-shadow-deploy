@@ -1,4 +1,5 @@
 #include "shadow/policy.hpp"
+#include "shadow/schedule.hpp"
 #include <functional>
 #include <iostream>
 #include <limits>
@@ -18,6 +19,15 @@ Contract quick() { Contract c; c.qualification_samples = 2; c.probation_samples 
 Decision tick(Supervisor& g, unsigned i) { auto s = sample(i); return g.step(s, ok(s), ok(s)); }
 int main() {
     const std::vector<std::pair<std::string, std::function<void()>>> tests{
+        {"late acquisition cannot cause a catch-up burst", [] {
+            const std::uint64_t acquired = 329732000, completed = 329900000, period = 30000000;
+            CHECK(next_release_ns(acquired, completed, period) == acquired + period);
+            CHECK(next_release_ns(acquired, completed, period) - acquired >= period);
+        }},
+        {"processing overrun does not create an input backlog", [] {
+            CHECK(next_release_ns(100000000, 180000000, 30000000) == 180000000);
+            CHECK(next_release_ns(180000000, 181000000, 30000000) == 210000000);
+        }},
         {"promotion starts at the next sequence boundary", [] {
             Supervisor g(quick());
             CHECK(tick(g, 1).source == Source::baseline);

@@ -1,6 +1,7 @@
 #include "shadow/io.hpp"
 #include "shadow/policy.hpp"
 #include "shadow/process.hpp"
+#include "shadow/schedule.hpp"
 #include <chrono>
 #include <cmath>
 #include <csignal>
@@ -147,10 +148,8 @@ int main(int argc, char** argv) {
             if (!supervisor.needs_candidate()) candidate.reset();
             if (!supervisor.needs_baseline()) baseline.reset();
             if (decision.phase == Phase::failed) break;
-            next_release += period_ns;
-            const auto end = monotonic_ns();
-            // Skip missed releases; never burst stale inputs to catch up.
-            if (next_release < end) next_release += ((end - next_release) / period_ns + 1) * period_ns;
+            // Rebase on actual acquisition, not the old nominal release grid.
+            next_release = next_release_ns(sample.acquired_ns, monotonic_ns(), period_ns);
         }
         std::cout << "{\"type\":\"summary\",\"phase\":\"" << name(supervisor.phase())
                   << "\",\"samples\":" << emitted << ",\"outputs\":" << outputs
