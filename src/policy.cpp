@@ -5,6 +5,8 @@
 namespace shadow {
 const char* name(Phase p) {
     switch (p) {
+    case Phase::idle: return "idle";
+    case Phase::warming: return "warming";
     case Phase::shadowing: return "shadowing";
     case Phase::probation: return "probation";
     case Phase::committed: return "committed";
@@ -22,7 +24,8 @@ const char* name(Source s) {
     }
     return "none";
 }
-Supervisor::Supervisor(Contract c) : contract_(c) {
+Supervisor::Supervisor(Contract c, bool candidate_started) : contract_(c),
+    phase_(candidate_started ? Phase::shadowing : Phase::idle) {
     if (!c.deadline_ns || !c.qualification_samples || !c.probation_samples ||
         !std::isfinite(c.max_position_m) || c.max_position_m <= 0 ||
         !std::isfinite(c.max_velocity_mps) || c.max_velocity_mps <= 0 ||
@@ -34,8 +37,30 @@ Decision Supervisor::stop_output(const std::string& reason) {
     Decision decision; decision.phase = phase_; decision.event = "output_stopped"; decision.reason = reason;
     return decision;
 }
-std::string Supervisor::check(const Sample& s, const Observation& o,
-                              const std::optional<Estimate>& previous) const {
+bool Supervisor::begin_staging() {
+    if (phase_ != Phase::idle && phase_ != Phase::rejected && phase_ != Phase::rolled_back) return false;
+    phase_ = Phase::warming; qualified_ = 0; probation_ = 0;
+    last_candidate_.reset(); cancel_requested_ = false;
+    pending_event_ = "candidate_staged"; pending_reason_ = "state_preparation_started";
+    return true;
+}
+void Supervisor::begin_shadowing(const Estimate& last_replayed) {
+    if (phase_ != Phase::warming) throw std::logic_error("Candidate is not warming");
+    phase_ = Phase::shadowing; last_candidate_ = last_replayed;
+    pending_event_ = "candidate_ready"; pending_reason_ = "replay_caught_up";
+}
+void Supervisor::reject_staging(const std::string& reason) {
+    if (phase_ != Phase::warming) throw std::logic_error("Candidate is not warming");
+    phase_ = Phase::rejected;
+    pending_event_ = "candidate_rejected"; pending_reason_ = reason;
+}
+bool Supervisor::request_cancel() {
+    if (phase_ != Phase::warming && phase_ != Phase::shadowing && phase_ != Phase::probation) return false;
+    cancel_requested_ = true; return true;
+}
+std::string check_observation(const Sample& s, const Observation& o,
+                              const std::optional<Estimate>& previous, const Contract& contract,
+                              std::uint64_t receipt_origin_ns) {
     switch (o.status) {
     case TransportStatus::timeout: return "deadline_exceeded";
     case TransportStatus::disconnected: return "worker_disconnected";
@@ -46,17 +71,19 @@ std::string Supervisor::check(const Sample& s, const Observation& o,
     const auto& e = o.estimate;
     if (!valid_header(e.header, Kind::estimate)) return "protocol_mismatch";
     if (e.sequence != s.sequence || e.acquired_ns != s.acquired_ns) return "stale_or_mismatched_output";
-    if (o.completed_ns < s.acquired_ns || o.completed_ns - s.acquired_ns > contract_.deadline_ns)
+    if (o.completed_ns < receipt_origin_ns || o.completed_ns - receipt_origin_ns > contract.deadline_ns)
         return "deadline_exceeded";
     if (!std::isfinite(e.position_m) || !std::isfinite(e.velocity_mps)) return "non_finite_output";
-    if (std::abs(e.position_m) > contract_.max_position_m) return "position_out_of_range";
-    if (std::abs(e.velocity_mps) > contract_.max_velocity_mps) return "velocity_out_of_range";
-    if (previous && std::abs(e.position_m - previous->position_m) > contract_.max_step_m)
+    if (std::abs(e.position_m) > contract.max_position_m) return "position_out_of_range";
+    if (std::abs(e.velocity_mps) > contract.max_velocity_mps) return "velocity_out_of_range";
+    if (previous && std::abs(e.position_m - previous->position_m) > contract.max_step_m)
         return "position_step_exceeded";
     return "ok";
 }
 Decision Supervisor::step(const Sample& s, const Observation& b, const Observation& c) {
     Decision d;
+    d.event = std::move(pending_event_); pending_event_.clear();
+    d.reason = std::move(pending_reason_); pending_reason_.clear();
     auto finish = [&]() { d.phase = phase_; return d; };
     auto fail = [&](const std::string& why) {
         phase_ = Phase::failed; d.source = Source::none; d.output.reset();
@@ -69,12 +96,18 @@ Decision Supervisor::step(const Sample& s, const Observation& b, const Observati
     }
     last_sequence_ = s.sequence;
     last_acquired_ns_ = s.acquired_ns;
-    d.baseline_check = needs_baseline() ? check(s, b, last_baseline_) : "not_running";
-    d.candidate_check = needs_candidate() ? check(s, c, last_candidate_) : "not_running";
+    d.baseline_check = needs_baseline() ? check_observation(s, b, last_baseline_, contract_, s.acquired_ns) : "not_running";
+    d.candidate_check = needs_candidate() ? check_observation(s, c, last_candidate_, contract_, s.acquired_ns) : "not_running";
     const bool baseline_ok = d.baseline_check == "ok";
     const bool candidate_ok = d.candidate_check == "ok";
     if (baseline_ok) last_baseline_ = b.estimate;
     if (candidate_ok) last_candidate_ = c.estimate;
+
+    if (cancel_requested_) {
+        cancel_requested_ = false;
+        phase_ = phase_ == Phase::probation ? Phase::rolled_back : Phase::rejected;
+        d.event = "candidate_cancelled"; d.reason = "operator_cancelled";
+    }
 
     if (phase_ == Phase::shadowing) {
         if (!baseline_ok) { fail("baseline_" + d.baseline_check); return finish(); }

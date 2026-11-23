@@ -2,15 +2,21 @@
 #include "shadow/policy.hpp"
 #include "shadow/process.hpp"
 #include "shadow/schedule.hpp"
+#include "shadow/staging.hpp"
 #include <chrono>
 #include <cmath>
 #include <csignal>
+#include <deque>
 #include <iomanip>
 #include <iostream>
 #include <memory>
+#include <optional>
+#include <poll.h>
 #include <stdexcept>
 #include <string>
 #include <thread>
+#include <unistd.h>
+#include <vector>
 
 namespace {
 volatile std::sig_atomic_t interrupted = 0;
@@ -35,27 +41,77 @@ void observation(const shadow::Observation& o, const shadow::Sample& sample) {
     value(o.completed_ns >= sample.acquired_ns ? static_cast<double>(o.completed_ns - sample.acquired_ns) / 1e6 : 0);
     std::cout << "}";
 }
+void json_string(const std::string& text) {
+    std::cout << '"';
+    for (unsigned char ch : text) {
+        if (ch == '"' || ch == '\\') std::cout << '\\' << ch;
+        else if (ch < 32) std::cout << "\\u00" << std::hex << std::setw(2) << std::setfill('0')
+                                 << static_cast<unsigned>(ch) << std::dec << std::setfill(' ');
+        else std::cout << ch;
+    }
+    std::cout << '"';
+}
+void control_event(unsigned generation, std::uint64_t after, const std::string& event,
+                   const std::string& reason, const shadow::StagingStatus& status = {}) {
+    std::cout << "{\"type\":\"deployment\",\"generation\":" << generation << ",\"after_sequence\":" << after
+              << ",\"event\":"; json_string(event);
+    std::cout << ",\"reason\":"; json_string(reason);
+    std::cout << ",\"artifact\":"; json_string(status.artifact);
+    std::cout << ",\"candidate_pid\":" << status.pid << ",\"replayed\":" << status.replayed
+              << ",\"through_sequence\":" << status.through_sequence << "}" << std::endl;
+}
+class Commands {
+public:
+    std::optional<std::string> poll_line() {
+        if (pending_.find('\n') == std::string::npos && !closed_) {
+            pollfd fd{STDIN_FILENO, POLLIN, 0};
+            if (::poll(&fd, 1, 0) > 0 && (fd.revents & (POLLIN | POLLHUP))) {
+                char buffer[512]; const auto count = read(STDIN_FILENO, buffer, sizeof(buffer));
+                if (count > 0) pending_.append(buffer, static_cast<std::size_t>(count));
+                else if (!count) closed_ = true;
+            }
+        }
+        if (pending_.size() > 4096) { pending_.clear(); closed_ = true; return "invalid_command_too_long"; }
+        const auto end = pending_.find('\n');
+        if (end == std::string::npos) return {};
+        auto line = pending_.substr(0, end); pending_.erase(0, end + 1);
+        if (!line.empty() && line.back() == '\r') line.pop_back();
+        return line;
+    }
+private:
+    std::string pending_;
+    bool closed_ = false;
+};
 } // namespace
 int main(int argc, char** argv) {
     using namespace shadow;
     try {
         std::string worker = "./build/shadow-worker", scenario = "rollback";
+        std::string manifest;
+        bool control_stdin = false, scenario_set = false;
+        unsigned stage_at = 20;
         unsigned samples = 180, period_ms = 20, deadline_ms = 10, qualify = 20, probation = 40;
         for (int i = 1; i < argc; ++i) {
             const std::string option = argv[i];
             if (option == "--help") {
                 std::cout << "Usage: shadow-demo [--worker PATH] [--scenario NAME] [--samples N]\n"
                              "  [--period-ms N] [--deadline-ms N] [--qualify N] [--probation N]\n"
+                             "  [--candidate-manifest PATH --stage-at N] [--control-stdin]\n"
+                             "Live mode starts baseline only. Stage after N completed inputs or send\n"
+                             "  stage PATH / cancel commands on stdin. Promotion follows qualification.\n"
                              "Scenarios: promote, reject-units, reject-delay, reject-nan, reject-stale,\n"
                              "  reject-protocol, reject-switch, rollback, baseline-failure, no-fallback,\n"
                              "  post-commit-failure\n"
                              "JSON Lines are written to stdout; diagnostics go to stderr.\n";
                 return 0;
             }
+            if (option == "--control-stdin") { control_stdin = true; continue; }
             if (i + 1 >= argc) throw std::invalid_argument("Missing option value");
             const std::string argument = argv[++i];
             if (option == "--worker") worker = argument;
-            else if (option == "--scenario") scenario = argument;
+            else if (option == "--scenario") { scenario = argument; scenario_set = true; }
+            else if (option == "--candidate-manifest") manifest = argument;
+            else if (option == "--stage-at") stage_at = number(argument);
             else if (option == "--samples") samples = number(argument);
             else if (option == "--period-ms") period_ms = number(argument);
             else if (option == "--deadline-ms") deadline_ms = number(argument);
@@ -63,15 +119,20 @@ int main(int argc, char** argv) {
             else if (option == "--probation") probation = number(argument);
             else throw std::invalid_argument("Unknown option: " + option);
         }
-        if (!samples || !period_ms || !deadline_ms || deadline_ms >= period_ms || deadline_ms > 100 || period_ms > 1000)
-            throw std::invalid_argument("Require samples > 0 and 0 < deadline-ms < period-ms <= 1000; deadline-ms <= 100");
+        if (!samples || !period_ms || !deadline_ms || deadline_ms >= period_ms || period_ms > 1000)
+            throw std::invalid_argument("Require samples > 0 and 0 < deadline-ms < period-ms <= 1000");
         Contract contract;
         contract.deadline_ns = static_cast<std::uint64_t>(deadline_ms) * 1000000;
         contract.qualification_samples = qualify; contract.probation_samples = probation;
-        Supervisor supervisor(contract);
+        const bool live = control_stdin || !manifest.empty();
+        if (live && scenario_set) throw std::invalid_argument("Live deployment and scenario modes are separate");
+        if (!manifest.empty() && (!stage_at || stage_at >= samples))
+            throw std::invalid_argument("Require 0 < stage-at < samples");
+        Supervisor supervisor(contract, !live);
         std::string candidate_mode = "good", baseline_mode = "baseline";
         unsigned fault_after = 2;
-        if (scenario == "promote") {}
+        if (live) { scenario = "live-deployment"; }
+        else if (scenario == "promote") {}
         else if (scenario == "reject-units") candidate_mode = "bad-units";
         else if (scenario == "reject-delay") candidate_mode = "delay";
         else if (scenario == "reject-nan") candidate_mode = "nan";
@@ -88,11 +149,17 @@ int main(int argc, char** argv) {
         std::signal(SIGPIPE, SIG_IGN);
         std::signal(SIGINT, stop); std::signal(SIGTERM, stop);
         auto baseline = std::make_unique<WorkerProcess>(worker, baseline_mode, fault_after);
-        auto candidate = std::make_unique<WorkerProcess>(worker, candidate_mode, fault_after);
+        std::unique_ptr<WorkerProcess> candidate;
+        if (!live) candidate = std::make_unique<WorkerProcess>(worker, candidate_mode, fault_after);
+        std::unique_ptr<CandidateStager> stager;
+        std::deque<Sample> history;
+        Commands commands;
+        unsigned generation = 0;
+        StagingStatus staging_status;
         std::cout << std::setprecision(10);
-        std::cout << "{\"type\":\"meta\",\"schema\":1,\"backend\":\"" << WorkerProcess::backend()
+        std::cout << "{\"type\":\"meta\",\"schema\":" << (live ? 2 : 1) << ",\"backend\":\"" << WorkerProcess::backend()
                   << "\",\"scenario\":\"" << scenario << "\",\"baseline_pid\":" << baseline->pid()
-                  << ",\"candidate_pid\":" << candidate->pid() << ",\"period_ms\":" << period_ms
+                  << ",\"candidate_pid\":" << (candidate ? candidate->pid() : -1) << ",\"period_ms\":" << period_ms
                   << ",\"deadline_ms\":" << deadline_ms << ",\"ipc_budget_ms\":" << deadline_ms * 0.75
                   << ",\"qualification_samples\":" << qualify
                   << ",\"probation_samples\":" << probation << ",\"position_unit\":\"m\"}" << std::endl;
@@ -104,11 +171,52 @@ int main(int argc, char** argv) {
             const auto now = monotonic_ns();
             if (now < next_release) std::this_thread::sleep_for(std::chrono::nanoseconds(next_release - now));
             if (interrupted) break;
+            // Observe completed preparation and transfer ownership only at an input boundary.
+            if (stager) {
+                staging_status = stager->status();
+                if (supervisor.phase() == Phase::warming) {
+                    if (!staging_status.error.empty()) {
+                        supervisor.reject_staging(staging_status.error);
+                        control_event(generation, i - 1, "preparation_failed", staging_status.error, staging_status);
+                        stager->cancel();
+                    } else {
+                        auto prepared = stager->take_if_ready(i - 1);
+                        if (prepared.worker) {
+                            staging_status = stager->status();
+                            candidate = std::move(prepared.worker);
+                            supervisor.begin_shadowing(prepared.last_replayed);
+                            control_event(generation, i - 1, "replay_complete", "live_qualification_required", staging_status);
+                        }
+                    }
+                }
+                if (staging_status.done) stager.reset();
+            }
+            std::optional<std::string> command;
+            if (!manifest.empty() && i == stage_at + 1) command = "stage " + manifest;
+            else if (control_stdin) command = commands.poll_line();
+            if (command) {
+                if (command->rfind("stage ", 0) == 0 && command->size() > 6) {
+                    if (stager || candidate || !supervisor.begin_staging()) {
+                        control_event(generation, i - 1, "command_rejected", "deployment_busy_or_committed");
+                    } else {
+                        ++generation; staging_status = {};
+                        stager = std::make_unique<CandidateStager>(command->substr(6),
+                            std::vector<Sample>(history.begin(), history.end()), contract);
+                        control_event(generation, i - 1, "stage_requested", "manifest_validation_pending");
+                    }
+                } else if (*command == "cancel" && supervisor.request_cancel()) {
+                    if (stager) stager->cancel();
+                    control_event(generation, i - 1, "cancel_requested", "operator_cancelled");
+                } else control_event(generation, i - 1, "command_rejected", "invalid_command_or_phase");
+            }
             Sample sample{};
             sample.sequence = i; sample.acquired_ns = monotonic_ns();
             const double seconds = static_cast<double>(sample.acquired_ns - start) / 1e9;
             const double truth = 10 + 0.5 * seconds + std::sin(seconds * 0.6);
             sample.position_m = truth + 0.08 * std::sin(static_cast<double>(i) * 1.7);
+            history.push_back(sample);
+            if (history.size() > history_capacity) history.pop_front();
+            if (stager && supervisor.phase() == Phase::warming) stager->enqueue(sample);
             const auto deadline = sample.acquired_ns + contract.deadline_ns;
             // Reserve a quarter of the decision budget for validation and selection.
             const auto ipc_deadline = sample.acquired_ns + contract.deadline_ns * 3 / 4;
@@ -137,8 +245,11 @@ int main(int argc, char** argv) {
             std::cout << ",\"phase\":\"" << name(decision.phase) << "\",\"source\":\"" << name(decision.source)
                       << "\",\"output\":";
             if (decision.output) value(decision.output->position_m); else std::cout << "null";
-            std::cout << ",\"event\":\"" << decision.event << "\",\"reason\":\"" << decision.reason
-                      << "\",\"baseline_check\":\"" << decision.baseline_check
+            std::cout << ",\"generation\":" << generation << ",\"baseline_pid\":" << (baseline ? baseline->pid() : -1)
+                      << ",\"candidate_pid\":" << (candidate ? candidate->pid() : -1)
+                      << ",\"event\":"; json_string(decision.event);
+            std::cout << ",\"reason\":"; json_string(decision.reason);
+            std::cout << ",\"baseline_check\":\"" << decision.baseline_check
                       << "\",\"candidate_check\":\"" << decision.candidate_check
                       << "\",\"decision_latency_ms\":" << static_cast<double>(selected_ns - sample.acquired_ns) / 1e6
                       << ",\"publication_miss\":" << (publication_miss ? "true" : "false")

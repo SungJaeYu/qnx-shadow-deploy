@@ -13,11 +13,13 @@
 
 ## Milestone 2: Deploy into an already-running service
 
-- Keep the baseline running while attaching a separately built candidate artifact.
-- Define an artifact manifest for architecture, protocol version, entrypoint and contract.
-- Add bounded replay or an application-defined snapshot for candidate state preparation.
-- Separate candidate staging, qualification, promotion and cancellation commands.
-- Make the selected output channel independent of stdout telemetry.
+- [x] Keep the baseline running while attaching a separately built local candidate artifact.
+- [x] Validate an artifact manifest for OS/architecture, protocol, entrypoint and contract.
+- [x] Add bounded input replay for the example filter; reject gaps, overflow and invalid replay.
+- [x] Add local stage/cancel controls, deployment generations and retry after rejection/rollback.
+- [x] Keep historical replay separate from fresh qualification and automatic promotion.
+- [ ] Add an optional operator approval gate before promotion if required by the final workflow.
+- [ ] Make the selected output channel independent of stdout telemetry and shadow waits.
 
 Acceptance: attach a candidate after the baseline has processed live input, show rejection or promotion without restarting the baseline, and preserve original evidence for each decision.
 

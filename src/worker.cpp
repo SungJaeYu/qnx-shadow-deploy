@@ -14,6 +14,10 @@
 #include <sys/neutrino.h>
 #endif
 
+#ifndef SHADOW_GOOD_ALPHA
+#define SHADOW_GOOD_ALPHA 0.5
+#endif
+
 int main(int argc, char** argv) {
     using namespace shadow;
     if (argc != 3) { std::cerr << "Usage: shadow-worker MODE FAULT_AFTER\n"; return 2; }
@@ -57,7 +61,7 @@ int main(int argc, char** argv) {
         if (inject && mode == "crash") std::_Exit(42);
         if (inject && mode == "delay") std::this_thread::sleep_for(std::chrono::milliseconds(250));
         const double previous_position = position;
-        const double alpha = mode == "baseline" ? 0.25 : 0.5;
+        const double alpha = mode == "baseline" ? 0.25 : SHADOW_GOOD_ALPHA;
         position = initialized ? position + alpha * (sample.position_m - position) : sample.position_m;
         const double dt = initialized ? static_cast<double>(sample.acquired_ns - previous_ns) / 1e9 : 1;
         Estimate estimate{};

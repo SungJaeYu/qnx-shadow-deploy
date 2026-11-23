@@ -2,7 +2,7 @@
 
 ## Runtime boundary
 
-The MVP starts one baseline and one candidate process. Each has private filter state. A broker owns the input sequence, the deployment state machine, and the only selected output stream. Workers return estimates and have no output consumer connection in this example.
+Live mode starts the baseline alone and attaches a candidate later. The fault-scenario mode starts both together. Each has private filter state. A broker owns the input sequence, the deployment state machine, and the only selected output stream. Workers return estimates and have no output consumer connection in this example.
 
 ```mermaid
 flowchart TD
@@ -44,6 +44,8 @@ These example thresholds are not a general correctness oracle. Each real applica
 
 | Phase | Selected output | Transition |
 | --- | --- | --- |
+| `idle` | Baseline | Await a local stage command |
+| `warming` | Baseline | Validate the manifest, start the candidate and replay history in the background |
 | `shadowing` | Baseline | Reject on the first candidate violation; qualify after N valid samples |
 | `probation` | Candidate | Enter at the next sequence boundary; keep baseline warm |
 | `committed` | Candidate | Enter after M valid probation samples; retire baseline |
@@ -51,11 +53,11 @@ These example thresholds are not a general correctness oracle. Each real applica
 | `rolled_back` | Baseline | Use this sample's valid baseline result and retire candidate |
 | `failed` | None | Stop output; no automatic restart in this MVP |
 
-With qualification N=20, samples 1–20 use the baseline and sample 21 can use the candidate. The promotion sample is the first probation sample. With M=40, a healthy candidate commits on sample 60.
+When both workers start together, qualification N=20 uses the baseline for samples 1–20 and can promote on sample 21. In live mode, counting starts on the first fresh input after replay has caught up; replayed samples never count toward qualification. The promotion sample is the first probation sample. With M=40, a healthy candidate commits on sample 60.
 
 On candidate failure during probation, rollback requires a valid baseline estimate for the **current** input. The selected stream's continuity check also applies to rollback. If neither output is valid, standby protection is lost during probation, or the switch would violate continuity, output stops. An unqualified candidate never replaces a failed baseline.
 
-Candidate errors after commit stop output because the baseline has been retired. Rejection and rollback are terminal deployment outcomes for one run; attaching another candidate is a future feature.
+Candidate errors after commit stop output because the baseline has been retired. After rejection or rollback, live mode accepts another candidate once cleanup completes. Qualification, probation and candidate continuity state reset for the new generation; baseline and selected-output state do not. Staging after commit is rejected: rotating the committed candidate into a new baseline role is not implemented.
 
 ## Process and transport ownership
 
@@ -76,9 +78,38 @@ Native QNX code has been checked against official API documentation but has not 
 
 The synthetic source follows a wall-clock schedule and skips missed releases instead of bursting delayed samples. Acquisition, IPC receipt, and decision latency are separate concepts. If selection itself misses the decision budget, the broker stops output. JSON rendering, pipe consumption and browser display happen afterward and are **not** included in that decision latency. A slow stdout consumer can delay future releases; this telemetry path is not suitable for a production hard real-time output channel.
 
-The example filters start together and retain private state across samples. Qualification therefore includes initial state preparation. There is no arbitrary memory transfer or process checkpointing. Starting a candidate later needs a bounded replay window or an explicit application snapshot contract before it can be added safely.
+### Late attachment and bounded replay
 
-CPU scheduling and memory contention remain shared. Two processes do not automatically provide deadline isolation. Target priorities, admission control, load testing, resource policy and an independent telemetry path are explicit remaining gates.
+`CandidateStager` owns a background thread for manifest IO, process startup, replay exchanges and preparation cleanup. The broker retains the newest 64 input samples. The candidate requests a history window of 1–64 samples; insufficient history is rejected. The generated example manifest requests 16.
+
+While startup/replay is running, new inputs are appended to a bounded 64-entry backlog. No input is silently dropped. Overflow, an input gap, invalid replay output, startup failure, or the five-second preparation budget rejects the candidate. Startup's own handshake limit is three seconds. The preparation budget is checked between bounded exchanges, so it is not an exact wall-clock termination guarantee. Cancellation requests cleanup asynchronously; another stage is refused until the previous staging worker finishes.
+
+Replayed samples keep their original sequence and acquisition timestamps so the filter evolves with the original time intervals. Each replay exchange gets a new transport deadline based on its dispatch time. Protocol, echoed sequence/time, numeric values, range and continuity are still checked. Historical results are never published and never counted as fresh qualification evidence.
+
+At an input boundary, ownership transfers only if the backlog is empty, no replay exchange is in flight, and the last replayed sequence equals the immediately preceding live sequence. The first live result is also checked against the final replay result. This prepares the example filter approximately from a bounded history; it does not reproduce arbitrary application state or prove convergence. Applications with different state semantics need an explicit replay/snapshot contract.
+
+### Local manifest and controls
+
+The manifest is a UTF-8-compatible ASCII `key=value` file, at most 4 KiB, with exactly these fields. Blank lines and `#` comment lines are allowed; duplicate, missing and unknown keys are rejected.
+
+| Key | Required value or meaning |
+| --- | --- |
+| `format` / `protocol` | `1` / `1` |
+| `artifact` | 1–64 letters, digits, hyphens, underscores or periods |
+| `executable` | Local executable; relative to the manifest directory |
+| `architecture` | `x86_64` or `aarch64`, matching the runtime |
+| `os` | `linux`, `darwin` or `qnx`, matching the runtime |
+| `contract` | `position-m-velocity-mps-v1`; limits remain broker-owned |
+| `replay_samples` | Required historical inputs, 1–64 |
+| `mode` / `fault_after` | Example adapter mode and fault sequence, 0–1,000,000 |
+
+The worker entrypoint receives `MODE FAULT_AFTER` and must implement the local Hello/Sample/Estimate protocol. This is an example adapter contract, not an arbitrary application launcher. The manifest is checked before spawn, and the child handshake checks the protocol again. Declared architecture and artifact IDs are not a binary digest, signature or authenticated provenance.
+
+`--control-stdin` accepts one bounded command per input cycle: `stage PATH` or `cancel`. `--candidate-manifest PATH --stage-at N` schedules staging after N completed inputs. Stage commands received while a deployment or its cleanup is active are refused. Cancellation during probation still requires a valid, continuous current baseline result. EOF closes only the command input; it does not stop baseline processing.
+
+JSONL schema 2 adds `deployment` records for commands, generation IDs, replay counts, last replayed sequence and candidate PID. Sample records retain baseline/candidate PIDs and the deployment generation. Schema 1 fault recordings remain readable in the workbench.
+
+Once live qualification starts, the current broker still waits for both bounded exchanges before selecting output. A slow candidate can therefore delay the decision up to that cutoff. Background preparation does not resolve this remaining active-path coupling. CPU scheduling and memory contention remain shared. Two processes do not automatically provide deadline isolation. Target priorities, admission control, load testing, resource policy and an independent telemetry path are explicit remaining gates.
 
 ## Technical references
 

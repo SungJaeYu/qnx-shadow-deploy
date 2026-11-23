@@ -37,7 +37,7 @@ cmake --build build-qnx --parallel 2
 
 Confirm that `q++ -V` lists the configured compiler variant. The environment preflight only checks tool discovery. A successful compiler invocation is still required to verify the installation and license.
 
-The build produces `shadow-demo`, `shadow-worker`, and `policy-tests`. Cross builds do not run these binaries on the host and do not register the host-only Python integration tests.
+The build produces `shadow-demo`, `shadow-worker`, `shadow-candidate`, `candidate.manifest`, `policy-tests` and `staging-tests`. Cross builds do not run these binaries on the host and do not register the host-only Python integration tests.
 
 ## Create and run a guest
 
@@ -52,14 +52,16 @@ mkqnximage --run
 
 The image generator operates on its current directory. Consult `mkqnximage --help=brief` for SDK-specific networking and image options. Alternatively, use the QNX Everywhere QEMU quickstart image; confirm its OS release and runtime libraries match the selected SDP before testing.
 
-Provide the project's three target binaries and required C++ runtime libraries to the guest using the image's documented transfer mechanism. Guest address, login and transfer configuration are environment-specific; no credentials are assumed by this repository.
+Provide the project's target binaries and generated manifest and required C++ runtime libraries to the guest using the image's documented transfer mechanism. Guest address, login and transfer configuration are environment-specific; no credentials are assumed by this repository.
 
 ## Run on the target
 
-Place the three binaries in one executable directory, then run:
+Place the binaries and generated manifest in one executable directory. The staging tests require a writable `/tmp`. Then run:
 
 ```sh
 ./policy-tests
+./staging-tests
+./shadow-demo --worker ./shadow-worker --candidate-manifest ./candidate.manifest --stage-at 20 > deploy-qnx.jsonl
 ./shadow-demo --worker ./shadow-worker --scenario promote > promote-qnx.jsonl
 ./shadow-demo --worker ./shadow-worker --scenario reject-units > reject-units-qnx.jsonl
 ./shadow-demo --worker ./shadow-worker --scenario reject-delay > reject-delay-qnx.jsonl
@@ -76,11 +78,23 @@ Transfer logs back to the host and inspect them through **Open a recording**. Ho
 
 - [ ] Record the SDK package manifest, compiler output, guest OS version and QEMU configuration.
 - [ ] Compile every target with warnings treated as errors.
-- [ ] Run target policy tests and all eleven process scenarios.
+- [ ] Run target policy/staging tests, all eleven process scenarios and late artifact attachment.
+- [ ] Exercise cancel/retry, replay failure and backlog overflow while recording the unchanged baseline PID.
 - [ ] Verify timeout return, child-exit behavior, connection cleanup and no stale reply reuse.
 - [ ] Verify sample continuity across promotion and rollback; report missing outputs honestly.
 - [ ] Measure decision and release timing under declared CPU/memory load with chosen priorities.
 - [ ] Save original JSONL logs and a video showing target execution and workbench evidence.
+
+## QNX features used by this project
+
+| QNX mechanism | Project use | Verification state |
+| --- | --- | --- |
+| `ChannelCreate`, `ConnectAttach`, `MsgSend`, `MsgReceive`, `MsgReply` | Broker-to-worker request/reply with matching input sequence and a single output owner | Native source implemented; SDK build and target execution pending |
+| `TimerTimeout` with monotonic absolute SEND/REPLY limits | Bound IPC blocking when a worker stalls or fails to reply | Native source implemented; kernel timeout behavior unverified |
+| Separate process address spaces and `posix_spawn` | Keep candidate filter state separate; terminate/reap an owned failed candidate | Host behavior tested; QNX behavior pending |
+| Message priority inheritance and real-time thread scheduling | Intended basis for chosen broker/worker priorities under load | No explicit priority configuration or target evidence yet |
+
+The current implementation does not use a resource manager, health-monitoring pulses, HAM, adaptive partitioning or QNX Hypervisor. Those are not claimed as implemented features. Process separation is not CPU isolation; timeout return can still be delayed by scheduling and timer granularity. QNX priorities, active-path separation and controlled-load measurements remain necessary before making a timing guarantee.
 
 ## Official references
 

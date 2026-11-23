@@ -19,6 +19,47 @@ Contract quick() { Contract c; c.qualification_samples = 2; c.probation_samples 
 Decision tick(Supervisor& g, unsigned i) { auto s = sample(i); return g.step(s, ok(s), ok(s)); }
 int main() {
     const std::vector<std::pair<std::string, std::function<void()>>> tests{
+        {"preparation cannot qualify or restart the baseline", [] {
+            Supervisor g(quick(), false);
+            CHECK(tick(g, 1).phase == Phase::idle); CHECK(g.begin_staging());
+            for (unsigned i = 2; i <= 10; ++i) {
+                auto d = tick(g, i); CHECK(d.phase == Phase::warming); CHECK(d.source == Source::baseline);
+            }
+            g.begin_shadowing(ok(sample(10)).estimate);
+            CHECK(tick(g, 11).phase == Phase::shadowing);
+            CHECK(tick(g, 12).phase == Phase::shadowing);
+            CHECK(tick(g, 13).event == "candidate_promoted");
+        }},
+        {"replay to live continuity is checked", [] {
+            Supervisor g(quick(), false); tick(g, 1); CHECK(g.begin_staging());
+            g.begin_shadowing(ok(sample(1), 20).estimate);
+            auto d = tick(g, 2); CHECK(d.phase == Phase::rejected);
+            CHECK(d.reason == "position_step_exceeded"); CHECK(d.source == Source::baseline);
+        }},
+        {"retry clears candidate qualification but preserves output continuity", [] {
+            Supervisor g(quick(), false); tick(g, 1); CHECK(g.begin_staging());
+            g.reject_staging("invalid_manifest"); CHECK(tick(g, 2).source == Source::baseline);
+            CHECK(g.begin_staging()); g.begin_shadowing(ok(sample(2), 60).estimate);
+            for (unsigned i = 3; i <= 4; ++i) {
+                auto s = sample(i); CHECK(g.step(s, ok(s), ok(s, 60)).source == Source::baseline);
+            }
+            auto s = sample(5); auto d = g.step(s, ok(s), ok(s, 60));
+            CHECK(d.phase == Phase::rejected); CHECK(d.reason == "switch_discontinuity");
+        }},
+        {"operator cancellation still validates the current fallback", [] {
+            Supervisor g(quick()); tick(g, 1); tick(g, 2); tick(g, 3);
+            CHECK(g.request_cancel()); auto d = tick(g, 4);
+            CHECK(d.phase == Phase::rolled_back); CHECK(d.output->sequence == 4);
+            CHECK(d.event == "candidate_cancelled"); CHECK(g.begin_staging());
+            CHECK(g.request_cancel()); CHECK(tick(g, 5).phase == Phase::rejected);
+            Supervisor h(quick()); tick(h, 1); tick(h, 2); tick(h, 3);
+            CHECK(h.request_cancel()); auto s = sample(4);
+            CHECK(!h.step(s, {}, ok(s)).output); CHECK(h.phase() == Phase::failed);
+        }},
+        {"commit prevents staging and cancellation without a fallback", [] {
+            Supervisor g(quick()); for (unsigned i = 1; i <= 5; ++i) tick(g, i);
+            CHECK(!g.begin_staging()); CHECK(!g.request_cancel());
+        }},
         {"late acquisition cannot cause a catch-up burst", [] {
             const std::uint64_t acquired = 329732000, completed = 329900000, period = 30000000;
             CHECK(next_release_ns(acquired, completed, period) == acquired + period);

@@ -1,6 +1,7 @@
 "use strict";
 const $ = id => document.getElementById(id);
 const descriptions = {
+  "live-deployment": "The baseline starts alone. After 20 inputs, a separate candidate artifact replays recent history and qualifies on new live inputs before taking over.",
   rollback: "A healthy candidate takes over, then exits during probation. The warm baseline supplies the current result.",
   "reject-units": "The candidate returns millimeters as meters. Its output is rejected before it gains authority.",
   "reject-delay": "The candidate stalls. A bounded IPC wait expires and the baseline remains selected.",
@@ -31,7 +32,7 @@ function reset() {
 function failure(message) { $("error").hidden = false; $("error").textContent = message; }
 function addEvent(row) {
   const item = document.createElement("li"), sequence = document.createElement("span"), text = document.createElement("div"), reason = document.createElement("small");
-  sequence.className = "seq"; sequence.textContent = `#${row.sequence}`;
+  sequence.className = "seq"; sequence.textContent = row.type === "deployment" ? `after #${row.after_sequence}` : `#${row.sequence}`;
   text.textContent = pretty(row.event); reason.textContent = pretty(row.reason);
   text.append(reason); item.append(sequence, text); $("events").prepend(item);
 }
@@ -39,8 +40,8 @@ function accept(row, replay = false) {
   if (!row || typeof row !== "object") throw new Error("Invalid recording row");
   records.push(row);
   if (row.type === "meta") {
-    if (row.schema !== 1 || !["host-posix-pipes", "qnx-native-ipc"].includes(row.backend)) throw new Error("Unsupported recording schema or backend");
-    $("backend").textContent = `${replay ? "Recorded" : "Live"} ${row.backend === "qnx-native-ipc" ? "QNX native IPC" : "host POSIX process run"} · baseline PID ${row.baseline_pid} · candidate PID ${row.candidate_pid}`;
+    if (![1, 2].includes(row.schema) || !["host-posix-pipes", "qnx-native-ipc"].includes(row.backend)) throw new Error("Unsupported recording schema or backend");
+    $("backend").textContent = `${replay ? "Recorded" : "Live"} ${row.backend === "qnx-native-ipc" ? "QNX native IPC" : "host POSIX process run"} · baseline PID ${row.baseline_pid} · ${row.candidate_pid > 0 ? `candidate PID ${row.candidate_pid}` : "candidate not attached"}`;
     $("deadline").textContent = `${row.deadline_ms} ms`; $("qualification").textContent = `${row.qualification_samples} samples`;
     $("probation").textContent = `${row.probation_samples} samples`;
   } else if (row.type === "sample") {
@@ -53,12 +54,18 @@ function accept(row, replay = false) {
     $("sample-count").textContent = `${samples.length} samples`;
     $("phase").textContent = pretty(row.phase);
     $("phase").className = `phase ${row.phase === "failed" ? "bad" : ["rejected", "rolled_back"].includes(row.phase) ? "warn" : row.phase === "committed" ? "good" : ""}`;
-    const roles = {shadowing: ["Active", "Shadow"], probation: ["Standby", "Active"], committed: ["Retired", "Active"], rejected: ["Active", "Rejected"], rolled_back: ["Active", "Retired"], failed: ["Stopped", "Stopped"]};
+    const roles = {idle: ["Active", "Not attached"], warming: ["Active", "Preparing state"], shadowing: ["Active", "Shadow"], probation: ["Standby", "Active"], committed: ["Retired", "Active"], rejected: ["Active", "Rejected"], rolled_back: ["Active", "Retired"], failed: ["Stopped", "Stopped"]};
     const pair = roles[row.phase] || ["Unknown", "Unknown"];
     $("baseline-role").textContent = pair[0]; $("candidate-role").textContent = pair[1];
     $("baseline-check").textContent = pretty(row.baseline_check); $("candidate-check").textContent = pretty(row.candidate_check);
     if (row.event) addEvent(row);
     requestDraw();
+  } else if (row.type === "deployment") {
+    addEvent(row);
+    if (row.candidate_pid > 0) {
+      const meta = records[0];
+      $("backend").textContent = `${replay ? "Recorded" : "Live"} ${meta.backend === "qnx-native-ipc" ? "QNX native IPC" : "host POSIX process run"} · baseline PID ${meta.baseline_pid} · candidate PID ${row.candidate_pid} · generation ${row.generation}`;
+    }
   } else if (row.type === "error") throw new Error(row.message);
   else if (row.type !== "summary") throw new Error("Unknown record type");
 }
