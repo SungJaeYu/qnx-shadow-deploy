@@ -20,6 +20,10 @@ class WorkbenchTests(unittest.TestCase):
     def setUpClass(cls):
         cls.server = server_module.ThreadingHTTPServer(("127.0.0.1", 0), server_module.Handler)
         cls.server.build_dir = BUILD
+        # This suite verifies HTTP wiring, not a 10 ms bound on a shared CI host.
+        # Tight deadline boundaries are deterministic policy tests; target timing
+        # requires separate evidence. The live workbench keeps its 20/10 ms defaults.
+        cls.server.demo_options = ["--samples", "12", "--period-ms", "100", "--deadline-ms", "75"]
         cls.thread = threading.Thread(target=cls.server.serve_forever)
         cls.thread.start()
 
@@ -60,7 +64,8 @@ class WorkbenchTests(unittest.TestCase):
         diagnostics = json.dumps({"summary": rows[-1], "decisions": decisions}, indent=2)
         self.assertEqual(rows[0]["backend"], "host-posix-pipes")
         self.assertEqual(rows[-1]["phase"], "rejected", diagnostics)
-        self.assertEqual(rows[-1]["samples"], 180, diagnostics)
+        self.assertEqual(rows[-1]["samples"], 12, diagnostics)
+        self.assertEqual(rows[0]["deadline_ms"], 75)
         self.assertIn("candidate_rejected", [row.get("event") for row in rows])
 
 

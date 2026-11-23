@@ -20,7 +20,9 @@ Initial local verification was performed on 2026-11-23 using macOS, AppleClang 2
 
 The process suite checks output source identity, strictly increasing sample IDs, rejection before authority, rollback to the current baseline sample, failure with no valid fallback, post-commit failure and child reaping. Policy tests additionally cover exact deadline boundaries, malformed/late outputs, continuity across switching and rollback, invalid configuration and terminal deadline failure. Test checks remain active in release builds.
 
-The repository configures equivalent sanitizer CI on Ubuntu 24.04 and macOS 15. The first remote Ubuntu run passed. The initial macOS 14 runner was unavailable because that runner image had been retired; the workflow now selects macOS 15. Current remote CI execution status is available in the repository's Actions tab; local results above do not imply that a remote run has passed.
+The repository configures sanitizer CI on Ubuntu 24.04 and macOS 15. Both hosts passed run [45119491688](https://github.com/SungJaeYu/qnx-shadow-deploy/actions/runs/45119491688). Current status for later commits is available in the Actions tab.
+
+One earlier macOS run ended the HTTP scenario in `failed` rather than `rejected`. That first assertion did not preserve the decision reason, so its exact cause was not established; a diagnostic-only follow-up passed. The test now saves JSONL evidence and includes decision details in failures. The HTTP suite explicitly uses a 100 ms period, a 75 ms decision budget and 12 samples to test request/stream behavior without asserting the interactive 10 ms setting on a shared sanitizer runner. Process integration uses 30/25 ms settings; policy tests check exact deadline boundaries without wall-clock dependence. The interactive defaults and captured 20/10 ms host evidence are unchanged. This test configuration change does not resolve or establish target timing robustness.
 
 ## Captured host example
 

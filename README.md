@@ -42,6 +42,8 @@ python3 tools/serve.py
 
 Open <http://127.0.0.1:8765>, select a scenario, and click **Run demonstration**. Each run launches the compiled C++ broker and two real child processes. The dashboard plots their results; it does not invent a successful deployment in JavaScript.
 
+The server also accepts `--samples`, `--period-ms`, and `--deadline-ms` for explicitly configured host experiments. The chosen values are included in every recording and displayed in the workbench; changing them does not establish target performance.
+
 For command-line execution:
 
 ```sh

@@ -78,7 +78,8 @@ class Handler(BaseHTTPRequestHandler):
             if not binary.is_file() or not worker.is_file():
                 self.send_error(503, "Build shadow-demo and shadow-worker before starting a run")
                 return
-            process = subprocess.Popen([str(binary), "--worker", str(worker), "--scenario", scenario],
+            process = subprocess.Popen([str(binary), "--worker", str(worker), "--scenario", scenario]
+                                       + self.server.demo_options,
                                        stdout=subprocess.PIPE, stderr=subprocess.PIPE,
                                        start_new_session=True)
 
@@ -119,9 +120,16 @@ def main():
     parser = argparse.ArgumentParser(description=__doc__)
     parser.add_argument("--build-dir", type=Path, default=ROOT / "build")
     parser.add_argument("--port", type=int, default=8765)
+    parser.add_argument("--samples", type=int, default=180)
+    parser.add_argument("--period-ms", type=int, default=20)
+    parser.add_argument("--deadline-ms", type=int, default=10)
     args = parser.parse_args()
+    if not 0 < args.samples <= 1000 or not 0 < args.deadline_ms < args.period_ms <= 1000 or args.deadline_ms > 100:
+        parser.error("Require 1..1000 samples, 0 < deadline-ms < period-ms <= 1000, and deadline-ms <= 100")
     server = ThreadingHTTPServer(("127.0.0.1", args.port), Handler)
     server.build_dir = args.build_dir.resolve()
+    server.demo_options = ["--samples", str(args.samples), "--period-ms", str(args.period_ms),
+                           "--deadline-ms", str(args.deadline_ms)]
     print(f"ShadowDeploy workbench: http://127.0.0.1:{server.server_port}", flush=True)
     try:
         server.serve_forever()
