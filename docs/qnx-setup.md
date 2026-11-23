@@ -13,7 +13,7 @@
 
 The SDK's release notes do not support native macOS or ARM development hosts. QNX also publishes a macOS workflow that runs the Linux x86-64 host tools inside an emulated Docker container on Apple Silicon. That is the first cross-build route for this project on an M1 Mac; a supported x86-64 Ubuntu host remains the fallback. The blog workflow does not establish SDP 8.0.6 compatibility or successful target execution. A Docker container does not supply a QNX kernel.
 
-**Status: not yet executed.** These are target setup instructions and acceptance gates, not a transcript of successful target validation. The initial development environment had no discoverable `q++`, `mkqnximage`, `QNX_HOST`, or `QNX_TARGET`.
+**Status: SDK installed; QNX compilation and execution pending.** QNX Software Center has installed the SDK and Linux x86-64 host tools on the development Mac. These are target setup instructions and acceptance gates, not a transcript of successful target validation.
 
 ## Obtain and activate the SDK
 
@@ -39,7 +39,7 @@ The image contains only Ubuntu packages. It mounts this repository, the SDK read
 
 Output goes to `build-qnx-container/`, separate from native host builds. `bash tools/qnx_container.sh shell` opens a diagnostic shell with the same mounts. This helper does not start a QNX VM, activate a license, or run QNX binaries on Linux. Emulator timing is not hardware timing evidence.
 
-**Setup checkpoint, 2026-11-23:** Docker Desktop was present on the M1 development machine, and the myQNX license was deployed to the account owner. The automated session could not access the Docker engine because of its execution sandbox. The macOS QSC download was blocked by the in-app browser. The SDK, container image, license activation, cross-build and guest execution remain unverified. Shell syntax and command preflight are not a substitute for those checks.
+**Setup checkpoint, 2026-11-23:** QSC was installed and the SDK installation was completed after selecting the 8.0.6 patch set. The SDK exists at `~/qnx800`; `qnxsdp-env.sh`, the target tree, and Linux x86-64 `qcc`/`q++` are present. The installed Linux GCC package is `12.2.0.01008T202610011452L`. QSC displayed a successful local license activation confirmation after an application restart. The macOS QSC command-line status query aborted, so it did not establish license status. Docker engine access remains blocked by the automated session sandbox: run the two container commands above from the owner's terminal. The container image, compiler license checkout, complete release matching and guest execution remain unverified. Presence of SDK files and QSC activation do not establish a successful cross-build.
 
 ## Cross-build
 
