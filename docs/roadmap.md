@@ -9,7 +9,8 @@
 - [x] Fail closed when no valid output or continuous transition exists.
 - [x] Provide real-process failure scenarios, a workbench and exportable evidence.
 - [x] Add host tests and sanitizer configuration.
-- [ ] Compile and validate the native QNX path with SDP 8.0.6.
+- [x] Cross-compile all five executables with the installed QNX SDK.
+- [ ] Audit the complete SDP/guest 8.0.6 package alignment and validate native execution.
 
 ## Milestone 2: Deploy into an already-running service
 

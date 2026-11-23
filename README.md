@@ -8,7 +8,7 @@ ShadowDeploy is an application-level deployment runtime for QNX 8.0. It runs bas
 
 ## Current status
 
-This repository contains a working **host-verifiable MVP**, a QNX native IPC implementation, and a QNX cross-build configuration. **The QNX path has not yet been compiled or executed with an installed QNX SDP.** Target validation is the next release gate, not a completed result.
+This repository contains a working **host-verifiable MVP** and a QNX native IPC implementation. **All five QNX executables were cross-built on 2026-11-23; QNX guest execution is still pending.** [Build evidence](docs/evidence/qnx-cross-build.json) records artifact hashes, the QNX loader and native IPC imports. Target validation remains the next release gate.
 
 | Capability | Status |
 | --- | --- |
@@ -17,7 +17,7 @@ This repository contains a working **host-verifiable MVP**, a QNX native IPC imp
 | Sequence-boundary promotion and warm fallback | Implemented and tested |
 | Unit, delay, NaN, stale-response, protocol and crash injection | Implemented and tested |
 | English workbench and JSONL evidence | Implemented and tested |
-| QNX `MsgSend` / `MsgReceive` / `MsgReply` and `TimerTimeout` | Implemented; target build and execution pending |
+| QNX `MsgSend` / `MsgReceive` / `MsgReply` and `TimerTimeout` | Cross-built; target execution pending |
 | Late attachment of a separate local artifact, bounded replay and cancellation | Implemented and tested on the host |
 | Remote artifact upload and arbitrary app adapters | Planned |
 | Target scheduling, resource limits and hardware timing evidence | Pending |
@@ -96,7 +96,7 @@ Default demonstration settings are a 20 ms nominal period, a 10 ms decision budg
 
 The intended target is **QNX SDP / OS 8.0.6, x86-64, QEMU**. The QNX build selects native message passing at compile time. A host build selects bounded POSIX pipes while using the same policy and example workloads.
 
-Follow [QNX setup and validation](docs/qnx-setup.md), including the Apple Silicon Mac container workflow. A licensed SDK with Linux host tools is required. The supplied Ubuntu 24.04 container helper is prepared but has not yet built the QNX targets. No QNX binaries, headers, license files or VM images are distributed in this repository.
+Follow [QNX setup and validation](docs/qnx-setup.md), including the Apple Silicon Mac container workflow. A licensed SDK with Linux host tools is required. The supplied Ubuntu 24.04 container helper successfully built all five QNX targets. Its `vm-image` action prepares a local guest image containing the project executables and C++ runtime; image generation and boot remain unverified. No QNX binaries, headers, license files or VM images are distributed in this repository.
 
 ## Project map
 

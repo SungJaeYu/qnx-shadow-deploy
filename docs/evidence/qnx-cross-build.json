@@ -1,0 +1,113 @@
+{
+  "observed_date": "2026-11-23",
+  "source_commit": "429b05d",
+  "execution": "Owner ran the container image and build commands; generated artifacts and CMake/Ninja metadata were inspected afterward. Compiler terminal output was not captured.",
+  "host": "Apple Silicon macOS with Ubuntu 24.04 linux/amd64 Docker container",
+  "intended_sdk_release": "8.0.6; complete package alignment not yet audited",
+  "compiler": {
+    "id": "QCC",
+    "version": "12.2.0",
+    "executable": "/opt/qnx/host/linux/x86_64/usr/bin/q++",
+    "variant": "gcc_ntox86_64",
+    "cmake_version": "3.28.3",
+    "configuration": "Debug",
+    "warnings_as_errors": true
+  },
+  "artifacts": [
+    {
+      "name": "shadow-demo",
+      "size_bytes": 1446928,
+      "sha256": "e38a17cddfe610d0583fc404204ca98f1c2268ef098d47921deaa4b248dc28c0",
+      "format": "ELF64 little-endian x86-64 PIE",
+      "interpreter": "/usr/lib/ldqnx-64.so.2",
+      "needed_libraries": [
+        "libc++.so.2",
+        "libm.so.3",
+        "libc.so.6",
+        "libgcc_s.so.1"
+      ],
+      "qnx_runtime_imports": [
+        "ConnectAttach",
+        "MsgSend",
+        "TimerTimeout",
+        "posix_spawn"
+      ]
+    },
+    {
+      "name": "shadow-worker",
+      "size_bytes": 157272,
+      "sha256": "1a997425975e76a3db55d8771c9203c92096adc0c8ff9703c1c586e19f94441a",
+      "format": "ELF64 little-endian x86-64 PIE",
+      "interpreter": "/usr/lib/ldqnx-64.so.2",
+      "needed_libraries": [
+        "libc++.so.2",
+        "libm.so.3",
+        "libc.so.6",
+        "libgcc_s.so.1"
+      ],
+      "qnx_runtime_imports": [
+        "ChannelCreate",
+        "MsgReceive",
+        "MsgReply"
+      ]
+    },
+    {
+      "name": "shadow-candidate",
+      "size_bytes": 157272,
+      "sha256": "d197e4a0bd1fd2ec53d9cec5986b4e63a834748e8d5a0b9bb68d5d239735b4e8",
+      "format": "ELF64 little-endian x86-64 PIE",
+      "interpreter": "/usr/lib/ldqnx-64.so.2",
+      "needed_libraries": [
+        "libc++.so.2",
+        "libm.so.3",
+        "libc.so.6",
+        "libgcc_s.so.1"
+      ],
+      "qnx_runtime_imports": [
+        "ChannelCreate",
+        "MsgReceive",
+        "MsgReply"
+      ]
+    },
+    {
+      "name": "policy-tests",
+      "size_bytes": 549056,
+      "sha256": "1b63717bfa958e2ff1e53ced95c794be212f9d0d987641efef697d3e8ae41213",
+      "format": "ELF64 little-endian x86-64 PIE",
+      "interpreter": "/usr/lib/ldqnx-64.so.2",
+      "needed_libraries": [
+        "libc++.so.2",
+        "libm.so.3",
+        "libc.so.6",
+        "libgcc_s.so.1"
+      ],
+      "qnx_runtime_imports": []
+    },
+    {
+      "name": "staging-tests",
+      "size_bytes": 1536328,
+      "sha256": "939716280b21b005ddc3c4214d85482a7071c67df39f139bc82de7e2ca13bd03",
+      "format": "ELF64 little-endian x86-64 PIE",
+      "interpreter": "/usr/lib/ldqnx-64.so.2",
+      "needed_libraries": [
+        "libc++.so.2",
+        "libm.so.3",
+        "libc.so.6",
+        "libgcc_s.so.1"
+      ],
+      "qnx_runtime_imports": [
+        "ConnectAttach",
+        "MsgSend",
+        "TimerTimeout",
+        "posix_spawn"
+      ]
+    }
+  ],
+  "candidate_manifest": "format=1\nartifact=position-filter-v2\nexecutable=./shadow-candidate\nprotocol=1\narchitecture=x86_64\nos=qnx\ncontract=position-m-velocity-mps-v1\nreplay_samples=16\nmode=good\nfault_after=0\n",
+  "guest_booted": false,
+  "target_tests_executed": false,
+  "limitations": [
+    "Cross-build evidence only; dynamic linking and native IPC behavior still require a QNX guest.",
+    "No target deadline or scheduling guarantee has been established."
+  ]
+}

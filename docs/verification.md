@@ -2,7 +2,7 @@
 
 ## Scope
 
-Initial local verification was performed on 2026-11-23 using macOS, AppleClang 21.0.0 and CMake 4.3.3. The runtime reported `host-posix-pipes`. **No QNX SDK build, QEMU boot, native IPC test or hardware timing measurement has been completed.**
+Initial host verification was performed on 2026-11-23 using macOS, AppleClang 21.0.0 and CMake 4.3.3. The runtime reported `host-posix-pipes`. A subsequent QNX cross-build produced all five target executables. **QEMU boot, native IPC execution and hardware timing measurements remain pending.**
 
 ## Executed checks
 
@@ -18,11 +18,25 @@ Initial local verification was performed on 2026-11-23 using macOS, AppleClang 2
 | JavaScript syntax and Python compilation | Passed |
 | Browser: late artifact attachment, replay, promotion and JSONL download | Passed; 100 inputs / 100 outputs in the captured run |
 | Source, documentation and interface language | English |
-| QNX preflight | Blocked: SDK tools and environment unavailable |
+| QNX cross-build: five executables, warnings treated as errors | Passed; inspected owner-generated artifacts and CMake/Ninja metadata |
+| QNX guest boot and target tests | Pending |
 
 The process suite checks output source identity, strictly increasing sample IDs, rejection before authority, rollback to the current baseline sample, failure with no valid fallback, post-commit failure and child reaping. Policy tests additionally cover exact deadline boundaries, malformed/late outputs, continuity across switching and rollback, invalid configuration and terminal deadline failure. Test checks remain active in release builds.
 
-The repository configures sanitizer CI on Ubuntu 24.04 and macOS 15. Per-commit results are available in [Actions](https://github.com/SungJaeYu/qnx-shadow-deploy/actions). Host success does not verify the native QNX branch.
+The repository configures sanitizer CI on Ubuntu 24.04 and macOS 15. Per-commit results are available in [Actions](https://github.com/SungJaeYu/qnx-shadow-deploy/actions). Host success and cross-compilation do not verify native QNX runtime behavior.
+
+## QNX cross-build checkpoint
+
+On 2026-11-23 the owner ran `qnx_container.sh image` and `qnx_container.sh build` from the Mac terminal. Docker engine access is unavailable to the automated session. The resulting files, CMake configuration and completed Ninja link records were inspected afterward; the compiler terminal transcript was not captured.
+
+- Source revision: `429b05d`; Ubuntu 24.04 `linux/amd64` container on Apple Silicon.
+- Compiler: QCC 12.2.0, `gcc_ntox86_64`, CMake 3.28.3, Debug, C++17, `-Werror`.
+- Outputs: `shadow-demo`, `shadow-worker`, `shadow-candidate`, `policy-tests`, `staging-tests`.
+- All five are x86-64 ELF PIE executables using `/usr/lib/ldqnx-64.so.2`.
+- Broker/staging binaries import `ConnectAttach`, `MsgSend`, `TimerTimeout` and `posix_spawn`; worker/candidate binaries import `ChannelCreate`, `MsgReceive` and `MsgReply`.
+- The generated manifest declares `os=qnx` and `architecture=x86_64`.
+
+The [machine-readable record](evidence/qnx-cross-build.json) includes SHA-256 hashes, sizes and runtime dependencies. The SDK was installed after selecting the 8.0.6 patch set; complete package alignment still needs auditing. Dynamic imports demonstrate that the QNX code path was compiled, not that its runtime behavior passed. Guest image generation, boot and all target tests remain unverified.
 
 One earlier macOS run ended the HTTP scenario in `failed` rather than `rejected`. That first assertion did not preserve the decision reason, so its exact cause was not established; a diagnostic-only follow-up passed. The test now saves JSONL evidence and includes decision details in failures.
 
@@ -93,7 +107,7 @@ Under heavy scheduling interference, a timing scenario may fail closed. Preserve
 
 ## Remaining validation gates
 
-1. Install and activate QNX SDP 8.0.6 on a supported host; compile the native branch.
+1. Audit the installed SDK package set and generate a matching QNX guest image; native cross-compilation is complete.
 2. Run policy and process scenarios on a QNX guest, including timeout/unblock semantics and cleanup.
 3. Measure target timing under a declared scheduling/resource configuration and controlled load.
 4. Separate selected-output delivery from telemetry and shadow waits; add target resource admission and validate repeated deployments under load.

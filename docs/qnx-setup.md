@@ -13,7 +13,7 @@
 
 The SDK's release notes do not support native macOS or ARM development hosts. QNX also publishes a macOS workflow that runs the Linux x86-64 host tools inside an emulated Docker container on Apple Silicon. That is the first cross-build route for this project on an M1 Mac; a supported x86-64 Ubuntu host remains the fallback. The blog workflow does not establish SDP 8.0.6 compatibility or successful target execution. A Docker container does not supply a QNX kernel.
 
-**Status: SDK installed; QNX compilation and execution pending.** QNX Software Center has installed the SDK and Linux x86-64 host tools on the development Mac. These are target setup instructions and acceptance gates, not a transcript of successful target validation.
+**Status: all five QNX executables cross-built; guest execution pending.** QNX Software Center installed the SDK and Linux x86-64 host tools on the development Mac. [Cross-build evidence](evidence/qnx-cross-build.json) records the generated artifacts. The guest instructions below remain acceptance gates, not successful target validation.
 
 ## Obtain and activate the SDK
 
@@ -39,7 +39,7 @@ The image contains only Ubuntu packages. It mounts this repository, the SDK read
 
 Output goes to `build-qnx-container/`, separate from native host builds. `bash tools/qnx_container.sh shell` opens a diagnostic shell with the same mounts. This helper does not start a QNX VM, activate a license, or run QNX binaries on Linux. Emulator timing is not hardware timing evidence.
 
-**Setup checkpoint, 2026-11-23:** QSC was installed and the SDK installation was completed after selecting the 8.0.6 patch set. The SDK exists at `~/qnx800`; `qnxsdp-env.sh`, the target tree, and Linux x86-64 `qcc`/`q++` are present. The installed Linux GCC package is `12.2.0.01008T202610011452L`. QSC displayed a successful local license activation confirmation after an application restart. The macOS QSC command-line status query aborted, so it did not establish license status. Docker engine access remains blocked by the automated session sandbox: run the two container commands above from the owner's terminal. The container image, compiler license checkout, complete release matching and guest execution remain unverified. Presence of SDK files and QSC activation do not establish a successful cross-build.
+**Setup checkpoint, 2026-11-23:** QSC installed the SDK after selecting the 8.0.6 patch set and displayed successful local license activation. The installed Linux GCC package is `12.2.0.01008T202610011452L`. The owner then built the Ubuntu container and cross-compiled all five executables from the Mac terminal. Their QNX ELF identity, native imports and CMake/Ninja metadata were inspected. Docker engine access remains blocked by the automated session sandbox. Complete SDK/guest release matching and native execution remain unverified; see the [verification record](verification.md#qnx-cross-build-checkpoint).
 
 ## Cross-build
 
@@ -61,31 +61,43 @@ The build produces `shadow-demo`, `shadow-worker`, `shadow-candidate`, `candidat
 
 ## Create and run a guest
 
-Install and configure QEMU using the official QNX instructions for the selected host. For a generated command-line image, start in a separate directory:
+For the container workflow, package the existing cross-build into a local image:
 
 ```sh
-mkdir -p build-qnx-vm
-cd build-qnx-vm
+# Refresh the host image to include ssh-keygen for guest host keys.
+bash tools/qnx_container.sh image
+bash tools/qnx_container.sh vm-image
+```
+
+This action uses the installed SDK's `mkqnximage` with x86-64 QEMU, 2 CPUs and 1 GiB RAM. It writes to ignored `build-qnx-vm/` and adds `/system/bin/shadowdeploy/` containing all five executables and `candidate.manifest`. The image also includes `libc++.so.2`, required by these binaries and absent from the standard image's library list. The standard image supplies libc, libm and libgcc_s. The helper owns `local/snippets/system_files.shadowdeploy`; it preserves other local snippets. Regenerating the image rebuilds its partitions, so export guest logs first.
+
+Expected outputs are `build-qnx-vm/output/ifs.bin` and `build-qnx-vm/output/disk-qemu.vmdk`. This action only builds an image. **It has not yet been executed or boot-validated.** Use a separate, explicit QEMU launch configuration; on Docker Desktop, do not assume that the SDK's Linux bridge/KVM defaults work. Prefer software emulation without network access for the first serial-console tests. Generated images contain development accounts and must not be exposed on a public interface.
+
+On a supported Linux host with QEMU configured according to the official instructions, an alternative manual image workflow is:
+
+```sh
+mkdir -p build-qnx-vm-manual
+cd build-qnx-vm-manual
 mkqnximage --type=qemu --arch=x86_64
 mkqnximage --run
 ```
 
 The image generator operates on its current directory. Consult `mkqnximage --help=brief` for SDK-specific networking and image options. Alternatively, use the QNX Everywhere QEMU quickstart image; confirm its OS release and runtime libraries match the selected SDP before testing.
 
-Provide the project's target binaries and generated manifest and required C++ runtime libraries to the guest using the image's documented transfer mechanism. Guest address, login and transfer configuration are environment-specific; no credentials are assumed by this repository.
+For that manual image, provide the project's target binaries, generated manifest and required C++ runtime libraries using the image's documented transfer mechanism. Guest address, login and transfer configuration are environment-specific; no credentials are assumed by this repository.
 
 ## Run on the target
 
-Place the binaries and generated manifest in one executable directory. The staging tests require a writable `/tmp`. Then run:
+Place the binaries and generated manifest in one executable directory. For the container-generated image, use `cd /system/bin/shadowdeploy`. The staging tests require a writable `/tmp`. The system partition may be read-only; save logs in `/data` or another writable location. Then run:
 
 ```sh
 ./policy-tests
 ./staging-tests
-./shadow-demo --worker ./shadow-worker --candidate-manifest ./candidate.manifest --stage-at 20 > deploy-qnx.jsonl
-./shadow-demo --worker ./shadow-worker --scenario promote > promote-qnx.jsonl
-./shadow-demo --worker ./shadow-worker --scenario reject-units > reject-units-qnx.jsonl
-./shadow-demo --worker ./shadow-worker --scenario reject-delay > reject-delay-qnx.jsonl
-./shadow-demo --worker ./shadow-worker --scenario rollback > rollback-qnx.jsonl
+./shadow-demo --worker ./shadow-worker --candidate-manifest ./candidate.manifest --stage-at 20 > /data/deploy-qnx.jsonl
+./shadow-demo --worker ./shadow-worker --scenario promote > /data/promote-qnx.jsonl
+./shadow-demo --worker ./shadow-worker --scenario reject-units > /data/reject-units-qnx.jsonl
+./shadow-demo --worker ./shadow-worker --scenario reject-delay > /data/reject-delay-qnx.jsonl
+./shadow-demo --worker ./shadow-worker --scenario rollback > /data/rollback-qnx.jsonl
 ```
 
 Also run `baseline-failure`, `no-fallback`, and `post-commit-failure`; those intentionally stop output and return exit code 3. Run the remaining rejection scenarios listed by `--help`.
@@ -97,7 +109,7 @@ Transfer logs back to the host and inspect them through **Open a recording**. Ho
 ## Required evidence before declaring QNX support verified
 
 - [ ] Record the SDK package manifest, compiler output, guest OS version and QEMU configuration.
-- [ ] Compile every target with warnings treated as errors.
+- [x] Compile every target with warnings treated as errors.
 - [ ] Run target policy/staging tests, all eleven process scenarios and late artifact attachment.
 - [ ] Exercise cancel/retry, replay failure and backlog overflow while recording the unchanged baseline PID.
 - [ ] Verify timeout return, child-exit behavior, connection cleanup and no stale reply reuse.
@@ -109,8 +121,8 @@ Transfer logs back to the host and inspect them through **Open a recording**. Ho
 
 | QNX mechanism | Project use | Verification state |
 | --- | --- | --- |
-| `ChannelCreate`, `ConnectAttach`, `MsgSend`, `MsgReceive`, `MsgReply` | Broker-to-worker request/reply with matching input sequence and a single output owner | Native source implemented; SDK build and target execution pending |
-| `TimerTimeout` with monotonic absolute SEND/REPLY limits | Bound IPC blocking when a worker stalls or fails to reply | Native source implemented; kernel timeout behavior unverified |
+| `ChannelCreate`, `ConnectAttach`, `MsgSend`, `MsgReceive`, `MsgReply` | Broker-to-worker request/reply with matching input sequence and a single output owner | Cross-built; native imports inspected; target execution pending |
+| `TimerTimeout` with monotonic absolute SEND/REPLY limits | Bound IPC blocking when a worker stalls or fails to reply | Cross-built; kernel timeout behavior unverified |
 | Separate process address spaces and `posix_spawn` | Keep candidate filter state separate; terminate/reap an owned failed candidate | Host behavior tested; QNX behavior pending |
 | Message priority inheritance and real-time thread scheduling | Intended basis for chosen broker/worker priorities under load | No explicit priority configuration or target evidence yet |
 
