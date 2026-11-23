@@ -53,9 +53,14 @@ class WorkbenchTests(unittest.TestCase):
         status, payload = self.request("POST", "/api/run", json.dumps({"scenario": "reject-units"}), {"Content-Type": "application/json"})
         self.assertEqual(status, 200)
         rows = [json.loads(line) for line in payload.splitlines()]
+        evidence = BUILD / "test-artifacts"
+        evidence.mkdir(exist_ok=True)
+        (evidence / "workbench-api.jsonl").write_bytes(payload)
+        decisions = [row for row in rows if row.get("event")]
+        diagnostics = json.dumps({"summary": rows[-1], "decisions": decisions}, indent=2)
         self.assertEqual(rows[0]["backend"], "host-posix-pipes")
-        self.assertEqual(rows[-1]["phase"], "rejected")
-        self.assertEqual(rows[-1]["samples"], 180)
+        self.assertEqual(rows[-1]["phase"], "rejected", diagnostics)
+        self.assertEqual(rows[-1]["samples"], 180, diagnostics)
         self.assertIn("candidate_rejected", [row.get("event") for row in rows])
 
 
