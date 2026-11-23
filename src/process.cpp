@@ -1,0 +1,178 @@
+#include "shadow/process.hpp"
+#include "shadow/io.hpp"
+#include <cerrno>
+#include <condition_variable>
+#include <cstring>
+#include <fcntl.h>
+#include <mutex>
+#include <optional>
+#include <signal.h>
+#include <spawn.h>
+#include <stdexcept>
+#include <sys/wait.h>
+#include <thread>
+#include <time.h>
+#include <unistd.h>
+#ifdef __QNXNTO__
+#include <sys/neutrino.h>
+#include <sys/netmgr.h>
+#endif
+
+extern char** environ;
+namespace shadow {
+namespace {
+struct Pipe {
+    int fd[2]{-1, -1};
+    Pipe() {
+        if (pipe(fd) < 0) throw std::runtime_error("pipe failed");
+        if (fcntl(fd[0], F_SETFD, FD_CLOEXEC) < 0 || fcntl(fd[1], F_SETFD, FD_CLOEXEC) < 0) {
+            close(fd[0]); close(fd[1]); throw std::runtime_error("fcntl failed");
+        }
+    }
+    ~Pipe() { for (int f : fd) if (f >= 0) close(f); }
+    int release(int index) { int f = fd[index]; fd[index] = -1; return f; }
+};
+struct SpawnActions {
+    posix_spawn_file_actions_t value{};
+    SpawnActions() { if (posix_spawn_file_actions_init(&value)) throw std::runtime_error("spawn actions init failed"); }
+    ~SpawnActions() { posix_spawn_file_actions_destroy(&value); }
+    void dup(int from, int to) {
+        if (posix_spawn_file_actions_adddup2(&value, from, to)) throw std::runtime_error("spawn dup action failed");
+    }
+    void close_fd(int fd) {
+        if (posix_spawn_file_actions_addclose(&value, fd)) throw std::runtime_error("spawn close action failed");
+    }
+};
+#ifndef __QNXNTO__
+TransportStatus status(IoResult r) {
+    if (r == IoResult::ok) return TransportStatus::ok;
+    return r == IoResult::timeout ? TransportStatus::timeout : TransportStatus::disconnected;
+}
+#endif
+} // namespace
+struct WorkerProcess::Impl {
+    pid_t child = -1;
+    int input = -1, output = -1;
+#ifdef __QNXNTO__
+    int connection = -1;
+#endif
+    struct Task { Sample sample; std::uint64_t deadline; std::promise<Observation> promise; };
+    std::mutex mutex;
+    std::condition_variable cv;
+    std::optional<Task> task;
+    bool stopping = false, busy = false, usable = true;
+    std::thread dispatch;
+
+    ~Impl() {
+        { std::lock_guard<std::mutex> lock(mutex); stopping = true; }
+        cv.notify_one();
+        if (dispatch.joinable()) dispatch.join();
+#ifdef __QNXNTO__
+        if (connection >= 0) ConnectDetach(connection);
+#endif
+        if (input >= 0) close(input);
+        if (output >= 0) close(output);
+        if (child > 0) {
+            // These are exclusively owned demo children. Never signal arbitrary PIDs.
+            kill(child, SIGKILL);
+            while (waitpid(child, nullptr, 0) < 0 && errno == EINTR) {}
+        }
+    }
+    Observation exchange(const Sample& sample, std::uint64_t deadline) {
+        Observation o;
+        if (!usable) { o.completed_ns = monotonic_ns(); return o; }
+        if (monotonic_ns() >= deadline) {
+            o.status = TransportStatus::timeout;
+        } else {
+#ifdef __QNXNTO__
+            // No intervening kernel call may clear the timeout before MsgSend.
+            // ChannelCreate(0) in the worker intentionally omits _NTO_CHF_UNBLOCK.
+            if (TimerTimeout(CLOCK_MONOTONIC,
+                             _NTO_TIMEOUT_SEND | _NTO_TIMEOUT_REPLY | TIMER_ABSTIME,
+                             nullptr, &deadline, nullptr) == -1) {
+                o.status = TransportStatus::disconnected;
+            } else {
+                const int result = MsgSend(connection, &sample, sizeof(sample), &o.estimate, sizeof(o.estimate));
+                if (result == static_cast<int>(sizeof(Estimate))) o.status = TransportStatus::ok;
+                else if (result == -1) o.status = errno == ETIMEDOUT ? TransportStatus::timeout : TransportStatus::disconnected;
+                else o.status = TransportStatus::protocol_error;
+            }
+#else
+            o.status = status(write_until(input, &sample, sizeof(sample), deadline));
+            if (o.status == TransportStatus::ok)
+                o.status = status(read_until(output, &o.estimate, sizeof(o.estimate), deadline));
+#endif
+        }
+        o.completed_ns = monotonic_ns();
+        if (o.completed_ns > deadline) o.status = TransportStatus::timeout;
+        if (o.status == TransportStatus::ok && !valid_header(o.estimate.header, Kind::estimate))
+            o.status = TransportStatus::protocol_error;
+        // A timed-out stream may contain a partial or late response. Never reuse it.
+        if (o.status != TransportStatus::ok) usable = false;
+        return o;
+    }
+    void loop() {
+        for (;;) {
+            std::optional<Task> current;
+            {
+                std::unique_lock<std::mutex> lock(mutex);
+                cv.wait(lock, [&] { return stopping || task.has_value(); });
+                if (!task) return;
+                current = std::move(task); task.reset();
+            }
+            try {
+                const auto result = exchange(current->sample, current->deadline);
+                { std::lock_guard<std::mutex> lock(mutex); busy = false; }
+                current->promise.set_value(result);
+            } catch (...) {
+                { std::lock_guard<std::mutex> lock(mutex); busy = false; }
+                current->promise.set_exception(std::current_exception());
+            }
+        }
+    }
+};
+WorkerProcess::WorkerProcess(const std::string& executable, const std::string& mode, unsigned fault_after)
+    : impl_(std::make_unique<Impl>()) {
+    Pipe to_child, from_child;
+    SpawnActions actions;
+    actions.dup(to_child.fd[0], STDIN_FILENO);
+    actions.dup(from_child.fd[1], STDOUT_FILENO);
+    for (int fd : {to_child.fd[0], to_child.fd[1], from_child.fd[0], from_child.fd[1]}) actions.close_fd(fd);
+    std::string count = std::to_string(fault_after);
+    char* args[]{const_cast<char*>(executable.c_str()), const_cast<char*>(mode.c_str()), count.data(), nullptr};
+    const int error = posix_spawn(&impl_->child, executable.c_str(), &actions.value, nullptr, args, environ);
+    if (error) { impl_->child = -1; throw std::runtime_error("Cannot start worker: " + std::string(std::strerror(error))); }
+    // Close child ends before reading the handshake so an early exit produces EOF.
+    close(to_child.release(0)); close(from_child.release(1));
+    impl_->input = to_child.release(1); impl_->output = from_child.release(0);
+    nonblocking(impl_->input); nonblocking(impl_->output);
+    Hello hello{};
+    if (read_until(impl_->output, &hello, sizeof(hello), monotonic_ns() + 3000000000ULL) != IoResult::ok ||
+        !valid_header(hello.header, Kind::hello)) throw std::runtime_error("Worker handshake failed");
+#ifdef __QNXNTO__
+    if (hello.channel < 0) throw std::runtime_error("Worker has no QNX channel");
+    impl_->connection = ConnectAttach(ND_LOCAL_NODE, impl_->child, hello.channel, _NTO_SIDE_CHANNEL, 0);
+    if (impl_->connection == -1) throw std::runtime_error("ConnectAttach failed");
+#else
+    if (hello.channel != -1) throw std::runtime_error("Unexpected worker transport");
+#endif
+    impl_->dispatch = std::thread([this] { impl_->loop(); });
+}
+WorkerProcess::~WorkerProcess() = default;
+std::future<Observation> WorkerProcess::submit(Sample sample, std::uint64_t deadline) {
+    std::lock_guard<std::mutex> lock(impl_->mutex);
+    if (impl_->busy || impl_->stopping) throw std::logic_error("Worker already has an outstanding sample");
+    Impl::Task task{sample, deadline, {}};
+    auto future = task.promise.get_future();
+    impl_->busy = true; impl_->task = std::move(task); impl_->cv.notify_one();
+    return future;
+}
+int WorkerProcess::pid() const { return impl_->child; }
+const char* WorkerProcess::backend() {
+#ifdef __QNXNTO__
+    return "qnx-native-ipc";
+#else
+    return "host-posix-pipes";
+#endif
+}
+} // namespace shadow

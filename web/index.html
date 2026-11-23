@@ -1,0 +1,59 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>ShadowDeploy | Deployment workbench</title>
+  <link rel="stylesheet" href="/styles.css">
+  <script src="/app.js" defer></script>
+</head>
+<body>
+  <header><a class="brand" href="/">ShadowDeploy<span>QNX application runtime</span></a><span id="connection" class="status">Ready to run</span></header>
+  <main>
+    <aside>
+      <h1>Prove it.<br>Then switch.</h1>
+      <p class="intro">Give a candidate the same sensor input. Check its behavior before it owns the output.</p>
+      <label for="scenario">Demonstration</label>
+      <select id="scenario">
+        <option value="rollback">Promote, then recover from a crash</option>
+        <option value="reject-units">Reject a unit conversion error</option>
+        <option value="reject-delay">Reject a delayed response</option>
+        <option value="promote">Promote and commit a healthy version</option>
+        <option value="reject-nan">Reject a non-finite output</option>
+        <option value="reject-stale">Reject a stale response</option>
+        <option value="reject-protocol">Reject a protocol mismatch</option>
+        <option value="reject-switch">Reject a discontinuous handover</option>
+        <option value="no-fallback">Stop when neither version is valid</option>
+        <option value="post-commit-failure">Fail after the fallback window closes</option>
+      </select>
+      <button id="run" class="primary">Run demonstration</button>
+      <p id="description" class="hint"></p>
+      <div class="contract">
+        <h2>Output contract</h2>
+        <dl><div><dt>Decision deadline</dt><dd id="deadline">10 ms</dd></div>
+        <div><dt>Position range</dt><dd>±1,000 m</dd></div>
+        <div><dt>Maximum step</dt><dd>5 m / sample</dd></div>
+        <div><dt>Qualification</dt><dd id="qualification">20 samples</dd></div>
+        <div><dt>Fallback window</dt><dd id="probation">40 samples</dd></div></dl>
+      </div>
+      <div class="recording"><h2>Run evidence</h2><p>Download this run or inspect a JSONL recording from a QNX target.</p>
+        <button id="download" disabled>Download JSONL</button>
+        <label class="file-label" for="recording">Open a recording</label><input id="recording" type="file" accept=".jsonl,.ndjson,.json">
+      </div>
+    </aside>
+    <section class="workspace" aria-label="Runtime observations">
+      <div class="workspace-head"><div><h2>One output. Two versions.</h2><p id="backend">Start a run to inspect the execution backend.</p></div><span id="phase" class="phase">Idle</span></div>
+      <div class="versions">
+        <article class="version baseline"><div><h3>Baseline <span>v1</span></h3><strong id="baseline-role">Waiting</strong></div><p id="baseline-check">No samples received</p></article>
+        <article class="version candidate"><div><h3>Candidate <span>v2</span></h3><strong id="candidate-role">Waiting</strong></div><p id="candidate-check">No samples received</p></article>
+      </div>
+      <div class="plot-heading"><h3>Position stream</h3><div class="legend"><span class="truth">Reference</span><span class="candidate-line">Candidate</span><span class="output-line">Published output</span></div></div>
+      <div class="chart"><canvas id="chart" aria-label="Position in meters over time" role="img"></canvas><p id="empty">Run a scenario to see measured outputs.</p></div>
+      <div class="metrics"><div><span>Output owner</span><strong id="owner">—</strong></div><div><span>Selected outputs</span><strong id="outputs">0</strong></div><div><span>Missing outputs</span><strong id="missing">0</strong></div><div><span>Latest decision</span><strong id="latency">—</strong></div></div>
+      <section class="events"><div class="events-heading"><h3>Deployment decisions</h3><span id="sample-count">0 samples</span></div><ol id="events" aria-live="polite"><li class="placeholder">Decisions will appear here with their input sequence and reason.</li></ol></section>
+      <p class="footnote">Synthetic position data. Host runs validate behavior; QNX execution and target timing require separate evidence. The fallback window ends when the candidate is committed.</p>
+      <p id="error" class="error" role="alert" hidden></p>
+    </section>
+  </main>
+</body>
+</html>
