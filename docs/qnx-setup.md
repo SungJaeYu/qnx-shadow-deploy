@@ -13,7 +13,7 @@
 
 The SDK's release notes do not support native macOS or ARM development hosts. QNX also publishes a macOS workflow that runs the Linux x86-64 host tools inside an emulated Docker container on Apple Silicon. That is the first cross-build route for this project on an M1 Mac; a supported x86-64 Ubuntu host remains the fallback. The blog workflow does not establish SDP 8.0.6 compatibility or successful target execution. A Docker container does not supply a QNX kernel.
 
-**Status: all five QNX executables cross-built; guest execution pending.** QNX Software Center installed the SDK and Linux x86-64 host tools on the development Mac. [Cross-build evidence](evidence/qnx-cross-build.json) records the generated artifacts. The guest instructions below remain acceptance gates, not successful target validation.
+**Status: all five QNX executables cross-built and a guest image generated; guest execution pending.** QNX Software Center installed the SDK and Linux x86-64 host tools on the development Mac. [Cross-build evidence](evidence/qnx-cross-build.json) and [image evidence](evidence/qnx-image-build.json) record the generated artifacts. Boot and target tests remain acceptance gates.
 
 ## Obtain and activate the SDK
 
@@ -69,9 +69,18 @@ bash tools/qnx_container.sh image
 bash tools/qnx_container.sh vm-image
 ```
 
-This action uses the installed SDK's `mkqnximage` with x86-64 QEMU, 2 CPUs and 1 GiB RAM. It writes to ignored `build-qnx-vm/` and adds `/system/bin/shadowdeploy/` containing all five executables and `candidate.manifest`. The image also includes `libc++.so.2`, required by these binaries and absent from the standard image's library list. The standard image supplies libc, libm and libgcc_s. The helper owns `local/snippets/system_files.shadowdeploy`; it preserves other local snippets. Regenerating the image rebuilds its partitions, so export guest logs first.
+This action uses the installed SDK's `mkqnximage` with x86-64 QEMU, 2 CPUs and 1 GiB RAM. It writes to ignored `build-qnx-vm/` and adds `/system/bin/shadowdeploy/` containing all five executables and `candidate.manifest`. It explicitly requires `libc++.so.2`, which is also present in the generated standard library list. The standard image supplies libc, libm and libgcc_s. The helper owns `local/snippets/system_files.shadowdeploy`; it preserves other local snippets. Regenerating the image rebuilds its partitions, so export guest logs first.
 
-Expected outputs are `build-qnx-vm/output/ifs.bin` and `build-qnx-vm/output/disk-qemu.vmdk`. This action only builds an image. **It has not yet been executed or boot-validated.** Use a separate, explicit QEMU launch configuration; on Docker Desktop, do not assume that the SDK's Linux bridge/KVM defaults work. Prefer software emulation without network access for the first serial-console tests. Generated images contain development accounts and must not be exposed on a public interface.
+**Image generation passed on 2026-11-23.** The outputs are `build-qnx-vm/output/ifs.bin`, a 278,589,952-byte raw `disk-qemu`, and `disk-qemu.vmdk`. The small VMDK file is a descriptor referencing the raw disk, not a standalone disk image. The [image evidence](evidence/qnx-image-build.json) records hashes and the generated partition layout. Boot remains unverified. Generated images contain development accounts and must not be exposed on a public interface.
+
+On the Mac, install host QEMU once and then boot with the project helper:
+
+```sh
+brew install qemu
+bash tools/run_qnx_vm.sh
+```
+
+The helper uses TCG software emulation directly on the Mac, without Docker, KVM, guest networking or host directory sharing. It uses temporary disk writes (`-snapshot`), preserving the generated disk. Save guest results over the serial console before exiting: `/data` changes disappear when QEMU exits. `bash tools/run_qnx_vm.sh --print-command` shows the exact launch command. Press Ctrl-A then X to quit. The default guest startup may print network errors or pause while waiting for its absent network adapter; wait for startup completion before running tests. The launch command has been inspected, but has not yet been executed because host QEMU is not installed.
 
 On a supported Linux host with QEMU configured according to the official instructions, an alternative manual image workflow is:
 
@@ -137,3 +146,5 @@ The current implementation does not use a resource manager, health-monitoring pu
 - [CMake cross-compilation for QNX](https://cmake.org/cmake/help/latest/manual/cmake-toolchains.7.html#cross-compiling-for-qnx)
 - [mkqnximage](https://qnx.com/developers/docs/8.0/com.qnx.doc.neutrino.utilities/topic/m/mkqnximage.html)
 - [QNX Everywhere QEMU quickstart](https://qnx.com/developers/docs/qnxeverywhere/com.qnx.doc.target_images/topic/qsti_qemu/getting_started.html)
+- [QEMU installation](https://www.qemu.org/download/#macos)
+- [QEMU command-line reference](https://www.qemu.org/docs/master/system/invocation.html)

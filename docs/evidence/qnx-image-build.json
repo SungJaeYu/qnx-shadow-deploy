@@ -1,0 +1,76 @@
+{
+  "observed_date": "2026-11-23",
+  "source_commit": "cc10aa2",
+  "build_timestamp": "2026-11-23T08:45:05+00:00",
+  "execution": "Owner ran the image and vm-image container actions. Generated images and build specifications were inspected afterward; generator terminal output was not captured.",
+  "configuration": {
+    "target": "x86_64",
+    "type": "qemu",
+    "cpus": 2,
+    "ram": "1G",
+    "system_extra_mib": 64,
+    "data_extra_mib": 128
+  },
+  "artifacts": [
+    {
+      "name": "ifs.bin",
+      "size_bytes": 10931704,
+      "sha256": "7379b7936af76387b94ae3877d940fb2b41315a4650bfb899a29219ebc9c3a23"
+    },
+    {
+      "name": "disk-qemu",
+      "size_bytes": 278589952,
+      "sha256": "4adb3331a37fd989a6dbbeefb9c96fa05f79dbf081cfaa2fed62a08554ef2eac"
+    },
+    {
+      "name": "disk-qemu.vmdk",
+      "size_bytes": 169,
+      "sha256": "bf5311c310e320b83df0d5d6d838965638679387bfd95c36144bdf3e1462a74b"
+    }
+  ],
+  "disk": {
+    "sector_size": 512,
+    "sectors": 544121,
+    "mbr_signature_verified": true,
+    "partitions": [
+      {
+        "partition": 1,
+        "bootable": true,
+        "type": 177,
+        "start_sector": 1,
+        "sectors": 22192
+      },
+      {
+        "partition": 2,
+        "bootable": false,
+        "type": 178,
+        "start_sector": 22193,
+        "sectors": 254368
+      },
+      {
+        "partition": 3,
+        "bootable": false,
+        "type": 179,
+        "start_sector": 276561,
+        "sectors": 267560
+      }
+    ]
+  },
+  "project_files_in_generated_buildfile": [
+    "shadow-demo",
+    "shadow-worker",
+    "shadow-candidate",
+    "policy-tests",
+    "staging-tests",
+    "candidate.manifest"
+  ],
+  "target_directory": "/system/bin/shadowdeploy",
+  "cxx_runtime": "libc++.so.2",
+  "guest_booted": false,
+  "target_tests_executed": false,
+  "limitations": [
+    "The guest filesystem has not been mounted or booted to inspect the installed files.",
+    "Host qemu-system-x86_64 was not installed at this checkpoint.",
+    "Complete SDK/guest release alignment and native IPC behavior remain unverified."
+  ]
+}

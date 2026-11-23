@@ -19,7 +19,8 @@ Initial host verification was performed on 2026-11-23 using macOS, AppleClang 21
 | Browser: late artifact attachment, replay, promotion and JSONL download | Passed; 100 inputs / 100 outputs in the captured run |
 | Source, documentation and interface language | English |
 | QNX cross-build: five executables, warnings treated as errors | Passed; inspected owner-generated artifacts and CMake/Ninja metadata |
-| QNX guest boot and target tests | Pending |
+| QNX guest image generation | Passed; boot image, raw disk, VMDK descriptor and buildfile inspected |
+| QNX guest boot and target tests | Pending; host QEMU not installed |
 
 The process suite checks output source identity, strictly increasing sample IDs, rejection before authority, rollback to the current baseline sample, failure with no valid fallback, post-commit failure and child reaping. Policy tests additionally cover exact deadline boundaries, malformed/late outputs, continuity across switching and rollback, invalid configuration and terminal deadline failure. Test checks remain active in release builds.
 
@@ -36,7 +37,13 @@ On 2026-11-23 the owner ran `qnx_container.sh image` and `qnx_container.sh build
 - Broker/staging binaries import `ConnectAttach`, `MsgSend`, `TimerTimeout` and `posix_spawn`; worker/candidate binaries import `ChannelCreate`, `MsgReceive` and `MsgReply`.
 - The generated manifest declares `os=qnx` and `architecture=x86_64`.
 
-The [machine-readable record](evidence/qnx-cross-build.json) includes SHA-256 hashes, sizes and runtime dependencies. The SDK was installed after selecting the 8.0.6 patch set; complete package alignment still needs auditing. Dynamic imports demonstrate that the QNX code path was compiled, not that its runtime behavior passed. Guest image generation, boot and all target tests remain unverified.
+The [machine-readable record](evidence/qnx-cross-build.json) includes SHA-256 hashes, sizes and runtime dependencies. The SDK was installed after selecting the 8.0.6 patch set; complete package alignment still needs auditing. Dynamic imports demonstrate that the QNX code path was compiled, not that its runtime behavior passed.
+
+## QNX image-generation checkpoint
+
+The owner subsequently ran the container `image` and `vm-image` actions from revision `cc10aa2`. The generated build timestamp is `2026-11-23T08:45:05+00:00`. Inspection found a nonempty IFS, a 278,589,952-byte raw disk, and a VMDK descriptor whose 544,121 sectors exactly match the raw file size. The generated system buildfile lists all five project executables, their candidate manifest and the required C++ runtime. Image hashes and partition sizes are recorded in [qnx-image-build.json](evidence/qnx-image-build.json). The image has not been mounted or booted to inspect its installed files.
+
+Image generation succeeded. Host `qemu-system-x86_64` is not installed, so boot and all target tests remain pending. The native Mac launch helper uses explicit TCG software emulation and an ephemeral disk snapshot, with no guest network. No Docker engine access is needed to launch this helper once host QEMU is installed. The helper's shell syntax, preflight and printed arguments were checked; the emulator command has not run.
 
 One earlier macOS run ended the HTTP scenario in `failed` rather than `rejected`. That first assertion did not preserve the decision reason, so its exact cause was not established; a diagnostic-only follow-up passed. The test now saves JSONL evidence and includes decision details in failures.
 
@@ -107,7 +114,7 @@ Under heavy scheduling interference, a timing scenario may fail closed. Preserve
 
 ## Remaining validation gates
 
-1. Audit the installed SDK package set and generate a matching QNX guest image; native cross-compilation is complete.
+1. Audit the installed SDK package set and guest version; native cross-compilation and image generation are complete.
 2. Run policy and process scenarios on a QNX guest, including timeout/unblock semantics and cleanup.
 3. Measure target timing under a declared scheduling/resource configuration and controlled load.
 4. Separate selected-output delivery from telemetry and shadow waits; add target resource admission and validate repeated deployments under load.

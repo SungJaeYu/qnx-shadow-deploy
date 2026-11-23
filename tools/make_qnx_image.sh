@@ -48,7 +48,7 @@ mkdir -p "$vm_dir/local/snippets"
             "$name" "$build_dir" "$name"
     done
     printf '[uid=0 gid=0 perms=444] bin/shadowdeploy/candidate.manifest=%s/candidate.manifest\n' "$build_dir"
-    # The standard image includes libc, libm and libgcc_s, but not libc++.
+    # Explicitly require the C++ runtime also listed by the standard image.
     printf '[uid=0 gid=0 perms=555] lib/libc++.so.2=%s\n' "$cxx_runtime"
     printf '[+optional]\n'
 } > "$vm_dir/local/snippets/system_files.shadowdeploy"
@@ -57,7 +57,7 @@ cd "$vm_dir"
 mkqnximage --type=qemu --arch=x86_64 --hostname=shadowdeploy-qnx \
     --cpu=2 --ram=1G --sys-size=64 --data-size=128 \
     --ssh-ident=none --sshd-pregen=yes --build
-for output in output/ifs.bin output/disk-qemu.vmdk; do
+for output in output/ifs.bin output/disk-qemu.vmdk output/disk-qemu; do
     if [ ! -s "$output" ]; then
         printf 'Expected image output missing or empty: %s\n' "$output" >&2
         exit 1
