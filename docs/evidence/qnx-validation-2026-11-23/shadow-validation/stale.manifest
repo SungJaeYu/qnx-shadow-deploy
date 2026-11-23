@@ -1,0 +1,10 @@
+format=1
+artifact=position-filter-v2
+executable=/system/bin/shadowdeploy/shadow-candidate
+protocol=1
+architecture=x86_64
+os=qnx
+contract=position-m-velocity-mps-v1
+replay_samples=16
+mode=stale
+fault_after=0

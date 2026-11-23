@@ -1,0 +1,331 @@
+QEMU emulator version 11.1.3
+Copyright (c) 2003-2026 Fabrice Bellard and the QEMU Project developers
+Booting QNX. Guest disk changes will be discarded on exit.
+After startup completes: cd /system/bin/shadowdeploy
+c[?7l[2J[0mSeaBIOS (version rel-1.17.0-0-gb52ca86e094d-prebuilt.qemu.org)
+Booting from ROM..
+non UEFI or UEFI+CSM boot
+ACPI table not found (0x4746434d)
+System behaves poorly without PCID support.
+overriding mask for controller 2, vector_base 0
+---> Starting slogger2
+---> Starting PCI Services
+---> Starting fsevmgr
+# ---> Starting devb
+---> Mounting file systems
+Path=0 - Intel 82371SB
+ target=0 lun=0     Direct-Access(0) -          QEMU HARDDISK    Rev: 2.5+
+Path=1 - Intel 82371SB
+ target=0 lun=0            CD-ROM(5) - QEMU     QEMU DVD-ROM     Rev: 2.5+
+---> Mounting file systems
+---> Starting Networking
+if_up: tries exhausted
+ifconfig: interface vtnet0 does not exist
+no valid interfaces found
+---> Starting sshd
+---> Starting misc
+
+To exit QEMU, type <ctrl>a x
+
+[?7hProcess count:22
+Startup complete
+QNX shadowdeploy-qnx 8.0.0 2026/10/30-09:10:05EDT x86pc x86_64
+export TERM=dumb
+# printf '\nBEGIN_GUEST_ENV\n'
+
+BEGIN_GUEST_ENV
+# uname -a
+QNX shadowdeploy-qnx 8.0.0 2026/10/30-09:10:05EDT x86pc x86_64
+# id
+uid=0(root) gid=0(root) groups=0(root)
+# pidin info
+CPU:X86_64 Release:8.0.0  FreeMem:874MB/1023MB BootTime:Nov 23 09:52:52 UTC 2026
+Processes: 18, Threads: 103
+Processor1: 686 AMD 686 F6M6S3 998MHz FPU 
+Processor2: 686 AMD 686 F6M6S3 998MHz FPU 
+# mount
+ifs on / type ifs 
+/dev/hd0t179 on /data type qnx6 
+/dev/hd0t178 on /system type qnx6 
+/dev/hd0t177 on /boot type qnx6 
+/dev/shmem on /dev/shmem type shmem 
+# ls -ld /tmp /data /system/bin/shadowdeploy
+drwxr-xr-x  5 root root 4096 2026-11-23 08:45 /data
+drwxr-xr-x  2 root root 4096 2026-11-23 08:45 /system/bin/shadowdeploy
+lrwxrwxrwx  1 root root   13 2026-11-23 08:45 /tmp -> /data/var/tmp
+# cd /system/bin/shadowdeploy
+# ls -l
+total 7514
+-r--r--r--  1 root root     183 2026-11-23 08:22 candidate.manifest
+-r-xr-xr-x  1 root root  549056 2026-11-23 08:23 policy-tests
+-r-xr-xr-x  1 root root  157272 2026-11-23 08:23 shadow-candidate
+-r-xr-xr-x  1 root root 1446928 2026-11-23 08:23 shadow-demo
+-r-xr-xr-x  1 root root  157272 2026-11-23 08:23 shadow-worker
+-r-xr-xr-x  1 root root 1536328 2026-11-23 08:24 staging-tests
+# for f in shadow-demo shadow-worker shadow-candidate policy-tests staging-tests; do echo "DEPENDENCIES $f"; ldd ./$f; done
+DEPENDENCIES shadow-demo
+./shadow-demo:
+	libc++.so.2 => /system/lib/libc++.so.2 (0x4e512cf000)
+	libm.so.3 => /proc/boot/libm.so.3 (0x4e51410000)
+	libc.so.6 => /proc/boot/libc.so.6 (0x4e51449000)
+	libgcc_s.so.1 => /proc/boot/libgcc_s.so.1 (0x4e514fc000)
+DEPENDENCIES shadow-worker
+./shadow-worker:
+	libc++.so.2 => /system/lib/libc++.so.2 (0x1f69961000)
+	libm.so.3 => /proc/boot/libm.so.3 (0x1f69aa2000)
+	libc.so.6 => /proc/boot/libc.so.6 (0x1f69adb000)
+	libgcc_s.so.1 => /proc/boot/libgcc_s.so.1 (0x1f69b8e000)
+DEPENDENCIES shadow-candidate
+./shadow-candidate:
+	libc++.so.2 => /system/lib/libc++.so.2 (0x3b16eef000)
+	libm.so.3 => /proc/boot/libm.so.3 (0x3b17030000)
+	libc.so.6 => /proc/boot/libc.so.6 (0x3b17069000)
+	libgcc_s.so.1 => /proc/boot/libgcc_s.so.1 (0x3b1711c000)
+DEPENDENCIES policy-tests
+./policy-tests:
+	libc++.so.2 => /system/lib/libc++.so.2 (0x104a364000)
+	libm.so.3 => /proc/boot/libm.so.3 (0x104a4a5000)
+	libc.so.6 => /proc/boot/libc.so.6 (0x104a4de000)
+	libgcc_s.so.1 => /proc/boot/libgcc_s.so.1 (0x104a591000)
+DEPENDENCIES staging-tests
+./staging-tests:
+	libc++.so.2 => /system/lib/libc++.so.2 (0x1af174b000)
+	libm.so.3 => /proc/boot/libm.so.3 (0x1af188c000)
+	libc.so.6 => /proc/boot/libc.so.6 (0x1af18c5000)
+	libgcc_s.so.1 => /proc/boot/libgcc_s.so.1 (0x1af1978000)
+# printf 'storage-probe\n' > /tmp/shadowdeploy-storage-probe
+# cat /tmp/shadowdeploy-storage-probe
+storage-probe
+# rm /tmp/shadowdeploy-storage-probe
+# mkdir -p /data/shadow-validation
+# printf 'data-probe\n' > /data/shadow-validation/storage-probe
+# cat /data/shadow-validation/storage-probe
+data-probe
+# printf 'END_GUEST_ENV\n'
+END_GUEST_ENV
+# ./policy-tests > /data/shadow-validation/policy.log 2>&1; echo "POLICY_EXIT=$?"; cat /data/shadow-validation/policy.log
+POLICY_EXIT=0
+PASS preparation cannot qualify or restart the baseline
+PASS replay to live continuity is checked
+PASS retry clears candidate qualification but preserves output continuity
+PASS operator cancellation still validates the current fallback
+PASS commit prevents staging and cancellation without a fallback
+PASS late acquisition cannot cause a catch-up burst
+PASS processing overrun does not create an input backlog
+PASS promotion starts at the next sequence boundary
+PASS bad candidate never gains authority
+PASS rollback uses current baseline sample
+PASS both workers failing stops output
+PASS loss of standby during probation stops output
+PASS unqualified candidate cannot replace failed baseline
+PASS no fallback is promised after commit
+PASS late and mismatched responses cannot qualify
+PASS deadline equality passes, future sequence does not
+PASS output equality is not required
+PASS individually valid outputs may still be unsafe to switch
+PASS rollback continuity is checked
+PASS duplicate and invalid inputs stop the broker
+PASS invalid configuration is rejected
+PASS a missed publication decision deadline is terminal
+PASS rate and velocity constraints apply before authority
+# ./staging-tests > /data/shadow-validation/staging.log 2>&1; echo "STAGING_EXIT=$?"; cat /data/shadow-validation/staging.log
+STAGING_EXIT=0
+PASS manifest admission and bounded replay overflow
+# printf 'BEGIN_DEFAULT_SCENARIOS\n'
+BEGIN_DEFAULT_SCENARIOS
+# for s in promote reject-units reject-delay reject-nan reject-stale reject-protocol reject-switch rollback baseline-failure no-fallback post-commit-failure; do ./shadow-demo --worker ./shadow-worker --scenario "$s" > "/data/shadow-validation/default-$s.jsonl" 2> "/data/shadow-validation/default-$s.stderr"; rc=$?; echo "$s $rc" >> /data/shadow-validation/default-exits.txt; echo "SCENARIO $s EXIT $rc"; tail -n 1 "/data/shadow-validation/default-$s.jsonl"; cat "/data/shadow-validation/default-$s.stderr"; done
+SCENARIO promote EXIT 0
+{"type":"summary","phase":"committed","samples":180,"outputs":180,"missing_outputs":0,"publication_misses":0,"interrupted":false}
+SCENARIO reject-units EXIT 0
+{"type":"summary","phase":"rejected","samples":180,"outputs":180,"missing_outputs":0,"publication_misses":0,"interrupted":false}
+SCENARIO reject-delay EXIT 3
+{"type":"summary","phase":"failed","samples":23,"outputs":22,"missing_outputs":1,"publication_misses":1,"interrupted":false}
+SCENARIO reject-nan EXIT 0
+{"type":"summary","phase":"rejected","samples":180,"outputs":180,"missing_outputs":0,"publication_misses":0,"interrupted":false}
+SCENARIO reject-stale EXIT 3
+{"type":"summary","phase":"failed","samples":89,"outputs":88,"missing_outputs":1,"publication_misses":0,"interrupted":false}
+SCENARIO reject-protocol EXIT 3
+{"type":"summary","phase":"failed","samples":14,"outputs":13,"missing_outputs":1,"publication_misses":1,"interrupted":false}
+SCENARIO reject-switch EXIT 3
+{"type":"summary","phase":"failed","samples":49,"outputs":48,"missing_outputs":1,"publication_misses":1,"interrupted":false}
+SCENARIO rollback EXIT 0
+{"type":"summary","phase":"rolled_back","samples":180,"outputs":180,"missing_outputs":0,"publication_misses":0,"interrupted":false}
+SCENARIO baseline-failure EXIT 3
+{"type":"summary","phase":"failed","samples":2,"outputs":1,"missing_outputs":1,"publication_misses":0,"interrupted":false}
+SCENARIO no-fallback EXIT 3
+{"type":"summary","phase":"failed","samples":21,"outputs":20,"missing_outputs":1,"publication_misses":1,"interrupted":false}
+SCENARIO post-commit-failure EXIT 3
+{"type":"summary","phase":"failed","samples":62,"outputs":61,"missing_outputs":1,"publication_misses":0,"interrupted":false}
+# printf 'END_DEFAULT_SCENARIOS\n'
+END_DEFAULT_SCENARIOS
+# for s in reject-delay reject-stale reject-protocol reject-switch; do echo "FAILURE_DETAIL $s"; tail -n 3 "/data/shadow-validation/default-$s.jsonl"; done
+FAILURE_DETAIL reject-delay
+{"type":"sample","sequence":22,"time_s":0.496865238,"truth":10.54215545,"input":10.51858172,"baseline":{"position":10.45342804,"latency_ms":0.419503},"candidate":null,"phase":"rejected","source":"baseline","output":10.45342804,"generation":0,"baseline_pid":630802,"candidate_pid":-1,"event":"","reason":"","baseline_check":"ok","candidate_check":"not_running","decision_latency_ms":0.715859,"publication_miss":false,"release_lateness_ms":4.867842}
+{"type":"sample","sequence":23,"time_s":0.531982378,"truth":10.57978822,"input":10.65863625,"baseline":{"position":null,"latency_ms":29.693633},"candidate":null,"phase":"failed","source":"none","output":null,"generation":0,"baseline_pid":630802,"candidate_pid":-1,"event":"output_stopped","reason":"decision_deadline_exceeded","baseline_check":"deadline_exceeded","candidate_check":"not_running","decision_latency_ms":30.306368,"publication_miss":true,"release_lateness_ms":15.11714}
+{"type":"summary","phase":"failed","samples":23,"outputs":22,"missing_outputs":1,"publication_misses":1,"interrupted":false}
+FAILURE_DETAIL reject-stale
+{"type":"sample","sequence":88,"time_s":2.012444934,"truth":11.94094126,"input":11.86648159,"baseline":{"position":11.87665882,"latency_ms":0.76692},"candidate":null,"phase":"rejected","source":"baseline","output":11.87665882,"generation":0,"baseline_pid":696338,"candidate_pid":-1,"event":"","reason":"","baseline_check":"ok","candidate_check":"not_running","decision_latency_ms":1.242491,"publication_miss":false,"release_lateness_ms":1.307569}
+{"type":"sample","sequence":89,"time_s":2.039546456,"truth":11.96014712,"input":11.99875034,"baseline":{"position":null,"latency_ms":8.945735},"candidate":null,"phase":"failed","source":"none","output":null,"generation":0,"baseline_pid":696338,"candidate_pid":-1,"event":"output_stopped","reason":"baseline_deadline_exceeded","baseline_check":"deadline_exceeded","candidate_check":"not_running","decision_latency_ms":9.268122,"publication_miss":false,"release_lateness_ms":7.101522}
+{"type":"summary","phase":"failed","samples":89,"outputs":88,"missing_outputs":1,"publication_misses":0,"interrupted":false}
+FAILURE_DETAIL reject-protocol
+{"type":"sample","sequence":13,"time_s":0.272436924,"truth":10.29895364,"input":10.29026271,"baseline":{"position":10.23708208,"latency_ms":0.631758},"candidate":null,"phase":"rejected","source":"baseline","output":10.23708208,"generation":0,"baseline_pid":729106,"candidate_pid":-1,"event":"","reason":"","baseline_check":"ok","candidate_check":"not_running","decision_latency_ms":0.998198,"publication_miss":false,"release_lateness_ms":3.130757}
+{"type":"sample","sequence":14,"time_s":0.30060072,"truth":10.32968453,"input":10.25194065,"baseline":{"position":null,"latency_ms":13.068683},"candidate":null,"phase":"failed","source":"none","output":null,"generation":0,"baseline_pid":729106,"candidate_pid":-1,"event":"output_stopped","reason":"decision_deadline_exceeded","baseline_check":"deadline_exceeded","candidate_check":"not_running","decision_latency_ms":26.518823,"publication_miss":true,"release_lateness_ms":8.163796}
+{"type":"summary","phase":"failed","samples":14,"outputs":13,"missing_outputs":1,"publication_misses":1,"interrupted":false}
+FAILURE_DETAIL reject-switch
+{"type":"sample","sequence":48,"time_s":1.089450341,"truth":11.15282928,"input":11.14632376,"baseline":{"position":11.07504974,"latency_ms":0.421505},"candidate":null,"phase":"rejected","source":"baseline","output":11.07504974,"generation":0,"baseline_pid":761874,"candidate_pid":-1,"event":"","reason":"","baseline_check":"ok","candidate_check":"not_running","decision_latency_ms":0.637765,"publication_miss":false,"release_lateness_ms":2.42491}
+{"type":"sample","sequence":49,"time_s":1.117654185,"truth":11.18027739,"input":11.26018604,"baseline":{"position":null,"latency_ms":16.182419},"candidate":null,"phase":"failed","source":"none","output":null,"generation":0,"baseline_pid":761874,"candidate_pid":-1,"event":"output_stopped","reason":"decision_deadline_exceeded","baseline_check":"deadline_exceeded","candidate_check":"not_running","decision_latency_ms":24.461354,"publication_miss":true,"release_lateness_ms":8.203844}
+{"type":"summary","phase":"failed","samples":49,"outputs":48,"missing_outputs":1,"publication_misses":1,"interrupted":false}
+# printf 'BEGIN_POST_SCENARIO_PROCESSES\n'; pidin ar; printf 'END_POST_SCENARIO_PROCESSES\n'
+BEGIN_POST_SCENARIO_PROCESSES
+     pid Arguments
+       1 procnto-smp-instr -mr -d 0777 -u 0777 
+   16387 slogger2 -U 21:21 
+   28676 pci-server --aspace-enable --config=/proc/boot/pci_server.cfg 
+   49157 devc-ser8250 -e 
+   57351 ksh ksh 
+   61446 fsevmgr 
+   65544 devb-eide cam user=20:20 blk cache=64M,auto=partition,vnode=2000,ncache=2000,commit=low 
+  131081 random -U 22:22 -s /data/var/random/rnd-seed 
+  143370 pipe -U 24:24 
+  155659 devc-pty -U 37:37 
+  159756 dumper -U 30:30 -d /data/var/dumper -M 1000 -D cores 
+  163853 io-sock -m phy -m pci -m usb -d vtnet_pci 
+  225297 dhcpcd: [manager] [ip4] [ip6] -bq -f /system/etc/dhcpcd/dhcpcd.conf -c /system/etc/dhcpcd/dhcpcd-run-hooks 
+  274447 /system/bin/sshd -f /system/etc/ssh/sshd_config 
+  278542 qconn 
+  282640 mqueue 
+  307219 io-usb-otg -d hcd-uhci -d hcd-ehci -d hcd-xhci 
+  970754 pidin ar 
+END_POST_SCENARIO_PROCESSES
+# command -v base64
+/system/bin/base64
+# command -v sha256sum
+# command -v cksum
+/system/bin/cksum
+# ./shadow-demo --worker ./shadow-worker --candidate-manifest ./candidate.manifest --stage-at 20 --samples 100 > /data/shadow-validation/default-live.jsonl 2> /data/shadow-validation/default-live.stderr; echo "DEFAULT_LIVE_EXIT=$?"; tail -n 1 /data/shadow-validation/default-live.jsonl
+DEFAULT_LIVE_EXIT=0
+{"type":"summary","phase":"committed","samples":100,"outputs":100,"missing_outputs":0,"publication_misses":0,"interrupted":false}
+# printf 'BEGIN_FUNCTIONAL_SCENARIOS\n'
+BEGIN_FUNCTIONAL_SCENARIOS
+# for s in promote reject-units reject-delay reject-nan reject-stale reject-protocol reject-switch rollback baseline-failure no-fallback post-commit-failure; do ./shadow-demo --worker ./shadow-worker --scenario "$s" --samples 22 --qualify 3 --probation 8 --period-ms 100 --deadline-ms 75 > "/data/shadow-validation/functional-$s.jsonl" 2> "/data/shadow-validation/functional-$s.stderr"; rc=$?; echo "$s $rc" >> /data/shadow-validation/functional-exits.txt; echo "FUNCTIONAL $s EXIT $rc"; tail -n 1 "/data/shadow-validation/functional-$s.jsonl"; done
+FUNCTIONAL promote EXIT 0
+{"type":"summary","phase":"committed","samples":22,"outputs":22,"missing_outputs":0,"publication_misses":0,"interrupted":false}
+FUNCTIONAL reject-units EXIT 0
+{"type":"summary","phase":"rejected","samples":22,"outputs":22,"missing_outputs":0,"publication_misses":0,"interrupted":false}
+FUNCTIONAL reject-delay EXIT 0
+{"type":"summary","phase":"rejected","samples":22,"outputs":22,"missing_outputs":0,"publication_misses":0,"interrupted":false}
+FUNCTIONAL reject-nan EXIT 0
+{"type":"summary","phase":"rejected","samples":22,"outputs":22,"missing_outputs":0,"publication_misses":0,"interrupted":false}
+FUNCTIONAL reject-stale EXIT 0
+{"type":"summary","phase":"rejected","samples":22,"outputs":22,"missing_outputs":0,"publication_misses":0,"interrupted":false}
+FUNCTIONAL reject-protocol EXIT 0
+{"type":"summary","phase":"rejected","samples":22,"outputs":22,"missing_outputs":0,"publication_misses":0,"interrupted":false}
+FUNCTIONAL reject-switch EXIT 0
+{"type":"summary","phase":"rejected","samples":22,"outputs":22,"missing_outputs":0,"publication_misses":0,"interrupted":false}
+FUNCTIONAL rollback EXIT 0
+{"type":"summary","phase":"rolled_back","samples":22,"outputs":22,"missing_outputs":0,"publication_misses":0,"interrupted":false}
+FUNCTIONAL baseline-failure EXIT 3
+{"type":"summary","phase":"failed","samples":2,"outputs":1,"missing_outputs":1,"publication_misses":0,"interrupted":false}
+FUNCTIONAL no-fallback EXIT 3
+{"type":"summary","phase":"failed","samples":8,"outputs":7,"missing_outputs":1,"publication_misses":0,"interrupted":false}
+FUNCTIONAL post-commit-failure EXIT 3
+{"type":"summary","phase":"failed","samples":13,"outputs":12,"missing_outputs":1,"publication_misses":0,"interrupted":false}
+# printf 'END_FUNCTIONAL_SCENARIOS\n'
+END_FUNCTIONAL_SCENARIOS
+# ./shadow-demo --worker ./shadow-worker --candidate-manifest ./candidate.manifest --stage-at 20 --samples 100 --period-ms 200 --deadline-ms 150 > /data/shadow-validation/functional-live.jsonl 2> /data/shadow-validation/functional-live.stderr; echo "FUNCTIONAL_LIVE_EXIT=$?"; tail -n 1 /data/shadow-validation/functional-live.jsonl
+FUNCTIONAL_LIVE_EXIT=0
+{"type":"summary","phase":"committed","samples":100,"outputs":100,"missing_outputs":0,"publication_misses":0,"interrupted":false}
+# cat > /tmp/qnx_lifecycle_checks.sh <<'SHADOW_EOF'
+> #!/bin/sh
+> # Run against the existing image; capture native connections and original JSONL.
+> set -eu
+> [ "$(uname -s)" = QNX ] || { echo 'This check requires a QNX guest.' >&2; exit 2; }
+> cd /system/bin/shadowdeploy
+> out=/data/shadow-validation
+> mkdir -p "$out"
+> broker=
+> cleanup() {
+>     exec 3>&-
+>     if [ -n "$broker" ]; then kill -TERM "$broker" 2>/dev/null || :; wait "$broker" || :; fi
+>     rm -f "$out/control.fifo"
+> }
+> trap cleanup EXIT
+> trap 'exit 130' INT TERM
+> 
+> wait_event() {
+>     count=0
+>     until grep -q "$1" "$log"; do
+>         if grep -q '"type":"summary"' "$log" || [ "$count" -ge 100 ]; then
+>             echo "FAIL waiting for $1 in $log" >&2
+>             return 1
+>         fi
+>         count=$((count + 1))
+>         sleep 0.1
+>     done
+> }
+> snapshot() {
+>     # Let retirement after the publication decision finish before inspection.
+>     sleep 0.4
+>     pidin -p "$broker" fds > "$out/$name-$1.fds"
+>     pidin ar > "$out/$name-$1.processes"
+> }
+> start() {
+>     name=$1
+>     log="$out/$name.jsonl"
+>     [ ! -e "$log" ] || { echo "Refusing to overwrite $log" >&2; exit 2; }
+>     mkfifo "$out/control.fifo"
+>     ./shadow-demo --worker ./shadow-worker --control-stdin --samples 100 \
+>         --period-ms 200 --deadline-ms 150 --qualify 3 --probation 15 \
+>         < "$out/control.fifo" > "$log" 2> "$out/$name.stderr" &
+>     broker=$!
+>     exec 3> "$out/control.fifo"
+>     wait_event '"sequence":20,'
+>     snapshot baseline
+> }
+> finish() {
+>     wait_event '"event":"candidate_committed"'
+>     snapshot committed
+>     if wait "$broker"; then code=0; else code=$?; fi
+>     broker=
+>     exec 3>&-
+>     rm "$out/control.fifo"
+>     echo "$name $code" >> "$out/lifecycle-exits.txt"
+>     pidin ar > "$out/$name-finished.processes"
+>     [ "$code" -eq 0 ] || return 1
+> }
+> 
+> sed 's|executable=./shadow-candidate|executable=/system/bin/shadowdeploy/shadow-candidate|' \
+>     candidate.manifest > "$out/good.manifest"
+> sed 's/mode=good/mode=delay/' "$out/good.manifest" > "$out/delay.manifest"
+> sed 's/mode=good/mode=stale/' "$out/good.manifest" > "$out/st^Q
+# stty -echo
+# cat > /tmp/lifecycle.b64 <<'SHADOW_B64'
+> IyEvYmluL3NoCiMgUnVuIGFnYWluc3QgdGhlIGV4aXN0aW5nIGltYWdlOyBjYXB0dXJlIG5hdGl2ZSBjb25uZWN0aW9ucyBhbmQgb3JpZ2luYWwgSlNPTkwuCnNldCAtZXUKWyAiJCh1bmFtZSAtcykiID0gUU5YIF0gfHwgeyBlY2hvICdUaGlzIGNoZWNrIHJlcXVpcmVzIGEgUU5YIGd1ZXN0LicgPiYyOyBleGl0IDI7IH0KY2QgL3N5c3Rl
+> bS9iaW4vc2hhZG93ZGVwbG95Cm91dD0vZGF0YS9zaGFkb3ctdmFsaWRhdGlvbgpta2RpciAtcCAiJG91dCIKYnJva2VyPQpjbGVhbnVwKCkgewogICAgZXhlYyAzPiYtCiAgICBpZiBbIC1uICIkYnJva2VyIiBdOyB0aGVuIGtpbGwgLVRFUk0gIiRicm9rZXIiIDI+L2Rldi9udWxsIHx8IDo7IHdhaXQgIiRicm9rZXIiIHx8IDo7IGZpCiAg
+> ICBybSAtZiAiJG91dC9jb250cm9sLmZpZm8iCn0KdHJhcCBjbGVhbnVwIEVYSVQKdHJhcCAnZXhpdCAxMzAnIElOVCBURVJNCgp3YWl0X2V2ZW50KCkgewogICAgY291bnQ9MAogICAgdW50aWwgZ3JlcCAtcSAiJDEiICIkbG9nIjsgZG8KICAgICAgICBpZiBncmVwIC1xICcidHlwZSI6InN1bW1hcnkiJyAiJGxvZyIgfHwgWyAiJGNvdW50
+> IiAtZ2UgMTAwIF07IHRoZW4KICAgICAgICAgICAgZWNobyAiRkFJTCB3YWl0aW5nIGZvciAkMSBpbiAkbG9nIiA+JjIKICAgICAgICAgICAgcmV0dXJuIDEKICAgICAgICBmaQogICAgICAgIGNvdW50PSQoKGNvdW50ICsgMSkpCiAgICAgICAgc2xlZXAgMC4xCiAgICBkb25lCn0Kc25hcHNob3QoKSB7CiAgICAjIExldCByZXRpcmVtZW50
+> IGFmdGVyIHRoZSBwdWJsaWNhdGlvbiBkZWNpc2lvbiBmaW5pc2ggYmVmb3JlIGluc3BlY3Rpb24uCiAgICBzbGVlcCAwLjQKICAgIHBpZGluIC1wICIkYnJva2VyIiBmZHMgPiAiJG91dC8kbmFtZS0kMS5mZHMiCiAgICBwaWRpbiBhciA+ICIkb3V0LyRuYW1lLSQxLnByb2Nlc3NlcyIKfQpzdGFydCgpIHsKICAgIG5hbWU9JDEKICAgIGxv
+> Zz0iJG91dC8kbmFtZS5qc29ubCIKICAgIFsgISAtZSAiJGxvZyIgXSB8fCB7IGVjaG8gIlJlZnVzaW5nIHRvIG92ZXJ3cml0ZSAkbG9nIiA+JjI7IGV4aXQgMjsgfQogICAgbWtmaWZvICIkb3V0L2NvbnRyb2wuZmlmbyIKICAgIC4vc2hhZG93LWRlbW8gLS13b3JrZXIgLi9zaGFkb3ctd29ya2VyIC0tY29udHJvbC1zdGRpbiAtLXNhbXBs
+> ZXMgMTAwIFwKICAgICAgICAtLXBlcmlvZC1tcyAyMDAgLS1kZWFkbGluZS1tcyAxNTAgLS1xdWFsaWZ5IDMgLS1wcm9iYXRpb24gMTUgXAogICAgICAgIDwgIiRvdXQvY29udHJvbC5maWZvIiA+ICIkbG9nIiAyPiAiJG91dC8kbmFtZS5zdGRlcnIiICYKICAgIGJyb2tlcj0kIQogICAgZXhlYyAzPiAiJG91dC9jb250cm9sLmZpZm8iCiAg
+> ICB3YWl0X2V2ZW50ICcic2VxdWVuY2UiOjIwLCcKICAgIHNuYXBzaG90IGJhc2VsaW5lCn0KZmluaXNoKCkgewogICAgd2FpdF9ldmVudCAnImV2ZW50IjoiY2FuZGlkYXRlX2NvbW1pdHRlZCInCiAgICBzbmFwc2hvdCBjb21taXR0ZWQKICAgIGlmIHdhaXQgIiRicm9rZXIiOyB0aGVuIGNvZGU9MDsgZWxzZSBjb2RlPSQ/OyBmaQogICAg
+> YnJva2VyPQogICAgZXhlYyAzPiYtCiAgICBybSAiJG91dC9jb250cm9sLmZpZm8iCiAgICBlY2hvICIkbmFtZSAkY29kZSIgPj4gIiRvdXQvbGlmZWN5Y2xlLWV4aXRzLnR4dCIKICAgIHBpZGluIGFyID4gIiRvdXQvJG5hbWUtZmluaXNoZWQucHJvY2Vzc2VzIgogICAgWyAiJGNvZGUiIC1lcSAwIF0gfHwgcmV0dXJuIDEKfQoKc2VkICdz
+> fGV4ZWN1dGFibGU9Li9zaGFkb3ctY2FuZGlkYXRlfGV4ZWN1dGFibGU9L3N5c3RlbS9iaW4vc2hhZG93ZGVwbG95L3NoYWRvdy1jYW5kaWRhdGV8JyBcCiAgICBjYW5kaWRhdGUubWFuaWZlc3QgPiAiJG91dC9nb29kLm1hbmlmZXN0IgpzZWQgJ3MvbW9kZT1nb29kL21vZGU9ZGVsYXkvJyAiJG91dC9nb29kLm1hbmlmZXN0IiA+ICIkb3V0
+> L2RlbGF5Lm1hbmlmZXN0IgpzZWQgJ3MvbW9kZT1nb29kL21vZGU9c3RhbGUvJyAiJG91dC9nb29kLm1hbmlmZXN0IiA+ICIkb3V0L3N0YWxlLm1hbmlmZXN0IgoKc3RhcnQgY2FuY2VsLXJldHJ5CnByaW50ZiAnc3RhZ2UgJXMvZ29vZC5tYW5pZmVzdFxuJyAiJG91dCIgPiYzCndhaXRfZXZlbnQgJyJldmVudCI6ImNhbmRpZGF0ZV9wcm9t
+> b3RlZCInCnNuYXBzaG90IHByb21vdGVkCnByaW50ZiAnY2FuY2VsXG4nID4mMwp3YWl0X2V2ZW50ICciZXZlbnQiOiJjYW5kaWRhdGVfY2FuY2VsbGVkIicKc25hcHNob3QgY2FuY2VsbGVkCnByaW50ZiAnc3RhZ2UgJXMvZ29vZC5tYW5pZmVzdFxuJyAiJG91dCIgPiYzCmZpbmlzaAoKc3RhcnQgcmVwbGF5LXJldHJ5CmdlbmVyYXRpb249
+> MApmb3IgY3ljbGUgaW4gMSAyIDM7IGRvCiAgICBmb3IgbW9kZSBpbiBkZWxheSBzdGFsZTsgZG8KICAgICAgICBnZW5lcmF0aW9uPSQoKGdlbmVyYXRpb24gKyAxKSkKICAgICAgICBwcmludGYgJ3N0YWdlICVzLyVzLm1hbmlmZXN0XG4nICIkb3V0IiAiJG1vZGUiID4mMwogICAgICAgIHdhaXRfZXZlbnQgIlwiZ2VuZXJhdGlvblwiOiRn
+> ZW5lcmF0aW9uLC4qXCJldmVudFwiOlwicHJlcGFyYXRpb25fZmFpbGVkXCIiCiAgICAgICAgc25hcHNob3QgInJlamVjdGVkLSRnZW5lcmF0aW9uIgogICAgZG9uZQpkb25lCnByaW50ZiAnc3RhZ2UgJXMvZ29vZC5tYW5pZmVzdFxuJyAiJG91dCIgPiYzCmZpbmlzaAplY2hvICdQQVNTIGNhbmNlbGxhdGlvbiwgcmVwZWF0ZWQgcmVwbGF5
+> IHJlamVjdGlvbiwgcmV0cnkgYW5kIGNvbm5lY3Rpb24gc25hcHNob3RzJwo=
+> SHADOW_B64
+# base64 -d /tmp/lifecycle.b64 > /tmp/qnx_lifecycle_checks.sh
+# cksum /tmp/qnx_lifecycle_checks.sh
+2413034024 2732 /tmp/qnx_lifecycle_checks.sh
+# stty echo
+# sh /tmp/qnx_lifecycle_checks.sh > /data/shadow-validation/lifecycle-driver.log 2>&1; echo "LIFECYCLE_EXIT=$?"; cat /data/shadow-validation/lifecycle-driver.log
+LIFECYCLE_EXIT=0
+PASS cancellation, repeated replay rejection, retry and connection snapshots
+# { uname -a; id; pidin info; mount; ls -ld /tmp /data; ls -l /system/bin/shadowdeploy; for f in shadow-demo shadow-worker shadow-candidate policy-tests staging-tests; do ldd /system/bin/shadowdeploy/$f; cksum /system/bin/shadowdeploy/$f; done; cksum /proc/boot/libc.so.6 /proc/boot/ldqnx-64.so.2 /proc/boot/libm.so.3 /proc/boot/libgcc_s.so.1 /system/lib/libc++.so.2; } > /data/shadow-validation/guest-environment.log 2>&1
+# pidin ar > /data/shadow-validation/final.processes
+# cp /tmp/qnx_lifecycle_checks.sh /data/shadow-validation/executed-lifecycle.sh
+# tar -cf /data/shadow-validation.tar -C /data shadow-validation
+# cksum /data/shadow-validation.tar
+2791382996 836096 /data/shadow-validation.tar

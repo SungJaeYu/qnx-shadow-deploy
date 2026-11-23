@@ -1,0 +1,9 @@
+     pid name                         
+ 1417234 ./shadow-demo                
+	   0  143370 r-        0 /data/shadow-validation/control.fifo
+	   1   65544 -w    10009 /data/shadow-validation/cancel-retry.jsonl
+	   2   65544 -w        0 /data/shadow-validation/cancel-retry.stderr
+	   4  143370 -w        0 (pipe)
+	   5  143370 r-        0 (pipe)
+	   0s      1 <procnto>:1
+	   1s 1437716 <shadow-worker>:1

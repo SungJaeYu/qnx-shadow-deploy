@@ -2,7 +2,7 @@
 
 ## Scope
 
-Initial host verification was performed on 2026-11-23 using macOS, AppleClang 21.0.0 and CMake 4.3.3. The runtime reported `host-posix-pipes`. A subsequent QNX cross-build produced all five target executables. **QEMU boot, native IPC execution and hardware timing measurements remain pending.**
+Initial host verification was performed on 2026-11-23 using macOS, AppleClang 21.0.0 and CMake 4.3.3. A subsequent QNX cross-build produced all five target executables. **The existing image later booted and native functional tests passed in QEMU using `qnx-native-ipc`. Default 10 ms timing failures, complete release-set alignment and hardware timing validation remain open.**
 
 ## Executed checks
 
@@ -20,7 +20,13 @@ Initial host verification was performed on 2026-11-23 using macOS, AppleClang 21
 | Source, documentation and interface language | English |
 | QNX cross-build: five executables, warnings treated as errors | Passed; inspected owner-generated artifacts and CMake/Ninja metadata |
 | QNX guest image generation | Passed; boot image, raw disk, VMDK descriptor and buildfile inspected |
-| QNX guest boot and target tests | Pending; host QEMU not installed |
+| QNX guest boot, runtime libraries and writable storage | Passed on native macOS QEMU 11.1.3 / TCG / 2 CPUs / 1 GiB |
+| QNX policy and staging suites | Passed; 23 policy cases and manifest/replay-overflow checks |
+| QNX eleven functional scenarios | Passed at explicit 100 ms period / 75 ms budget |
+| QNX live attachment, cancellation/retry and repeated replay rejection | Passed; baseline PID continuity and connection cleanup checked |
+| QNX default 20/10 ms scenarios | Five early deadline failures retained; not a timing pass |
+| Native timeout probes | Four completed with expected rejection; REPLY state captured; isolated SEND still open |
+| Fresh host rerun in restricted session | Four suites passed; HTTP setup blocked by socket permission before any HTTP test |
 
 The process suite checks output source identity, strictly increasing sample IDs, rejection before authority, rollback to the current baseline sample, failure with no valid fallback, post-commit failure and child reaping. Policy tests additionally cover exact deadline boundaries, malformed/late outputs, continuity across switching and rollback, invalid configuration and terminal deadline failure. Test checks remain active in release builds.
 
@@ -43,7 +49,64 @@ The [machine-readable record](evidence/qnx-cross-build.json) includes SHA-256 ha
 
 The owner subsequently ran the container `image` and `vm-image` actions from revision `cc10aa2`. The generated build timestamp is `2026-11-23T08:45:05+00:00`. Inspection found a nonempty IFS, a 278,589,952-byte raw disk, and a VMDK descriptor whose 544,121 sectors exactly match the raw file size. The generated system buildfile lists all five project executables, their candidate manifest and the required C++ runtime. Image hashes and partition sizes are recorded in [qnx-image-build.json](evidence/qnx-image-build.json). The image has not been mounted or booted to inspect its installed files.
 
-Image generation succeeded. Host `qemu-system-x86_64` is not installed, so boot and all target tests remain pending. The native Mac launch helper uses explicit TCG software emulation and an ephemeral disk snapshot, with no guest network. No Docker engine access is needed to launch this helper once host QEMU is installed. The helper's shell syntax, preflight and printed arguments were checked; the emulator command has not run.
+At the image-generation checkpoint, host `qemu-system-x86_64` was not installed and the launch command had not run. The subsequent native execution below used the same image hashes and the existing launcher with explicit TCG emulation, temporary disk writes and no guest network.
+
+## Native QNX execution, 2026-11-23
+
+The source checkout was clean at `af72fba664ec813e071572ac80495bf0e70c6edb`. The restricted session could read that checkout but could not write its Git configuration, so scoped documentation, evidence and validation tools were prepared in `/Users/yuseungjae/Desktop/qnx-shadow-deploy-validation`. The original checkout, five cross-built binaries and three image files were preserved. Runtime C++ code and all deadlines/assertions remained unchanged; neither cross-build nor image regeneration was needed.
+
+The owner installed Homebrew QEMU after the automated installation failed to resolve `formulae.brew.sh`. Docker socket access was checked and denied; native QEMU operated independently. The [environment record](evidence/qnx-validation-2026-11-23/environment.json) records exact arguments, executable hash, compiler metadata, package inventory and runtime build IDs. All [original target traces and diagnostics](evidence/qnx-validation-2026-11-23/README.md) were exported before VM shutdown and archive checksums matched on the host.
+
+| Configuration | Observed value |
+| --- | --- |
+| Host | macOS 26.6.2, build 25G83, arm64 |
+| Emulator | Homebrew QEMU 11.1.3; native Mac TCG; `-cpu max`, 2 CPUs, 1024 MiB |
+| I/O | Serial console, `-snapshot`, `-nic none`, no host directory sharing |
+| Guest | `QNX shadowdeploy-qnx 8.0.0 2026/10/30-09:10:05EDT x86pc x86_64` |
+| Guest privileges/scheduling | Development root account; observed broker/worker priority `10r`; no explicit scheduling/resource isolation |
+| Storage | `/system` and `/data` QNX6 mounts; `/tmp -> /data/var/tmp`; both temporary locations writable |
+| Compiler evidence | Existing QCC 12.2.0, `gcc_ntox86_64`, Debug, C++17, `-Werror`; compiler transcript not rerun |
+| SDK integrity scope | 260 package records; nine selected assets match package size/SHA-512 metadata |
+| Runtime matching | libc, loader, libm, libgcc_s and libc++ build IDs match installed SDK package records |
+
+`qversion` and `uname` report 8.0.0. Component build IDs establish the inspected runtime's provenance, not the complete 8.0.6 release-set membership. Full alignment remains open. The no-network launcher caused expected `vtnet0` startup errors; the guest reached `Startup complete`. Boot also reported absent ACPI MCFG and PCID support. Host load measurement with `ps` was denied, so these runs used an uncontrolled host workload.
+
+Policy and staging executables returned 0 on QNX. The eleven scenarios were first run at their unchanged 20 ms period / 10 ms decision budget / 7.5 ms IPC cutoff, with 180 requested samples and default qualification/probation. Five stopped early due to timing:
+
+| Default run | Stopped sequence | Reason |
+| --- | --- | --- |
+| `reject-delay` | 23 | `decision_deadline_exceeded` |
+| `reject-stale` | 89 | `baseline_deadline_exceeded` |
+| `reject-protocol` | 14 | `decision_deadline_exceeded` |
+| `reject-switch` | 49 | `decision_deadline_exceeded` |
+| `no-fallback` | 21 | `decision_deadline_exceeded`, before the intended fault |
+
+The first four had already rejected their candidates. For example, the `reject-delay` baseline completed at 29.694 ms and its decision took 30.306 ms against the unchanged 10 ms budget. These are observed deadline failures, not evidence that the rejection logic passed the entire run. The precise cause of scheduling interference was not isolated. No runtime fix or threshold change is claimed to resolve them; controlled scheduling/load and active-path isolation remain work. Original `default-*.jsonl` files are retained without rewriting.
+
+Separate functional runs reused the repository's existing host scenario parameters: 22 samples, qualification 3, probation 8, period 100 ms, decision budget 75 ms and IPC cutoff 56.25 ms. All eleven reached the expected phase and exit code. Promotion occurred at sequence 4; rollback at sequence 8 used that sequence's valid baseline result. `baseline-failure`, `no-fallback` and `post-commit-failure` correctly stopped output and returned 3. The others returned 0. The delayed candidate returned a timeout observation after 57.284 ms, before its 250 ms injected reply; the 57.770 ms decision still published the current baseline within the configured 75 ms budget. The timed-out candidate was retired and no subsequent sample reused it.
+
+Four live runs each produced 100 inputs and 100 selected outputs with no missing outputs:
+
+| Run | Baseline PID | Promotion / commit | Result |
+| --- | --- | --- | --- |
+| Default 20/10 ms late attachment | 991250 | 44 / 83 | Committed; max observed decision 4.226 ms |
+| Functional 200/150 ms late attachment | 1302546 | 42 / 81 | Committed |
+| Cancel during probation, then retry | 1437716 | Generation 2 committed | Current baseline selected on cancellation; unchanged PID |
+| Three delayed and three stale replay rejections, then retry | 3080213 | Generation 7: 55 / 69 | Only the seventh candidate gained authority |
+
+All live runs required fresh qualification after replay. `pidin fds` showed two worker side-channel connections during probation, returned to the exact initial descriptor/connection set after cancellation and every replay rejection, and showed only the committed candidate connection afterward. Final process lists contained no broker/worker/candidate. This demonstrates cleanup and no observed stale-result reuse in these runs; it is not an exhaustive kernel interleaving or leak-stress proof.
+
+Additional timeout probes used a declared 1000 ms period, 150 ms decision budget and 112.5 ms IPC cutoff. A stopped receiver and a 250 ms delayed reply both caused rejection at sequence 2 with baseline output retained. Repeated polling captured broker dispatch threads in `REPLY` at priority `10r`. The initial stopped-receiver attempt was named `timeout-send`, but its single snapshot missed the wait; it is retained as inconclusive SEND evidence. A receiver already waiting in `MsgReceive` can accept a message before its stopped thread runs. The follow-up observed `REPLY`, so a distinct SEND-blocked timeout remains unverified. Neither failed snapshot capture nor default-budget failure was discarded.
+
+The host verifier checks all 30 JSONL traces for native backend identity, sequence continuity, publication validity, counters and baseline PID continuity; it additionally asserts the functional outcomes, replay generations, timeout retirement and connection/process snapshots. The native image was stopped only after all logs were exported. The original image and executable SHA-256 values still match their earlier checkpoints.
+
+```sh
+python3 tools/verify_qnx_logs.py docs/evidence/qnx-validation-2026-11-23/shadow-validation
+```
+
+The fresh host Debug build and policy, staging, process and live-deployment suites passed. `workbench-api` failed during setup because the sandbox denied binding `127.0.0.1`; zero HTTP tests executed. The complete [CTest transcript](evidence/qnx-validation-2026-11-23/host-ctest.log) is preserved. Earlier host/API/sanitizer results above remain historical results, not a claim that this restricted rerun passed every suite.
+
+## Earlier host scheduling failures
 
 One earlier macOS run ended the HTTP scenario in `failed` rather than `rejected`. That first assertion did not preserve the decision reason, so its exact cause was not established; a diagnostic-only follow-up passed. The test now saves JSONL evidence and includes decision details in failures.
 
@@ -114,9 +177,9 @@ Under heavy scheduling interference, a timing scenario may fail closed. Preserve
 
 ## Remaining validation gates
 
-1. Audit the installed SDK package set and guest version; native cross-compilation and image generation are complete.
-2. Run policy and process scenarios on a QNX guest, including timeout/unblock semantics and cleanup.
-3. Measure target timing under a declared scheduling/resource configuration and controlled load.
+1. Confirm the complete 8.0.6 release set; installed component inventory and five guest runtime build IDs are recorded.
+2. Isolate SEND-blocked timeout behavior and broaden cancellation/unblock interleavings; observed REPLY timeouts and functional cleanup passed.
+3. Resolve default-budget timing failures under a declared scheduling/resource configuration and controlled load; emulation is not hardware timing proof.
 4. Separate selected-output delivery from telemetry and shadow waits; add target resource admission and validate repeated deployments under load.
 5. Validate the final target demonstration and record its precise build/configuration.
 

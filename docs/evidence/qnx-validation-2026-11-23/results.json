@@ -1,0 +1,55 @@
+{
+  "native_trace_count": 30,
+  "functional_scenarios_passed": 11,
+  "live_and_lifecycle_checks_passed": 4,
+  "connection_cleanup_checks_passed": true,
+  "timeout_probes_passed": 4,
+  "observed_timeout_wait_state": "REPLY",
+  "isolated_send_timeout": "unverified",
+  "default_scenarios": {
+    "promote": {
+      "phase": "committed",
+      "last_reason": ""
+    },
+    "rollback": {
+      "phase": "rolled_back",
+      "last_reason": ""
+    },
+    "baseline-failure": {
+      "phase": "failed",
+      "last_reason": "baseline_worker_disconnected"
+    },
+    "no-fallback": {
+      "phase": "failed",
+      "last_reason": "decision_deadline_exceeded"
+    },
+    "post-commit-failure": {
+      "phase": "failed",
+      "last_reason": "candidate_worker_disconnected"
+    },
+    "reject-units": {
+      "phase": "rejected",
+      "last_reason": ""
+    },
+    "reject-delay": {
+      "phase": "failed",
+      "last_reason": "decision_deadline_exceeded"
+    },
+    "reject-nan": {
+      "phase": "rejected",
+      "last_reason": ""
+    },
+    "reject-stale": {
+      "phase": "failed",
+      "last_reason": "baseline_deadline_exceeded"
+    },
+    "reject-protocol": {
+      "phase": "failed",
+      "last_reason": "decision_deadline_exceeded"
+    },
+    "reject-switch": {
+      "phase": "failed",
+      "last_reason": "decision_deadline_exceeded"
+    }
+  }
+}

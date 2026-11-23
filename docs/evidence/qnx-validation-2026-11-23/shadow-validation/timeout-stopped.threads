@@ -1,0 +1,8 @@
+     pid tid name                         prio STATE          Blocked                     
+ 5586962   1 ./shadow-demo                 10r NANOSLEEP                                  
+ 5586962   2 ./shadow-demo                 10r CONDVAR        (0x1d265a0fe8)              
+ 5586962   3 ./shadow-demo                 10r CONDVAR        (0x1d265a1698)              
+     pid tid name                         prio STATE          Blocked                     
+ 5586962   1 ./shadow-demo                 10r CONDVAR        (0x1d265a2dc0)              
+ 5586962   2 ./shadow-demo                 10r CONDVAR        (0x1d265a0fe8)              
+ 5586962   3 ./shadow-demo                 10r REPLY          5607447                     

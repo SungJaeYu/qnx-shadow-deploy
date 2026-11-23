@@ -13,7 +13,7 @@
 
 The SDK's release notes do not support native macOS or ARM development hosts. QNX also publishes a macOS workflow that runs the Linux x86-64 host tools inside an emulated Docker container on Apple Silicon. That is the first cross-build route for this project on an M1 Mac; a supported x86-64 Ubuntu host remains the fallback. The blog workflow does not establish SDP 8.0.6 compatibility or successful target execution. A Docker container does not supply a QNX kernel.
 
-**Status: all five QNX executables cross-built and a guest image generated; guest execution pending.** QNX Software Center installed the SDK and Linux x86-64 host tools on the development Mac. [Cross-build evidence](evidence/qnx-cross-build.json) and [image evidence](evidence/qnx-image-build.json) record the generated artifacts. Boot and target tests remain acceptance gates.
+**Status: the existing image booted and native functional tests passed on 2026-11-23.** QNX Software Center installed the SDK and Linux x86-64 host tools on the development Mac. [Cross-build evidence](evidence/qnx-cross-build.json), [image evidence](evidence/qnx-image-build.json) and [native execution evidence](evidence/qnx-validation-2026-11-23/README.md) distinguish these stages. Default-budget timing failures and complete release-set alignment remain open.
 
 ## Obtain and activate the SDK
 
@@ -39,7 +39,7 @@ The image contains only Ubuntu packages. It mounts this repository, the SDK read
 
 Output goes to `build-qnx-container/`, separate from native host builds. `bash tools/qnx_container.sh shell` opens a diagnostic shell with the same mounts. This helper does not start a QNX VM, activate a license, or run QNX binaries on Linux. Emulator timing is not hardware timing evidence.
 
-**Setup checkpoint, 2026-11-23:** QSC installed the SDK after selecting the 8.0.6 patch set and displayed successful local license activation. The installed Linux GCC package is `12.2.0.01008T202610011452L`. The owner then built the Ubuntu container and cross-compiled all five executables from the Mac terminal. Their QNX ELF identity, native imports and CMake/Ninja metadata were inspected. Docker engine access remains blocked by the automated session sandbox. Complete SDK/guest release matching and native execution remain unverified; see the [verification record](verification.md#qnx-cross-build-checkpoint).
+**Setup checkpoint, 2026-11-23:** QSC installed the SDK after selecting the 8.0.6 patch set and displayed successful local license activation. The installed Linux GCC package is `12.2.0.01008T202610011452L`. The owner built the Ubuntu container and cross-compiled all five executables from the Mac terminal. Docker engine access remains blocked by the automated session sandbox; it was not bypassed. The later native run reused these artifacts. The [SDK audit](evidence/qnx-sdk-audit.json) inventories 260 packages and verifies nine selected installed assets against package size/SHA-512 metadata. Five guest library/loader build IDs match the installed SDK; complete release-set alignment remains unverified.
 
 ## Cross-build
 
@@ -71,7 +71,7 @@ bash tools/qnx_container.sh vm-image
 
 This action uses the installed SDK's `mkqnximage` with x86-64 QEMU, 2 CPUs and 1 GiB RAM. It writes to ignored `build-qnx-vm/` and adds `/system/bin/shadowdeploy/` containing all five executables and `candidate.manifest`. It explicitly requires `libc++.so.2`, which is also present in the generated standard library list. The standard image supplies libc, libm and libgcc_s. The helper owns `local/snippets/system_files.shadowdeploy`; it preserves other local snippets. Regenerating the image rebuilds its partitions, so export guest logs first.
 
-**Image generation passed on 2026-11-23.** The outputs are `build-qnx-vm/output/ifs.bin`, a 278,589,952-byte raw `disk-qemu`, and `disk-qemu.vmdk`. The small VMDK file is a descriptor referencing the raw disk, not a standalone disk image. The [image evidence](evidence/qnx-image-build.json) records hashes and the generated partition layout. Boot remains unverified. Generated images contain development accounts and must not be exposed on a public interface.
+**Image generation and subsequent boot passed on 2026-11-23.** The outputs are `build-qnx-vm/output/ifs.bin`, a 278,589,952-byte raw `disk-qemu`, and `disk-qemu.vmdk`. The small VMDK file is a descriptor referencing the raw disk, not a standalone disk image. The [image evidence](evidence/qnx-image-build.json) records hashes and the generated partition layout. The native run reused these exact images. Generated images contain development accounts and must not be exposed on a public interface.
 
 On the Mac, install host QEMU once and then boot with the project helper:
 
@@ -80,7 +80,7 @@ brew install qemu
 bash tools/run_qnx_vm.sh
 ```
 
-The helper uses TCG software emulation directly on the Mac, without Docker, KVM, guest networking or host directory sharing. It uses temporary disk writes (`-snapshot`), preserving the generated disk. Save guest results over the serial console before exiting: `/data` changes disappear when QEMU exits. `bash tools/run_qnx_vm.sh --print-command` shows the exact launch command. Press Ctrl-A then X to quit. The default guest startup may print network errors or pause while waiting for its absent network adapter; wait for startup completion before running tests. The launch command has been inspected, but has not yet been executed because host QEMU is not installed.
+The helper uses TCG software emulation directly on the Mac, without Docker, KVM, guest networking or host directory sharing. It uses temporary disk writes (`-snapshot`), preserving the generated disk. Save guest results over the serial console before exiting: `/data` changes disappear when QEMU exits. `bash tools/run_qnx_vm.sh --print-command` shows the exact launch command. Press Ctrl-A then X to quit. The default guest startup prints network errors while waiting for its absent `vtnet0` adapter; wait for `Startup complete`. QEMU 11.1.3 booted this configuration successfully. The owner installed QEMU in their terminal after the automated Homebrew attempt failed DNS resolution.
 
 On a supported Linux host with QEMU configured according to the official instructions, an alternative manual image workflow is:
 
@@ -115,14 +115,22 @@ Check that the first JSON record says `"backend":"qnx-native-ipc"`. A hardened i
 
 Transfer logs back to the host and inspect them through **Open a recording**. Host plots of target logs are recorded target evidence, not live host execution.
 
+For the recorded functional suite, each scenario used `--samples 22 --qualify 3 --probation 8 --period-ms 100 --deadline-ms 75`. Live functional runs used `--samples 100 --period-ms 200 --deadline-ms 150`. These explicit settings already existed in the host functional tests; they do not replace the interactive 20/10 ms defaults. Run the defaults first and preserve failures separately.
+
+The repository also provides `tools/qnx_lifecycle_checks.sh` and `tools/qnx_timeout_checks.sh`. Transfer these text scripts to the guest and invoke them with `sh`; image regeneration is unnecessary. They write to `/data/shadow-validation`, refuse existing trace names, and capture native connection/thread snapshots. The timeout probe uses a 1000 ms period, 150 ms decision budget and 112.5 ms IPC cutoff to observe a stopped receiver and a delayed reply. Do not infer SEND blocking merely from stopping a receiver: it may already be waiting in `MsgReceive`.
+
+Capture the serial session on the Mac, for example with `script -q serial-original.log bash tools/run_qnx_vm.sh`. Export only the project log directory before quitting. The recorded run created a tar archive, printed its `cksum`, sent it as base64 over serial, and verified the decoded host archive's checksum and length. Preserve JSONL bytes and stderr separately; do not scrape only successful summaries. After extraction, run `python3 tools/verify_qnx_logs.py PATH_TO_EXPORTED_LOG_DIRECTORY`. The [evidence README](evidence/qnx-validation-2026-11-23/README.md) records the exact export checksums and limitations.
+
 ## Required evidence before declaring QNX support verified
 
-- [ ] Record the SDK package manifest, compiler output, guest OS version and QEMU configuration.
+- [x] Record package inventory, existing compiler metadata, guest OS version and exact QEMU configuration.
+- [ ] Capture a fresh compiler transcript and confirm the complete 8.0.6 release package set.
 - [x] Compile every target with warnings treated as errors.
-- [ ] Run target policy/staging tests, all eleven process scenarios and late artifact attachment.
-- [ ] Exercise cancel/retry, replay failure and backlog overflow while recording the unchanged baseline PID.
-- [ ] Verify timeout return, child-exit behavior, connection cleanup and no stale reply reuse.
-- [ ] Verify sample continuity across promotion and rollback; report missing outputs honestly.
+- [x] Run target policy/staging tests, all eleven functional scenarios and late artifact attachment.
+- [x] Exercise cancel/retry, replay failure and backlog overflow; record baseline PID continuity in live runs.
+- [x] Verify observed native timeout return, child exit, connection cleanup and rejection of stale observations across retries.
+- [ ] Independently isolate SEND-blocked timeout behavior; REPLY blocking was observed.
+- [x] Verify sample continuity across promotion and rollback; preserve default-budget missing outputs.
 - [ ] Measure decision and release timing under declared CPU/memory load with chosen priorities.
 - [ ] Save original JSONL logs and a video showing target execution and workbench evidence.
 
@@ -130,9 +138,9 @@ Transfer logs back to the host and inspect them through **Open a recording**. Ho
 
 | QNX mechanism | Project use | Verification state |
 | --- | --- | --- |
-| `ChannelCreate`, `ConnectAttach`, `MsgSend`, `MsgReceive`, `MsgReply` | Broker-to-worker request/reply with matching input sequence and a single output owner | Cross-built; native imports inspected; target execution pending |
-| `TimerTimeout` with monotonic absolute SEND/REPLY limits | Bound IPC blocking when a worker stalls or fails to reply | Cross-built; kernel timeout behavior unverified |
-| Separate process address spaces and `posix_spawn` | Keep candidate filter state separate; terminate/reap an owned failed candidate | Host behavior tested; QNX behavior pending |
+| `ChannelCreate`, `ConnectAttach`, `MsgSend`, `MsgReceive`, `MsgReply` | Broker-to-worker request/reply with matching input sequence and a single output owner | Native functional scenarios, connection snapshots and repeated deployment passed |
+| `TimerTimeout` with monotonic absolute SEND/REPLY limits | Bound IPC blocking when a worker stalls or fails to reply | Native timeout and REPLY blocking observed; isolated SEND case remains open |
+| Separate process address spaces and `posix_spawn` | Keep candidate filter state separate; terminate/reap an owned failed candidate | Host and QNX lifecycle checks passed; no owned child remained after exit |
 | Message priority inheritance and real-time thread scheduling | Intended basis for chosen broker/worker priorities under load | No explicit priority configuration or target evidence yet |
 
 The current implementation does not use a resource manager, health-monitoring pulses, HAM, adaptive partitioning or QNX Hypervisor. Those are not claimed as implemented features. Process separation is not CPU isolation; timeout return can still be delayed by scheduling and timer granularity. QNX priorities, active-path separation and controlled-load measurements remain necessary before making a timing guarantee.

@@ -1,0 +1,9 @@
+     pid name                         
+ 3067922 ./shadow-demo                
+	   0  143370 r-        0 /data/shadow-validation/control.fifo
+	   1   65544 -w    36180 /data/shadow-validation/replay-retry.jsonl
+	   2   65544 -w        0 /data/shadow-validation/replay-retry.stderr
+	   6  143370 -w        0 (pipe)
+	   7  143370 r-        0 (pipe)
+	   0s      1 <procnto>:1
+	   2s 4395030 <shadow-candidate>:1

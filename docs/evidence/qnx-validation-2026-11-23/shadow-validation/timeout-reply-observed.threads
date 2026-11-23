@@ -1,0 +1,20 @@
+     pid tid name                         prio STATE          Blocked                     
+ 5726226   1 ./shadow-demo                 10r NANOSLEEP                                  
+ 5726226   2 ./shadow-demo                 10r CONDVAR        (0x2ed1965fe8)              
+ 5726226   3 ./shadow-demo                 10r CONDVAR        (0x2ed1966238)              
+     pid tid name                         prio STATE          Blocked                     
+ 5726226   1 ./shadow-demo                 10r NANOSLEEP                                  
+ 5726226   2 ./shadow-demo                 10r CONDVAR        (0x2ed1965fe8)              
+ 5726226   3 ./shadow-demo                 10r CONDVAR        (0x2ed1966238)              
+     pid tid name                         prio STATE          Blocked                     
+ 5726226   1 ./shadow-demo                 10r NANOSLEEP                                  
+ 5726226   2 ./shadow-demo                 10r CONDVAR        (0x2ed1965fe8)              
+ 5726226   3 ./shadow-demo                 10r CONDVAR        (0x2ed1966238)              
+     pid tid name                         prio STATE          Blocked                     
+ 5726226   1 ./shadow-demo                 10r NANOSLEEP                                  
+ 5726226   2 ./shadow-demo                 10r CONDVAR        (0x2ed1965fe8)              
+ 5726226   3 ./shadow-demo                 10r CONDVAR        (0x2ed1966238)              
+     pid tid name                         prio STATE          Blocked                     
+ 5726226   1 ./shadow-demo                 10r CONDVAR        (0x2ed1967dc0)              
+ 5726226   2 ./shadow-demo                 10r CONDVAR        (0x2ed1965fe8)              
+ 5726226   3 ./shadow-demo                 10r REPLY          5742614                     

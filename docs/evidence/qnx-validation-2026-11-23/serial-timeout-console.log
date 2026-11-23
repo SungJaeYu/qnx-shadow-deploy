@@ -1,0 +1,89 @@
+
+END_ARCHIVE_BASE64
+# cat > /tmp/timeout.b64 <<'SHADOW_B64'
+> IyEvYmluL3NoCiMgT2JzZXJ2ZSBTRU5EIGFuZCBSRVBMWSBibG9ja2luZyB3aXRoIHRoZSBleGlzdGluZyBiaW5hcmllcyBhbmQgYSAyNTAgbXMgZmF1bHQuCnNldCAtZXUKWyAiJCh1bmFtZSAtcykiID0gUU5YIF0gfHwgZXhpdCAyCmNkIC9zeXN0ZW0vYmluL3NoYWRvd2RlcGxveQpvdXQ9L2RhdGEvc2hhZG93LXZhbGlkYXRpb24KZm9y
+> IGtpbmQgaW4gc2VuZCByZXBseTsgZG8KICAgIGxvZz0iJG91dC90aW1lb3V0LSRraW5kLmpzb25sIgogICAgWyAhIC1lICIkbG9nIiBdIHx8IHsgZWNobyAiUmVmdXNpbmcgdG8gb3ZlcndyaXRlICRsb2ciID4mMjsgZXhpdCAyOyB9CiAgICBzY2VuYXJpbz1wcm9tb3RlCiAgICBbICIka2luZCIgIT0gcmVwbHkgXSB8fCBzY2VuYXJpbz1y
+> ZWplY3QtZGVsYXkKICAgIC4vc2hhZG93LWRlbW8gLS13b3JrZXIgLi9zaGFkb3ctd29ya2VyIC0tc2NlbmFyaW8gIiRzY2VuYXJpbyIgLS1zYW1wbGVzIDQgXAogICAgICAgIC0tcGVyaW9kLW1zIDEwMDAgLS1kZWFkbGluZS1tcyAxNTAgLS1xdWFsaWZ5IDMgLS1wcm9iYXRpb24gOCBcCiAgICAgICAgPiAiJGxvZyIgMj4gIiRvdXQvdGlt
+> ZW91dC0ka2luZC5zdGRlcnIiICYKICAgIGJyb2tlcj0kIQogICAgdHJhcCAna2lsbCAtVEVSTSAiJGJyb2tlciIgMj4vZGV2L251bGwgfHwgOjsgd2FpdCAiJGJyb2tlciIgfHwgOicgRVhJVAogICAgdHJpZXM9MAogICAgdW50aWwgZ3JlcCAtcSAnInNlcXVlbmNlIjoxLCcgIiRsb2ciOyBkbwogICAgICAgIHRyaWVzPSQoKHRyaWVzICsg
+> MSkpCiAgICAgICAgWyAiJHRyaWVzIiAtbHQgMTAwIF0gfHwgZXhpdCAxCiAgICAgICAgc2xlZXAgMC4wMQogICAgZG9uZQogICAgY2FuZGlkYXRlPSQoaGVhZCAtbiAxICIkbG9nIiB8IHNlZCAncy8uKiJjYW5kaWRhdGVfcGlkIjpcKFswLTldKlwpLiovXDEvJykKICAgIGlmIFsgIiRraW5kIiA9IHNlbmQgXTsgdGhlbgogICAgICAgIGtp
+> bGwgLVNUT1AgIiRjYW5kaWRhdGUiCiAgICAgICAgcGlkaW4gLXAgIiRjYW5kaWRhdGUiID4gIiRvdXQvdGltZW91dC1zZW5kLXN0b3BwZWQudGhyZWFkcyIKICAgIGZpCiAgICAjIFRoZSBzZWNvbmQgYWNxdWlzaXRpb24gaXMgb25lIHNlY29uZCBhZnRlciB0aGUgZmlyc3QuIEluc3BlY3QgaXRzIHdhaXQuCiAgICBzbGVlcCAxLjAyCiAg
+> ICBwaWRpbiAtcCAiJGJyb2tlciIgPiAiJG91dC90aW1lb3V0LSRraW5kLnRocmVhZHMiCiAgICBpZiB3YWl0ICIkYnJva2VyIjsgdGhlbiBjb2RlPTA7IGVsc2UgY29kZT0kPzsgZmkKICAgIHRyYXAgLSBFWElUCiAgICBlY2hvICIka2luZCAkY29kZSIgPj4gIiRvdXQvdGltZW91dC1leGl0cy50eHQiCiAgICBbICIkY29kZSIgLWVxIDAg
+> XSB8fCBleGl0IDEKZG9uZQpwaWRpbiBhciA+ICIkb3V0L3RpbWVvdXQtZmluaXNoZWQucHJvY2Vzc2VzIgplY2hvICdQQVNTIHRpbWVvdXQgcnVucyBjb21wbGV0ZWQ7IHZlcmlmeSBrZXJuZWwgc3RhdGVzIGFuZCB0cmFjZSBhc3NlcnRpb25zIG9uIHRoZSBob3N0Jwo=
+> SHADOW_B64
+# base64 -d /tmp/timeout.b64 > /tmp/qnx_timeout_checks.sh
+# cksum /tmp/qnx_timeout_checks.sh
+4212340202 1496 /tmp/qnx_timeout_checks.sh
+# sh /tmp/qnx_timeout_checks.sh > /data/shadow-validation/timeout-driver.log 2>&1; echo "TIMEOUT_EXIT=$?"; cat /data/shadow-validation/timeout-driver.log
+TIMEOUT_EXIT=0
+PASS timeout runs completed; verify kernel states and trace assertions on the host
+# cat /data/shadow-validation/timeout-send-stopped.threads /data/shadow-validation/timeout-send.threads /data/shadow-validation/timeout-reply.threads
+     pid tid name                         prio STATE          Blocked                     
+ 5312532   1 ./shadow-worker               10r RECEIVE        1                           
+     pid tid name                         prio STATE          Blocked                     
+ 5292050   1 ./shadow-demo                 10r RUNNING                                    
+ 5292050   2 ./shadow-demo                 10r CONDVAR        (0x40723d1fe8)              
+ 5292050   3 ./shadow-demo                 10r CONDVAR        (0x40723d2698)              
+     pid tid name                         prio STATE          Blocked                     
+ 5390354   1 ./shadow-demo                 10r CONDVAR        (0x2c44d93dc0)              
+ 5390354   2 ./shadow-demo                 10r CONDVAR        (0x2c44d91fe8)              
+ 5390354   3 ./shadow-demo                 10r REPLY          5406742                     
+# cp /tmp/qnx_timeout_checks.sh /data/shadow-validation/executed-timeout.sh
+# use -i /proc/boot/libc.so.6 /proc/boot/ldqnx-64.so.2 /proc/boot/libm.so.3 /proc/boot/libgcc_s.so.1 /system/lib/libc++.so.2 > /data/shadow-validation/runtime-build-info.log 2>&1
+# cat /data/shadow-validation/runtime-build-info.log
+QNX_BUILDID=(GNU)655b868d1695a21beb088b9e10318d99
+NAME=libc.so.6
+DESCRIPTION=C runtime library
+DATE=2026/10/30-09:09:32-EDT
+STATE=lookup
+HOST=docker-n4
+USER=builder
+VERSION=8.0.0
+TAGID=qnxos_be-800-47
+PACKAGE=com.qnx.qnx800.target.microkernel.core/2.8.0.00047T202610300907L
+
+QNX_BUILDID=(GNU)6fa7e2c564a26985e2cae4ad199e5d06
+NAME=ldqnx-64.so.2
+DESCRIPTION=QNX dynamic loader
+DATE=2026/10/30-09:09:44-EDT
+STATE=lookup
+HOST=docker-n4
+USER=builder
+VERSION=qnxos_be-800_B47
+TAGID=qnxos_be-800-47
+PACKAGE=com.qnx.qnx800.target.microkernel.core/2.8.0.00047T202610300907L
+
+QNX_BUILDID=(GNU)42332cc9ac1f48ee63ced28387c7e28a
+NAME=libm.so.3
+DESCRIPTION=Math functions library
+DATE=2024/11/22-23:40:59-EST
+STATE=lookup
+HOST=docker-n7
+USER=builder
+VERSION=QNXOS_802_B2005
+TAGID=QNXOS_802-2005
+PACKAGE=com.qnx.qnx800.target.base.libm/0.0.2.02005T202411230033L
+
+QNX_BUILDID=(GNU)a90999bbdd7ab2f4acfd885846147d34
+NAME=libgcc_s.so.1
+DATE=2026/10/01-14:12:51-EDT
+STATE=lookup
+HOST=docker-n1.bts.rim.net
+USER=builder
+TAGID=Tools_gcc_be-800-1008
+VERSION=GCC-12.2.0
+PACKAGE=com.qnx.qnx800.target.tools.cpp/12.2.0.01008T202610011452L
+
+QNX_BUILDID=(GNU)2f3a87c8fc87ac5b73338739f9c076b7
+NAME=libc++.so.2.0
+DATE=2026/10/01-16:18:42-EDT
+STATE=lookup
+HOST=docker-n5
+USER=builder
+TAGID=45c48e824b8213b1b39f08107bc39584a57ebef9
+VERSION=tools_llvm-libcxx_be-800_B1506
+PACKAGE=com.qnx.qnx800.target.base.cpp/18.0.0.01506T202610011617L
+
+# cd /data
+#  tar -cf /data/timeout-evidence.tar shadow-validation/timeout-* shadow-validation/executed-timeout.sh shadow-validation/runtime-build-info.log
+# cksum /data/timeout-evidence.tar
+4254802337 18944 /data/timeout-evidence.tar

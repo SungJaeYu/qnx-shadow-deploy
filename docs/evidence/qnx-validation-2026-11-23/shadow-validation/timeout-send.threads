@@ -1,0 +1,4 @@
+     pid tid name                         prio STATE          Blocked                     
+ 5292050   1 ./shadow-demo                 10r RUNNING                                    
+ 5292050   2 ./shadow-demo                 10r CONDVAR        (0x40723d1fe8)              
+ 5292050   3 ./shadow-demo                 10r CONDVAR        (0x40723d2698)              

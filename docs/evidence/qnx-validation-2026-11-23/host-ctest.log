@@ -1,0 +1,145 @@
+Start testing: Nov 23 18:50 KST
+----------------------------------------------------------
+1/5 Testing: policy
+1/5 Test: policy
+Command: "/Users/yuseungjae/Desktop/qnx-shadow-deploy-validation/build/policy-tests"
+Directory: /Users/yuseungjae/Desktop/qnx-shadow-deploy-validation/build
+"policy" start time: Nov 23 18:50 KST
+Output:
+----------------------------------------------------------
+PASS preparation cannot qualify or restart the baseline
+PASS replay to live continuity is checked
+PASS retry clears candidate qualification but preserves output continuity
+PASS operator cancellation still validates the current fallback
+PASS commit prevents staging and cancellation without a fallback
+PASS late acquisition cannot cause a catch-up burst
+PASS processing overrun does not create an input backlog
+PASS promotion starts at the next sequence boundary
+PASS bad candidate never gains authority
+PASS rollback uses current baseline sample
+PASS both workers failing stops output
+PASS loss of standby during probation stops output
+PASS unqualified candidate cannot replace failed baseline
+PASS no fallback is promised after commit
+PASS late and mismatched responses cannot qualify
+PASS deadline equality passes, future sequence does not
+PASS output equality is not required
+PASS individually valid outputs may still be unsafe to switch
+PASS rollback continuity is checked
+PASS duplicate and invalid inputs stop the broker
+PASS invalid configuration is rejected
+PASS a missed publication decision deadline is terminal
+PASS rate and velocity constraints apply before authority
+<end of output>
+Test time =   0.85 sec
+----------------------------------------------------------
+Test Passed.
+"policy" end time: Nov 23 18:50 KST
+"policy" time elapsed: 00:00:00
+----------------------------------------------------------
+
+2/5 Testing: staging
+2/5 Test: staging
+Command: "/Users/yuseungjae/Desktop/qnx-shadow-deploy-validation/build/staging-tests"
+Directory: /Users/yuseungjae/Desktop/qnx-shadow-deploy-validation/build
+"staging" start time: Nov 23 18:50 KST
+Output:
+----------------------------------------------------------
+PASS manifest admission and bounded replay overflow
+<end of output>
+Test time =   3.54 sec
+----------------------------------------------------------
+Test Passed.
+"staging" end time: Nov 23 18:50 KST
+"staging" time elapsed: 00:00:03
+----------------------------------------------------------
+
+3/5 Testing: process-integration
+3/5 Test: process-integration
+Command: "/opt/homebrew/bin/python3.12" "/Users/yuseungjae/Desktop/qnx-shadow-deploy-validation/tests/integration.py" "/Users/yuseungjae/Desktop/qnx-shadow-deploy-validation/build/shadow-demo" "/Users/yuseungjae/Desktop/qnx-shadow-deploy-validation/build/shadow-worker"
+Directory: /Users/yuseungjae/Desktop/qnx-shadow-deploy-validation/build
+"process-integration" start time: Nov 23 18:50 KST
+Output:
+----------------------------------------------------------
+test_incomplete_and_unresponsive_startup (__main__.ProcessIntegration.test_incomplete_and_unresponsive_startup) ... ok
+test_missing_worker_and_invalid_arguments (__main__.ProcessIntegration.test_missing_worker_and_invalid_arguments) ... ok
+test_no_valid_output (__main__.ProcessIntegration.test_no_valid_output) ... ok
+test_promote (__main__.ProcessIntegration.test_promote) ... ok
+test_rejections (__main__.ProcessIntegration.test_rejections) ... ok
+test_rollback (__main__.ProcessIntegration.test_rollback) ... ok
+
+----------------------------------------------------------------------
+Ran 6 tests in 20.695s
+
+OK
+<end of output>
+Test time =  20.80 sec
+----------------------------------------------------------
+Test Passed.
+"process-integration" end time: Nov 23 18:51 KST
+"process-integration" time elapsed: 00:00:20
+----------------------------------------------------------
+
+4/5 Testing: live-deployment
+4/5 Test: live-deployment
+Command: "/opt/homebrew/bin/python3.12" "/Users/yuseungjae/Desktop/qnx-shadow-deploy-validation/tests/deployment.py" "/Users/yuseungjae/Desktop/qnx-shadow-deploy-validation/build"
+Directory: /Users/yuseungjae/Desktop/qnx-shadow-deploy-validation/build
+"live-deployment" start time: Nov 23 18:51 KST
+Output:
+----------------------------------------------------------
+test_cancel_probation_uses_current_fallback (__main__.DeploymentIntegration.test_cancel_probation_uses_current_fallback) ... ok
+test_cancel_startup_then_retry (__main__.DeploymentIntegration.test_cancel_startup_then_retry) ... ok
+test_invalid_manifest_can_be_replaced_without_baseline_restart (__main__.DeploymentIntegration.test_invalid_manifest_can_be_replaced_without_baseline_restart) ... ok
+test_replay_fault_never_gains_authority (__main__.DeploymentIntegration.test_replay_fault_never_gains_authority) ... ok
+test_separate_artifact_replays_then_qualifies_live (__main__.DeploymentIntegration.test_separate_artifact_replays_then_qualifies_live) ... ok
+test_unresponsive_startup_does_not_block_baseline (__main__.DeploymentIntegration.test_unresponsive_startup_does_not_block_baseline) ... ok
+
+----------------------------------------------------------------------
+Ran 6 tests in 41.200s
+
+OK
+<end of output>
+Test time =  41.31 sec
+----------------------------------------------------------
+Test Passed.
+"live-deployment" end time: Nov 23 18:51 KST
+"live-deployment" time elapsed: 00:00:41
+----------------------------------------------------------
+
+5/5 Testing: workbench-api
+5/5 Test: workbench-api
+Command: "/opt/homebrew/bin/python3.12" "/Users/yuseungjae/Desktop/qnx-shadow-deploy-validation/tests/server_tests.py" "/Users/yuseungjae/Desktop/qnx-shadow-deploy-validation/build"
+Directory: /Users/yuseungjae/Desktop/qnx-shadow-deploy-validation/build
+"workbench-api" start time: Nov 23 18:51 KST
+Output:
+----------------------------------------------------------
+setUpClass (__main__.WorkbenchTests) ... ERROR
+
+======================================================================
+ERROR: setUpClass (__main__.WorkbenchTests)
+----------------------------------------------------------------------
+Traceback (most recent call last):
+  File "/Users/yuseungjae/Desktop/qnx-shadow-deploy-validation/tests/server_tests.py", line 21, in setUpClass
+    cls.server = server_module.ThreadingHTTPServer(("127.0.0.1", 0), server_module.Handler)
+                 ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/opt/homebrew/Cellar/python@3.12/3.12.14/Frameworks/Python.framework/Versions/3.12/lib/python3.12/socketserver.py", line 457, in __init__
+    self.server_bind()
+  File "/opt/homebrew/Cellar/python@3.12/3.12.14/Frameworks/Python.framework/Versions/3.12/lib/python3.12/http/server.py", line 140, in server_bind
+    socketserver.TCPServer.server_bind(self)
+  File "/opt/homebrew/Cellar/python@3.12/3.12.14/Frameworks/Python.framework/Versions/3.12/lib/python3.12/socketserver.py", line 478, in server_bind
+    self.socket.bind(self.server_address)
+PermissionError: [Errno 1] Operation not permitted
+
+----------------------------------------------------------------------
+Ran 0 tests in 0.002s
+
+FAILED (errors=1)
+<end of output>
+Test time =   0.18 sec
+----------------------------------------------------------
+Test Failed.
+"workbench-api" end time: Nov 23 18:51 KST
+"workbench-api" time elapsed: 00:00:00
+----------------------------------------------------------
+
+End testing: Nov 23 18:51 KST

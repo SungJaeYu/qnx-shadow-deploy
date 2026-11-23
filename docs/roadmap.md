@@ -10,7 +10,9 @@
 - [x] Provide real-process failure scenarios, a workbench and exportable evidence.
 - [x] Add host tests and sanitizer configuration.
 - [x] Cross-compile all five executables with the installed QNX SDK.
-- [ ] Audit the complete SDP/guest 8.0.6 package alignment and validate native execution.
+- [x] Boot the existing image and validate native policy/staging, eleven functional scenarios and live deployment.
+- [x] Inventory 260 SDK packages and match five guest runtime build IDs to installed assets.
+- [ ] Confirm the complete 8.0.6 release package set; component matching alone is insufficient.
 
 ## Milestone 2: Deploy into an already-running service
 
@@ -28,10 +30,13 @@ Acceptance: attach a candidate after the baseline has processed live input, show
 
 - Measure QNX timing with declared thread priorities, resource assumptions and controlled load.
 - Add resource admission limits; abort shadow execution if it harms the active path.
-- Exercise connection failure, repeated deployment cycles and process cleanup on the target.
+- [x] Exercise native timeout/worker exit, cancellation/retry, six replay rejections and connection/process cleanup in QEMU.
+- [ ] Repeat under controlled target load, isolate SEND-blocked timeout behavior, and address default 10 ms budget failures without weakening acceptance rules.
 - Produce the short English target demonstration and final reproducible setup guide.
 
 Acceptance: the repository's target support claims match captured QNX execution, and the public video demonstrates the final behavior.
+
+The [2026-11-23 native execution](verification.md#native-qnx-execution-2026-11-23) used the existing image and unchanged runtime code. Functional scenarios passed at the repository's existing 100/75 ms settings; live functional runs used 200/150 ms. Five default-budget scenario runs stopped early on deadline misses. A successful default-budget live run does not establish timing robustness. Original failures, native traces and connection snapshots are retained.
 
 ## Explicitly outside the first competition implementation
 

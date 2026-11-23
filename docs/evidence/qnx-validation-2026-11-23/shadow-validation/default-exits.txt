@@ -1,0 +1,11 @@
+promote 0
+reject-units 0
+reject-delay 3
+reject-nan 0
+reject-stale 3
+reject-protocol 3
+reject-switch 3
+rollback 0
+baseline-failure 3
+no-fallback 3
+post-commit-failure 3

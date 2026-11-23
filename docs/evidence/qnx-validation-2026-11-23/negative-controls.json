@@ -1,0 +1,22 @@
+[
+  {
+    "mutation": "wrong_backend",
+    "rejected": true,
+    "diagnostic": "functional-promote.jsonl: wrong backend"
+  },
+  {
+    "mutation": "late_publication",
+    "rejected": true,
+    "diagnostic": "functional-promote.jsonl: late publication"
+  },
+  {
+    "mutation": "incorrect_output_identity",
+    "rejected": true,
+    "diagnostic": "functional-promote.jsonl: output identity"
+  },
+  {
+    "mutation": "leaked_connection",
+    "rejected": true,
+    "diagnostic": "replay-retry/rejected-6: leaked connection or pipe"
+  }
+]

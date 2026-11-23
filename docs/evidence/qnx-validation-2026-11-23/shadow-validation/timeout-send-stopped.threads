@@ -1,0 +1,2 @@
+     pid tid name                         prio STATE          Blocked                     
+ 5312532   1 ./shadow-worker               10r RECEIVE        1                           

@@ -1,0 +1,191 @@
+{
+  "observed_date": "2026-11-23",
+  "source_commit": "af72fba664ec813e071572ac80495bf0e70c6edb",
+  "original_tree_status": "",
+  "host": {
+    "os": "ProductName:\t\tmacOS\nProductVersion:\t\t26.6.2\nBuildVersion:\t\t25G83\n",
+    "architecture": "arm64"
+  },
+  "qemu": {
+    "executable": "/opt/homebrew/Cellar/qemu/11.1.3/bin/qemu-system-x86_64",
+    "version": "QEMU emulator version 11.1.3\nCopyright (c) 2003-2026 Fabrice Bellard and the QEMU Project developers",
+    "sha256": "0dba441e49c3cda068f3b33916ad9d2146d173d9bb65a6a62ce2e61d3211baaf",
+    "launch_command": "qemu-system-x86_64 -machine pc -accel tcg -cpu max -smp 2 -m 1024 -kernel /Users/yuseungjae/Documents/Codex/2026-11-23/new-chat-3/qnx-shadow-deploy/build-qnx-vm/output/ifs.bin -drive file=/Users/yuseungjae/Documents/Codex/2026-11-23/new-chat-3/qnx-shadow-deploy/build-qnx-vm/output/disk-qemu\\,format=raw\\,if=ide\\,id=drv0 -snapshot -nic none -nographic -serial mon:stdio -no-reboot -object rng-random\\,filename=/dev/urandom\\,id=rng0 -device virtio-rng-pci\\,rng=rng0",
+    "acceleration": "tcg",
+    "vcpus": 2,
+    "memory_mib": 1024,
+    "snapshot": true,
+    "network": "none",
+    "serial": "mon:stdio"
+  },
+  "sdk_evidence": "../qnx-sdk-audit.json",
+  "initial_blockers": [
+    "Homebrew installation in the automated sandbox failed resolving formulae.brew.sh; the owner installed QEMU in their terminal.",
+    "Docker engine socket access was denied with operation not permitted."
+  ],
+  "host_regression": {
+    "build": "passed",
+    "policy": "passed",
+    "staging": "passed",
+    "process_integration": "passed",
+    "live_deployment": "passed",
+    "workbench_api": "blocked: PermissionError binding 127.0.0.1; no HTTP test executed",
+    "original_log": "host-ctest.log"
+  },
+  "host_load_observation": "Unavailable: sandbox denied ps -axo; workload was uncontrolled.",
+  "guest": {
+    "uname": "QNX shadowdeploy-qnx 8.0.0 2026/10/30-09:10:05EDT x86pc x86_64",
+    "cpu_count": 2,
+    "reported_memory_mib": 1023,
+    "uid": 0,
+    "tmp": "/data/var/tmp",
+    "writable_probes": [
+      "/tmp",
+      "/data"
+    ],
+    "runtime_resolution": {
+      "libc++.so.2": "/system/lib/libc++.so.2",
+      "libm.so.3": "/proc/boot/libm.so.3",
+      "libc.so.6": "/proc/boot/libc.so.6",
+      "libgcc_s.so.1": "/proc/boot/libgcc_s.so.1"
+    },
+    "boot_warnings": [
+      "ACPI MCFG table not found",
+      "System behaves poorly without PCID support",
+      "No vtnet0 interface; networking disabled by launcher"
+    ]
+  },
+  "guest_runtime_build_id_checks": [
+    {
+      "name": "libc.so.6",
+      "build_id": "655b868d1695a21beb088b9e10318d99",
+      "package": "com.qnx.qnx800.target.microkernel.core/2.8.0.00047T202610300907L",
+      "matches_installed_sdk": true
+    },
+    {
+      "name": "ldqnx-64.so.2",
+      "build_id": "6fa7e2c564a26985e2cae4ad199e5d06",
+      "package": "com.qnx.qnx800.target.microkernel.core/2.8.0.00047T202610300907L",
+      "matches_installed_sdk": true
+    },
+    {
+      "name": "libm.so.3",
+      "build_id": "42332cc9ac1f48ee63ced28387c7e28a",
+      "package": "com.qnx.qnx800.target.base.libm/0.0.2.02005T202411230033L",
+      "matches_installed_sdk": true
+    },
+    {
+      "name": "libgcc_s.so.1",
+      "build_id": "a90999bbdd7ab2f4acfd885846147d34",
+      "package": "com.qnx.qnx800.target.tools.cpp/12.2.0.01008T202610011452L",
+      "matches_installed_sdk": true
+    },
+    {
+      "name": "libc++.so.2.0",
+      "build_id": "2f3a87c8fc87ac5b73338739f9c076b7",
+      "package": "com.qnx.qnx800.target.base.cpp/18.0.0.01506T202610011617L",
+      "matches_installed_sdk": true
+    }
+  ],
+  "reused_artifacts_after_vm_exit": [
+    {
+      "name": "shadow-demo",
+      "sha256": "e38a17cddfe610d0583fc404204ca98f1c2268ef098d47921deaa4b248dc28c0",
+      "size_bytes": 1446928,
+      "matches_previous_checkpoint": true
+    },
+    {
+      "name": "shadow-worker",
+      "sha256": "1a997425975e76a3db55d8771c9203c92096adc0c8ff9703c1c586e19f94441a",
+      "size_bytes": 157272,
+      "matches_previous_checkpoint": true
+    },
+    {
+      "name": "shadow-candidate",
+      "sha256": "d197e4a0bd1fd2ec53d9cec5986b4e63a834748e8d5a0b9bb68d5d239735b4e8",
+      "size_bytes": 157272,
+      "matches_previous_checkpoint": true
+    },
+    {
+      "name": "policy-tests",
+      "sha256": "1b63717bfa958e2ff1e53ced95c794be212f9d0d987641efef697d3e8ae41213",
+      "size_bytes": 549056,
+      "matches_previous_checkpoint": true
+    },
+    {
+      "name": "staging-tests",
+      "sha256": "939716280b21b005ddc3c4214d85482a7071c67df39f139bc82de7e2ca13bd03",
+      "size_bytes": 1536328,
+      "matches_previous_checkpoint": true
+    },
+    {
+      "name": "ifs.bin",
+      "sha256": "7379b7936af76387b94ae3877d940fb2b41315a4650bfb899a29219ebc9c3a23",
+      "size_bytes": 10931704,
+      "matches_previous_checkpoint": true
+    },
+    {
+      "name": "disk-qemu",
+      "sha256": "4adb3331a37fd989a6dbbeefb9c96fa05f79dbf081cfaa2fed62a08554ef2eac",
+      "size_bytes": 278589952,
+      "matches_previous_checkpoint": true
+    },
+    {
+      "name": "disk-qemu.vmdk",
+      "sha256": "bf5311c310e320b83df0d5d6d838965638679387bfd95c36144bdf3e1462a74b",
+      "size_bytes": 169,
+      "matches_previous_checkpoint": true
+    }
+  ],
+  "vm_stopped_after_export": true,
+  "sdk_guest_alignment": "Five loader/library build IDs match installed packages; full 8.0.6 release set remains unverified.",
+  "exports": [
+    {
+      "archive": "initial",
+      "posix_cksum": 2791382996,
+      "size_bytes": 836096
+    },
+    {
+      "archive": "timeout-initial",
+      "posix_cksum": 4254802337,
+      "size_bytes": 18944
+    },
+    {
+      "archive": "timeout-observed",
+      "posix_cksum": 1964786645,
+      "size_bytes": 18432
+    }
+  ],
+  "guest_project_binary_checks": [
+    {
+      "name": "shadow-demo",
+      "guest_posix_cksum": 3374818193,
+      "size_bytes": 1446928,
+      "matches_cross_build": true
+    },
+    {
+      "name": "shadow-worker",
+      "guest_posix_cksum": 1199416101,
+      "size_bytes": 157272,
+      "matches_cross_build": true
+    },
+    {
+      "name": "shadow-candidate",
+      "guest_posix_cksum": 767992570,
+      "size_bytes": 157272,
+      "matches_cross_build": true
+    },
+    {
+      "name": "policy-tests",
+      "guest_posix_cksum": 852065806,
+      "size_bytes": 549056,
+      "matches_cross_build": true
+    },
+    {
+      "name": "staging-tests",
+      "guest_posix_cksum": 3585641544,
+      "size_bytes": 1536328,
+      "matches_cross_build": true
+    }
+  ]
+}

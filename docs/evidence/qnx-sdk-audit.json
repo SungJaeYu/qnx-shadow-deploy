@@ -1,0 +1,1150 @@
+{
+  "observed_date": "2026-11-23",
+  "scope": "Local package inventory and selected installed-file integrity only; this is not a complete release-baseline or guest-alignment certificate.",
+  "sdk_directory": "/Users/yuseungjae/qnx800",
+  "target_qversion": "8.0.0",
+  "package_descriptor_count": 260,
+  "packages": [
+    {
+      "id": "com.qnx.qnx800",
+      "version": "8.0.0.00141T202311271501L"
+    },
+    {
+      "id": "com.qnx.qnx800.eula.qdl",
+      "version": "0.4.0.00135T202311191043L"
+    },
+    {
+      "id": "com.qnx.qnx800.host.linux.x86_64",
+      "version": "0.0.1.02005T202411230033L"
+    },
+    {
+      "id": "com.qnx.qnx800.host.linux.x86_64.binutils",
+      "version": "2.43.0.00101T202411221147L"
+    },
+    {
+      "id": "com.qnx.qnx800.host.linux.x86_64.bison",
+      "version": "0.0.1.00282T202404151301L"
+    },
+    {
+      "id": "com.qnx.qnx800.host.linux.x86_64.build.thirdparty",
+      "version": "0.0.1.00282T202404151301L"
+    },
+    {
+      "id": "com.qnx.qnx800.host.linux.x86_64.cndfs",
+      "version": "8.0.0.00135T202311191043L"
+    },
+    {
+      "id": "com.qnx.qnx800.host.linux.x86_64.dumpefs",
+      "version": "0.0.1.00007T202411221949L"
+    },
+    {
+      "id": "com.qnx.qnx800.host.linux.x86_64.dumpifs",
+      "version": "1.2.0.00014T202605190942L"
+    },
+    {
+      "id": "com.qnx.qnx800.host.linux.x86_64.elfnote",
+      "version": "0.0.2.00009T202411221949L"
+    },
+    {
+      "id": "com.qnx.qnx800.host.linux.x86_64.fsutils",
+      "version": "0.1.0.00132T202605281115L"
+    },
+    {
+      "id": "com.qnx.qnx800.host.linux.x86_64.gcc",
+      "version": "12.2.0.01008T202610011452L"
+    },
+    {
+      "id": "com.qnx.qnx800.host.linux.x86_64.gdb",
+      "version": "14.2.6.00337T202610012127L"
+    },
+    {
+      "id": "com.qnx.qnx800.host.linux.x86_64.heartbeat",
+      "version": "8.0.0.00072T202411221948L"
+    },
+    {
+      "id": "com.qnx.qnx800.host.linux.x86_64.idehooks",
+      "version": "0.0.1.00282T202404151301L"
+    },
+    {
+      "id": "com.qnx.qnx800.host.linux.x86_64.liblicense",
+      "version": "0.0.1.00016T202507171532L"
+    },
+    {
+      "id": "com.qnx.qnx800.host.linux.x86_64.misc",
+      "version": "0.1.0.00132T202605281115L"
+    },
+    {
+      "id": "com.qnx.qnx800.host.linux.x86_64.mkifs",
+      "version": "1.3.0.00032T202610012114L"
+    },
+    {
+      "id": "com.qnx.qnx800.host.linux.x86_64.mkqfs",
+      "version": "0.5.0.00132T202605281115L"
+    },
+    {
+      "id": "com.qnx.qnx800.host.linux.x86_64.mkshadow",
+      "version": "0.0.1.00135T202311191043L"
+    },
+    {
+      "id": "com.qnx.qnx800.host.linux.x86_64.mkxfs",
+      "version": "1.3.0.00033T202610061226L"
+    },
+    {
+      "id": "com.qnx.qnx800.host.linux.x86_64.openssl",
+      "version": "3.0.22.00012T202610012115L"
+    },
+    {
+      "id": "com.qnx.qnx800.host.linux.x86_64.python3",
+      "version": "3.13.7.00013T202603200501L"
+    },
+    {
+      "id": "com.qnx.qnx800.host.linux.x86_64.qcc",
+      "version": "8.0.0.00121T202510081309L"
+    },
+    {
+      "id": "com.qnx.qnx800.host.linux.x86_64.qchecksec",
+      "version": "0.0.1.00135T202311191043L"
+    },
+    {
+      "id": "com.qnx.qnx800.host.linux.x86_64.qlicense",
+      "version": "8.0.0.00114T202411221950L"
+    },
+    {
+      "id": "com.qnx.qnx800.host.linux.x86_64.secpol",
+      "version": "0.6.0.06031T202610011839L"
+    },
+    {
+      "id": "com.qnx.qnx800.host.linux.x86_64.usemsg",
+      "version": "1.0.0.00003T202411221950L"
+    },
+    {
+      "id": "com.qnx.qnx800.host.linux.x86_64.utils.kdserver",
+      "version": "0.0.1.00135T202311191043L"
+    },
+    {
+      "id": "com.qnx.qnx800.host.mkqnximage",
+      "version": "0.6.0.06031T202610011839L"
+    },
+    {
+      "id": "com.qnx.qnx800.host.qnxsdp_env",
+      "version": "0.1.0.00132T202605281115L"
+    },
+    {
+      "id": "com.qnx.qnx800.host.win.x86_64",
+      "version": "0.0.1.02005T202411230033L"
+    },
+    {
+      "id": "com.qnx.qnx800.host.win.x86_64.binutils",
+      "version": "2.43.0.00101T202411221147L"
+    },
+    {
+      "id": "com.qnx.qnx800.host.win.x86_64.bison",
+      "version": "0.0.1.00282T202404151301L"
+    },
+    {
+      "id": "com.qnx.qnx800.host.win.x86_64.build.thirdparty",
+      "version": "0.0.1.00282T202404151301L"
+    },
+    {
+      "id": "com.qnx.qnx800.host.win.x86_64.cndfs",
+      "version": "8.0.0.00135T202311191043L"
+    },
+    {
+      "id": "com.qnx.qnx800.host.win.x86_64.dumpefs",
+      "version": "0.0.1.00007T202411221949L"
+    },
+    {
+      "id": "com.qnx.qnx800.host.win.x86_64.dumpifs",
+      "version": "1.2.0.00014T202605190942L"
+    },
+    {
+      "id": "com.qnx.qnx800.host.win.x86_64.elfnote",
+      "version": "0.0.2.00009T202411221949L"
+    },
+    {
+      "id": "com.qnx.qnx800.host.win.x86_64.extra",
+      "version": "0.1.0.00132T202605281115L"
+    },
+    {
+      "id": "com.qnx.qnx800.host.win.x86_64.fsutils",
+      "version": "0.1.0.00132T202605281115L"
+    },
+    {
+      "id": "com.qnx.qnx800.host.win.x86_64.gcc",
+      "version": "12.2.0.01008T202610011452L"
+    },
+    {
+      "id": "com.qnx.qnx800.host.win.x86_64.gdb",
+      "version": "14.2.6.00337T202610012127L"
+    },
+    {
+      "id": "com.qnx.qnx800.host.win.x86_64.heartbeat",
+      "version": "8.0.0.00072T202411221948L"
+    },
+    {
+      "id": "com.qnx.qnx800.host.win.x86_64.idehooks",
+      "version": "0.0.1.00282T202404151301L"
+    },
+    {
+      "id": "com.qnx.qnx800.host.win.x86_64.liblicense",
+      "version": "0.0.1.00016T202507171532L"
+    },
+    {
+      "id": "com.qnx.qnx800.host.win.x86_64.misc",
+      "version": "0.1.0.00132T202605281115L"
+    },
+    {
+      "id": "com.qnx.qnx800.host.win.x86_64.mkifs",
+      "version": "1.3.0.00032T202610012114L"
+    },
+    {
+      "id": "com.qnx.qnx800.host.win.x86_64.mkqfs",
+      "version": "0.5.0.00132T202605281115L"
+    },
+    {
+      "id": "com.qnx.qnx800.host.win.x86_64.mkshadow",
+      "version": "0.0.1.00135T202311191043L"
+    },
+    {
+      "id": "com.qnx.qnx800.host.win.x86_64.mkxfs",
+      "version": "1.3.0.00033T202610061226L"
+    },
+    {
+      "id": "com.qnx.qnx800.host.win.x86_64.net.curl",
+      "version": "0.0.1.00135T202311191043L"
+    },
+    {
+      "id": "com.qnx.qnx800.host.win.x86_64.openssl",
+      "version": "3.0.22.00012T202610012115L"
+    },
+    {
+      "id": "com.qnx.qnx800.host.win.x86_64.qcc",
+      "version": "8.0.0.00120T202411231804L"
+    },
+    {
+      "id": "com.qnx.qnx800.host.win.x86_64.qchecksec",
+      "version": "0.0.1.00135T202311191043L"
+    },
+    {
+      "id": "com.qnx.qnx800.host.win.x86_64.qlicense",
+      "version": "8.0.0.00114T202411221950L"
+    },
+    {
+      "id": "com.qnx.qnx800.host.win.x86_64.qnxlm2",
+      "version": "0.0.2.00056T202405150950L"
+    },
+    {
+      "id": "com.qnx.qnx800.host.win.x86_64.secpol",
+      "version": "0.6.0.06031T202610011839L"
+    },
+    {
+      "id": "com.qnx.qnx800.host.win.x86_64.usemsg",
+      "version": "1.0.0.00003T202411221950L"
+    },
+    {
+      "id": "com.qnx.qnx800.host.win.x86_64.utils.kdserver",
+      "version": "0.0.1.00135T202311191043L"
+    },
+    {
+      "id": "com.qnx.qnx800.osr.bsdtar",
+      "version": "3.8.8.00091T202607141410L"
+    },
+    {
+      "id": "com.qnx.qnx800.osr.less",
+      "version": "0.0.670.00040T202501111907L"
+    },
+    {
+      "id": "com.qnx.qnx800.osr.libffi",
+      "version": "3.2.1.00021T202311191417L"
+    },
+    {
+      "id": "com.qnx.qnx800.osr.sqlite3",
+      "version": "0.0.1.03082T202512161159L"
+    },
+    {
+      "id": "com.qnx.qnx800.osr.toybox",
+      "version": "0.8.11.00051T202603161435L"
+    },
+    {
+      "id": "com.qnx.qnx800.target",
+      "version": "0.1.1.00132T202605281115L"
+    },
+    {
+      "id": "com.qnx.qnx800.target.base",
+      "version": "0.0.1.00135T202311191043L"
+    },
+    {
+      "id": "com.qnx.qnx800.target.base.bootfiles",
+      "version": "0.1.0.00021T202411230047L"
+    },
+    {
+      "id": "com.qnx.qnx800.target.base.compression",
+      "version": "0.5.0.00132T202605281115L"
+    },
+    {
+      "id": "com.qnx.qnx800.target.base.compression.bz2",
+      "version": "0.4.0.00132T202605281115L"
+    },
+    {
+      "id": "com.qnx.qnx800.target.base.compression.libz",
+      "version": "0.4.0.00132T202605281115L"
+    },
+    {
+      "id": "com.qnx.qnx800.target.base.compression.lz4",
+      "version": "0.5.0.00132T202605281115L"
+    },
+    {
+      "id": "com.qnx.qnx800.target.base.compression.lzma",
+      "version": "0.4.0.00132T202605281115L"
+    },
+    {
+      "id": "com.qnx.qnx800.target.base.compression.lzo2",
+      "version": "0.4.0.00132T202605281115L"
+    },
+    {
+      "id": "com.qnx.qnx800.target.base.compression.zstd",
+      "version": "0.5.0.00132T202605281115L"
+    },
+    {
+      "id": "com.qnx.qnx800.target.base.cpp",
+      "version": "18.0.0.01506T202610011617L"
+    },
+    {
+      "id": "com.qnx.qnx800.target.base.elf",
+      "version": "0.0.2.00009T202411221949L"
+    },
+    {
+      "id": "com.qnx.qnx800.target.base.ipl",
+      "version": "0.1.0.00006T202411230051L"
+    },
+    {
+      "id": "com.qnx.qnx800.target.base.ipl.utils",
+      "version": "0.1.0.00006T202411230051L"
+    },
+    {
+      "id": "com.qnx.qnx800.target.base.libcache",
+      "version": "0.0.1.00135T202311191043L"
+    },
+    {
+      "id": "com.qnx.qnx800.target.base.libcatalog",
+      "version": "1.1.0.00132T202605281115L"
+    },
+    {
+      "id": "com.qnx.qnx800.target.base.libdrvr",
+      "version": "0.0.1.00443T202311201012L"
+    },
+    {
+      "id": "com.qnx.qnx800.target.base.libelf",
+      "version": "0.0.1.00135T202311191043L"
+    },
+    {
+      "id": "com.qnx.qnx800.target.base.libexpat",
+      "version": "2.8.0.00382T202605041557L"
+    },
+    {
+      "id": "com.qnx.qnx800.target.base.libforksafe_mutex",
+      "version": "2.7.0.06031T202610011839L"
+    },
+    {
+      "id": "com.qnx.qnx800.target.base.libm",
+      "version": "0.0.2.02005T202411230033L"
+    },
+    {
+      "id": "com.qnx.qnx800.target.base.libregex",
+      "version": "1.0.0.00600T202507302003L"
+    },
+    {
+      "id": "com.qnx.qnx800.target.base.libstartup",
+      "version": "1.3.0.00024T202610012310L"
+    },
+    {
+      "id": "com.qnx.qnx800.target.base.libstringsa64",
+      "version": "1.0.0.00600T202507302003L"
+    },
+    {
+      "id": "com.qnx.qnx800.target.base.libxml2",
+      "version": "2.15.2.00014T202604201444L"
+    },
+    {
+      "id": "com.qnx.qnx800.target.base.mkfiles",
+      "version": "0.2.0.06031T202610011839L"
+    },
+    {
+      "id": "com.qnx.qnx800.target.base.shutdown",
+      "version": "0.0.1.00135T202311191043L"
+    },
+    {
+      "id": "com.qnx.qnx800.target.base.slm",
+      "version": "0.0.1.00135T202311191043L"
+    },
+    {
+      "id": "com.qnx.qnx800.target.base.startup",
+      "version": "0.2.0.00206T202610012317L"
+    },
+    {
+      "id": "com.qnx.qnx800.target.base.text.icu",
+      "version": "0.0.1.03082T202512161159L"
+    },
+    {
+      "id": "com.qnx.qnx800.target.base.text.ncurses",
+      "version": "0.0.2.00012T202411230232L"
+    },
+    {
+      "id": "com.qnx.qnx800.target.binutils",
+      "version": "2.43.0.00101T202411221147L"
+    },
+    {
+      "id": "com.qnx.qnx800.target.bsp.i2c",
+      "version": "1.0.0.00043T202605220102L"
+    },
+    {
+      "id": "com.qnx.qnx800.target.bsp.i2c.utils",
+      "version": "0.1.0.00006T202411230100L"
+    },
+    {
+      "id": "com.qnx.qnx800.target.bsp.spi",
+      "version": "0.1.2.00015T202501271455L"
+    },
+    {
+      "id": "com.qnx.qnx800.target.connectivity.can",
+      "version": "0.0.1.00443T202311201012L"
+    },
+    {
+      "id": "com.qnx.qnx800.target.connectivity.can.utils",
+      "version": "0.1.0.00009T202411230055L"
+    },
+    {
+      "id": "com.qnx.qnx800.target.connectivity.char",
+      "version": "0.2.1.00061T202608121656L"
+    },
+    {
+      "id": "com.qnx.qnx800.target.connectivity.devc",
+      "version": "0.2.1.00052T202606191407L"
+    },
+    {
+      "id": "com.qnx.qnx800.target.connectivity.io_char",
+      "version": "0.3.0.00052T202606191407L"
+    },
+    {
+      "id": "com.qnx.qnx800.target.docs.plugins",
+      "version": "0.0.1.00599T202412040959L"
+    },
+    {
+      "id": "com.qnx.qnx800.target.drivers.dma",
+      "version": "0.0.1.00443T202311201012L"
+    },
+    {
+      "id": "com.qnx.qnx800.target.drivers.dvfs",
+      "version": "0.0.1.00443T202311201012L"
+    },
+    {
+      "id": "com.qnx.qnx800.target.drivers.flash",
+      "version": "0.1.1.00023T202507101612L"
+    },
+    {
+      "id": "com.qnx.qnx800.target.drivers.libfdt",
+      "version": "0.1.0.00392T202406181101L"
+    },
+    {
+      "id": "com.qnx.qnx800.target.fs.base",
+      "version": "0.3.6.00021T202610201726L"
+    },
+    {
+      "id": "com.qnx.qnx800.target.fs.blkutils",
+      "version": "0.3.2.00020T202610012324L"
+    },
+    {
+      "id": "com.qnx.qnx800.target.fs.cam",
+      "version": "0.0.1.00443T202311201012L"
+    },
+    {
+      "id": "com.qnx.qnx800.target.fs.cndfs",
+      "version": "0.1.1.00132T202605281115L"
+    },
+    {
+      "id": "com.qnx.qnx800.target.fs.dosfs",
+      "version": "0.3.0.00020T202610012324L"
+    },
+    {
+      "id": "com.qnx.qnx800.target.fs.extfs",
+      "version": "0.3.1.00020T202610012324L"
+    },
+    {
+      "id": "com.qnx.qnx800.target.fs.flash3",
+      "version": "0.0.6.00600T202507302003L"
+    },
+    {
+      "id": "com.qnx.qnx800.target.fs.gpt",
+      "version": "0.1.0.00132T202605281115L"
+    },
+    {
+      "id": "com.qnx.qnx800.target.fs.notify",
+      "version": "0.3.2.00013T202610012323L"
+    },
+    {
+      "id": "com.qnx.qnx800.target.fs.qcfs",
+      "version": "0.6.0.06031T202610011839L"
+    },
+    {
+      "id": "com.qnx.qnx800.target.fs.qnx6fs",
+      "version": "0.3.2.00020T202610012324L"
+    },
+    {
+      "id": "com.qnx.qnx800.target.fs.qtdfs",
+      "version": "0.6.0.06031T202610011839L"
+    },
+    {
+      "id": "com.qnx.qnx800.target.fs.squashfs",
+      "version": "0.3.0.00020T202610012324L"
+    },
+    {
+      "id": "com.qnx.qnx800.target.fs.udffs",
+      "version": "0.3.0.00020T202610012324L"
+    },
+    {
+      "id": "com.qnx.qnx800.target.fs.utils",
+      "version": "0.2.0.06031T202610011839L"
+    },
+    {
+      "id": "com.qnx.qnx800.target.fsp.common",
+      "version": "1.0.0.00016T202609251152L"
+    },
+    {
+      "id": "com.qnx.qnx800.target.graphics.group",
+      "version": "4.3.0.00572T202605261514L"
+    },
+    {
+      "id": "com.qnx.qnx800.target.hw",
+      "version": "0.0.1.00443T202311201012L"
+    },
+    {
+      "id": "com.qnx.qnx800.target.input.devh",
+      "version": "0.1.0.00018T202604301101L"
+    },
+    {
+      "id": "com.qnx.qnx800.target.input.keyboard",
+      "version": "0.1.0.00007T202411230047L"
+    },
+    {
+      "id": "com.qnx.qnx800.target.libbacktrace",
+      "version": "0.0.2.00103T202610012113L"
+    },
+    {
+      "id": "com.qnx.qnx800.target.microkernel.core",
+      "version": "2.8.0.00047T202610300907L"
+    },
+    {
+      "id": "com.qnx.qnx800.target.microkernel.kdumper",
+      "version": "0.0.2.02005T202411230033L"
+    },
+    {
+      "id": "com.qnx.qnx800.target.microkernel.libcontainer",
+      "version": "1.0.0.00132T202605281115L"
+    },
+    {
+      "id": "com.qnx.qnx800.target.microkernel.libslog2",
+      "version": "0.2.2.00600T202507302003L"
+    },
+    {
+      "id": "com.qnx.qnx800.target.microkernel.libslog2.extra",
+      "version": "0.2.2.00600T202507302003L"
+    },
+    {
+      "id": "com.qnx.qnx800.target.microkernel.slogger2",
+      "version": "0.6.0.06031T202610011839L"
+    },
+    {
+      "id": "com.qnx.qnx800.target.microkernel.support",
+      "version": "2.8.0.00047T202610300907L"
+    },
+    {
+      "id": "com.qnx.qnx800.target.microkernel.tools",
+      "version": "0.2.0.06031T202610011839L"
+    },
+    {
+      "id": "com.qnx.qnx800.target.net.curl",
+      "version": "0.0.2.00446T202407261305L"
+    },
+    {
+      "id": "com.qnx.qnx800.target.net.devs.cgem",
+      "version": "0.6.0.00011T202610012146L"
+    },
+    {
+      "id": "com.qnx.qnx800.target.net.devs.clk.xilinx",
+      "version": "0.5.0.00015T202605220948L"
+    },
+    {
+      "id": "com.qnx.qnx800.target.net.devs.dwceqos",
+      "version": "0.6.0.00015T202610012116L"
+    },
+    {
+      "id": "com.qnx.qnx800.target.net.devs.ffec",
+      "version": "0.6.0.00011T202610012146L"
+    },
+    {
+      "id": "com.qnx.qnx800.target.net.devs.genet",
+      "version": "0.6.0.00011T202610012146L"
+    },
+    {
+      "id": "com.qnx.qnx800.target.net.devs.rt",
+      "version": "0.5.0.00006T202605051035L"
+    },
+    {
+      "id": "com.qnx.qnx800.target.net.devsddk",
+      "version": "0.6.0.00011T202610012146L"
+    },
+    {
+      "id": "com.qnx.qnx800.target.net.devsfdt",
+      "version": "0.6.0.00011T202610012146L"
+    },
+    {
+      "id": "com.qnx.qnx800.target.net.devspci",
+      "version": "0.6.0.00011T202610012146L"
+    },
+    {
+      "id": "com.qnx.qnx800.target.net.devsusb",
+      "version": "0.6.0.00011T202610012146L"
+    },
+    {
+      "id": "com.qnx.qnx800.target.net.devsvirtio",
+      "version": "0.6.0.00014T202610210541L"
+    },
+    {
+      "id": "com.qnx.qnx800.target.net.devutils",
+      "version": "0.6.0.00011T202610012146L"
+    },
+    {
+      "id": "com.qnx.qnx800.target.net.dhcp",
+      "version": "0.3.0.00017T202507311313L"
+    },
+    {
+      "id": "com.qnx.qnx800.target.net.iosock",
+      "version": "0.6.0.00011T202610012146L"
+    },
+    {
+      "id": "com.qnx.qnx800.target.net.iperf2",
+      "version": "0.0.2.00417T202407041502L"
+    },
+    {
+      "id": "com.qnx.qnx800.target.net.iperf3",
+      "version": "0.5.0.00005T202601190904L"
+    },
+    {
+      "id": "com.qnx.qnx800.target.net.mdnsresponder",
+      "version": "0.3.0.00600T202507302003L"
+    },
+    {
+      "id": "com.qnx.qnx800.target.net.modsphy",
+      "version": "0.6.0.00011T202610012146L"
+    },
+    {
+      "id": "com.qnx.qnx800.target.net.netmap",
+      "version": "0.6.0.00011T202610012146L"
+    },
+    {
+      "id": "com.qnx.qnx800.target.net.nfs",
+      "version": "0.6.0.00012T202610210714L"
+    },
+    {
+      "id": "com.qnx.qnx800.target.net.ntp",
+      "version": "0.0.2.00417T202407041502L"
+    },
+    {
+      "id": "com.qnx.qnx800.target.net.openSSH",
+      "version": "0.5.1.00009T202608101640L"
+    },
+    {
+      "id": "com.qnx.qnx800.target.net.pcap",
+      "version": "0.0.2.00417T202407041502L"
+    },
+    {
+      "id": "com.qnx.qnx800.target.net.ptpd2",
+      "version": "0.6.0.00026T202610012114L"
+    },
+    {
+      "id": "com.qnx.qnx800.target.net.tcpdump",
+      "version": "0.2.0.02504T202504081900L"
+    },
+    {
+      "id": "com.qnx.qnx800.target.net.unbound",
+      "version": "0.6.0.00012T202610012144L"
+    },
+    {
+      "id": "com.qnx.qnx800.target.net.utils",
+      "version": "0.6.0.00011T202610012146L"
+    },
+    {
+      "id": "com.qnx.qnx800.target.net.utils.if_up",
+      "version": "0.3.0.00103T202507311314L"
+    },
+    {
+      "id": "com.qnx.qnx800.target.net.utils.ifwatchd",
+      "version": "0.3.0.00103T202507311314L"
+    },
+    {
+      "id": "com.qnx.qnx800.target.os_services.base",
+      "version": "1.0.0.03063T202511271306L"
+    },
+    {
+      "id": "com.qnx.qnx800.target.os_services.hid",
+      "version": "0.1.0.00019T202608101142L"
+    },
+    {
+      "id": "com.qnx.qnx800.target.os_services.kpipe",
+      "version": "1.1.0.06031T202610011839L"
+    },
+    {
+      "id": "com.qnx.qnx800.target.os_services.libdevice_publisher",
+      "version": "0.0.1.00443T202311201012L"
+    },
+    {
+      "id": "com.qnx.qnx800.target.os_services.libjson",
+      "version": "0.6.0.06031T202610011839L"
+    },
+    {
+      "id": "com.qnx.qnx800.target.os_services.libqh",
+      "version": "0.0.1.00135T202311191043L"
+    },
+    {
+      "id": "com.qnx.qnx800.target.os_services.mqueue",
+      "version": "1.2.0.00132T202605281115L"
+    },
+    {
+      "id": "com.qnx.qnx800.target.os_services.server_monitor",
+      "version": "1.3.0.06031T202610011839L"
+    },
+    {
+      "id": "com.qnx.qnx800.target.os_services.smmu.api",
+      "version": "0.0.2.02005T202411230033L"
+    },
+    {
+      "id": "com.qnx.qnx800.target.os_services.smmu.core",
+      "version": "0.1.0.06031T202610011839L"
+    },
+    {
+      "id": "com.qnx.qnx800.target.pci.capabilities",
+      "version": "3.0.1.03075T202605211339L"
+    },
+    {
+      "id": "com.qnx.qnx800.target.pci.compat",
+      "version": "3.0.0.02005T202411230033L"
+    },
+    {
+      "id": "com.qnx.qnx800.target.pci.core.group",
+      "version": "3.1.0.03075T202605211339L"
+    },
+    {
+      "id": "com.qnx.qnx800.target.pci.debug",
+      "version": "3.0.0.02005T202411230033L"
+    },
+    {
+      "id": "com.qnx.qnx800.target.pci.hw.x86",
+      "version": "3.1.0.02005T202411230033L"
+    },
+    {
+      "id": "com.qnx.qnx800.target.pci.lib",
+      "version": "3.0.4.03075T202605211339L"
+    },
+    {
+      "id": "com.qnx.qnx800.target.pci.lib_hw_common",
+      "version": "3.0.0.03075T202605211339L"
+    },
+    {
+      "id": "com.qnx.qnx800.target.pci.server",
+      "version": "3.2.1.03075T202605211339L"
+    },
+    {
+      "id": "com.qnx.qnx800.target.pci.srvrmod_error_handling",
+      "version": "3.0.0.02005T202411230033L"
+    },
+    {
+      "id": "com.qnx.qnx800.target.pci.srvrmod_event",
+      "version": "3.0.0.02005T202411230033L"
+    },
+    {
+      "id": "com.qnx.qnx800.target.pci.srvrmod_misc",
+      "version": "3.0.0.02005T202411230033L"
+    },
+    {
+      "id": "com.qnx.qnx800.target.pci.uisupport",
+      "version": "3.0.1.03075T202605211339L"
+    },
+    {
+      "id": "com.qnx.qnx800.target.pci.utils",
+      "version": "3.0.0.02005T202411230033L"
+    },
+    {
+      "id": "com.qnx.qnx800.target.qplms",
+      "version": "2.0.1.00009T202602121736L"
+    },
+    {
+      "id": "com.qnx.qnx800.target.qplms.utils",
+      "version": "2.0.1.00009T202602121736L"
+    },
+    {
+      "id": "com.qnx.qnx800.target.qscan",
+      "version": "0.0.2.02005T202411230033L"
+    },
+    {
+      "id": "com.qnx.qnx800.target.screen.base",
+      "version": "4.3.1.00008T202610020004L"
+    },
+    {
+      "id": "com.qnx.qnx800.target.screen.device_input",
+      "version": "0.1.0.00007T202411230047L"
+    },
+    {
+      "id": "com.qnx.qnx800.target.screen.docs.plugins",
+      "version": "4.0.1.00117T202501221715L"
+    },
+    {
+      "id": "com.qnx.qnx800.target.screen.img_codecs",
+      "version": "10.0.1.00014T202610012359L"
+    },
+    {
+      "id": "com.qnx.qnx800.target.screen.img_codecs.libgif",
+      "version": "2.0.1.00024T202610012335L"
+    },
+    {
+      "id": "com.qnx.qnx800.target.screen.img_codecs.libgif.7",
+      "version": "2.0.1.00024T202610012335L"
+    },
+    {
+      "id": "com.qnx.qnx800.target.screen.img_codecs.libjpeg",
+      "version": "2.0.0.00014T202604151511L"
+    },
+    {
+      "id": "com.qnx.qnx800.target.screen.img_codecs.libjpeg.10",
+      "version": "2.0.0.00014T202604151511L"
+    },
+    {
+      "id": "com.qnx.qnx800.target.screen.img_codecs.libpng",
+      "version": "2.0.0.00014T202605061416L"
+    },
+    {
+      "id": "com.qnx.qnx800.target.screen.img_codecs.libpng.16",
+      "version": "2.0.0.00014T202605061416L"
+    },
+    {
+      "id": "com.qnx.qnx800.target.screen.img_codecs.libtiff",
+      "version": "3.0.0.00014T202610012353L"
+    },
+    {
+      "id": "com.qnx.qnx800.target.screen.img_codecs.libtiff.9",
+      "version": "3.0.0.00014T202610012353L"
+    },
+    {
+      "id": "com.qnx.qnx800.target.screen.kalman",
+      "version": "0.0.1.00443T202311201012L"
+    },
+    {
+      "id": "com.qnx.qnx800.target.screen.screen_utils",
+      "version": "4.3.1.00008T202610020004L"
+    },
+    {
+      "id": "com.qnx.qnx800.target.screen.video_capture",
+      "version": "4.0.2.00132T202501161817L"
+    },
+    {
+      "id": "com.qnx.qnx800.target.screen.vncserv",
+      "version": "4.2.1.00115T202610020016L"
+    },
+    {
+      "id": "com.qnx.qnx800.target.security.authentication",
+      "version": "0.0.1.00135T202311191043L"
+    },
+    {
+      "id": "com.qnx.qnx800.target.security.crypto.cryptodev",
+      "version": "0.5.0.00132T202605281115L"
+    },
+    {
+      "id": "com.qnx.qnx800.target.security.crypto.openssl3",
+      "version": "3.0.22.00012T202610012115L"
+    },
+    {
+      "id": "com.qnx.qnx800.target.security.crypto.pkcs11",
+      "version": "0.0.1.00135T202311191043L"
+    },
+    {
+      "id": "com.qnx.qnx800.target.security.crypto.qcrypto.core",
+      "version": "0.5.0.00132T202605281115L"
+    },
+    {
+      "id": "com.qnx.qnx800.target.security.crypto.qcrypto.openssl3",
+      "version": "0.0.2.02029T202501171702L"
+    },
+    {
+      "id": "com.qnx.qnx800.target.security.crypto.qcrypto.tools",
+      "version": "0.0.1.00135T202311191043L"
+    },
+    {
+      "id": "com.qnx.qnx800.target.security.pam",
+      "version": "0.0.1.00135T202311191043L"
+    },
+    {
+      "id": "com.qnx.qnx800.target.security.random",
+      "version": "0.0.1.00135T202311191043L"
+    },
+    {
+      "id": "com.qnx.qnx800.target.security.secpol",
+      "version": "0.6.0.06031T202610011839L"
+    },
+    {
+      "id": "com.qnx.qnx800.target.security.secpol.support",
+      "version": "0.6.0.06031T202610011839L"
+    },
+    {
+      "id": "com.qnx.qnx800.target.security.secpol.tools",
+      "version": "0.6.0.06031T202610011839L"
+    },
+    {
+      "id": "com.qnx.qnx800.target.security.tcg",
+      "version": "0.3.0.00600T202507302003L"
+    },
+    {
+      "id": "com.qnx.qnx800.target.text.charconv",
+      "version": "0.0.1.00135T202311191043L"
+    },
+    {
+      "id": "com.qnx.qnx800.target.tools.cpp",
+      "version": "12.2.0.01008T202610011452L"
+    },
+    {
+      "id": "com.qnx.qnx800.target.usb.base",
+      "version": "0.2.0.00070T202609111428L"
+    },
+    {
+      "id": "com.qnx.qnx800.target.usb.dcd",
+      "version": "0.1.0.00060T202605201516L"
+    },
+    {
+      "id": "com.qnx.qnx800.target.usb.dcd.ut",
+      "version": "0.0.1.00443T202311201012L"
+    },
+    {
+      "id": "com.qnx.qnx800.target.utils.base.b",
+      "version": "0.0.1.02077T202503111502L"
+    },
+    {
+      "id": "com.qnx.qnx800.target.utils.base.c",
+      "version": "0.0.1.00135T202311191043L"
+    },
+    {
+      "id": "com.qnx.qnx800.target.utils.base.d",
+      "version": "0.0.1.00135T202311191043L"
+    },
+    {
+      "id": "com.qnx.qnx800.target.utils.base.e",
+      "version": "0.0.1.00135T202311191043L"
+    },
+    {
+      "id": "com.qnx.qnx800.target.utils.base.f",
+      "version": "0.0.1.00135T202311191043L"
+    },
+    {
+      "id": "com.qnx.qnx800.target.utils.base.g",
+      "version": "0.0.1.00135T202311191043L"
+    },
+    {
+      "id": "com.qnx.qnx800.target.utils.base.h",
+      "version": "0.0.1.00135T202311191043L"
+    },
+    {
+      "id": "com.qnx.qnx800.target.utils.base.i",
+      "version": "0.0.1.00135T202311191043L"
+    },
+    {
+      "id": "com.qnx.qnx800.target.utils.base.k",
+      "version": "0.0.1.00282T202404151301L"
+    },
+    {
+      "id": "com.qnx.qnx800.target.utils.base.l",
+      "version": "0.0.2.02005T202411230033L"
+    },
+    {
+      "id": "com.qnx.qnx800.target.utils.base.m",
+      "version": "0.6.0.06031T202610011839L"
+    },
+    {
+      "id": "com.qnx.qnx800.target.utils.base.n",
+      "version": "0.0.1.00135T202311191043L"
+    },
+    {
+      "id": "com.qnx.qnx800.target.utils.base.p",
+      "version": "0.0.1.00135T202311191043L"
+    },
+    {
+      "id": "com.qnx.qnx800.target.utils.base.r",
+      "version": "0.0.1.00135T202311191043L"
+    },
+    {
+      "id": "com.qnx.qnx800.target.utils.base.s",
+      "version": "0.0.1.00135T202311191043L"
+    },
+    {
+      "id": "com.qnx.qnx800.target.utils.base.t",
+      "version": "0.6.0.06031T202610011839L"
+    },
+    {
+      "id": "com.qnx.qnx800.target.utils.base.u",
+      "version": "0.0.1.00135T202311191043L"
+    },
+    {
+      "id": "com.qnx.qnx800.target.utils.base.w",
+      "version": "0.0.1.00135T202311191043L"
+    },
+    {
+      "id": "com.qnx.qnx800.target.utils.base.x",
+      "version": "0.0.1.00135T202311191043L"
+    },
+    {
+      "id": "com.qnx.qnx800.target.utils.debugtools",
+      "version": "0.2.0.06031T202610011839L"
+    },
+    {
+      "id": "com.qnx.qnx800.target.utils.gawk",
+      "version": "0.6.0.06031T202610011839L"
+    },
+    {
+      "id": "com.qnx.qnx800.target.utils.hw",
+      "version": "0.2.0.00014T202411230051L"
+    },
+    {
+      "id": "com.qnx.qnx800.target.utils.libunwind",
+      "version": "1.8.2.00175T202605211154L"
+    },
+    {
+      "id": "com.qnx.qnx800.target.utils.python3",
+      "version": "3.13.7.00013T202603200501L"
+    },
+    {
+      "id": "com.qnx.qnx800.target.utils.qnx",
+      "version": "0.6.0.06031T202610011839L"
+    },
+    {
+      "id": "com.qnx.qnx800.target.utils.system",
+      "version": "0.2.1.06031T202610011839L"
+    },
+    {
+      "id": "com.qnx.qnx800.target.utils.system.dumpefs",
+      "version": "0.0.1.00007T202411221949L"
+    },
+    {
+      "id": "com.qnx.qnx800.target.utils.system.dumpifs",
+      "version": "1.2.1.00014T202605190942L"
+    },
+    {
+      "id": "com.qnx.qnx800.target.utils.system.dumpifs_nto",
+      "version": "1.2.0.00014T202605190942L"
+    },
+    {
+      "id": "com.qnx.qnx800.target.utils.utlfd",
+      "version": "0.0.1.00135T202311191043L"
+    },
+    {
+      "id": "com.qnx.qnx800.target.utils.valgrind",
+      "version": "3.17.0.00307T202605151458L"
+    }
+  ],
+  "selected_asset_checks": [
+    {
+      "path": "host/linux/x86_64/usr/bin/x86_64-pc-nto-qnx8.0.0-gcc-12.2.0",
+      "package_id": "com.qnx.qnx800.host.linux.x86_64.gcc",
+      "package_version": "12.2.0.01008T202610011452L",
+      "size_bytes": 1248056,
+      "sha256": "7c7cde109f52aa97ce164360d9ceeaa4c9137ce057b1445aacafce6517229473",
+      "package_sha512_matches": true,
+      "package_size_matches": true,
+      "build_id": null
+    },
+    {
+      "path": "host/linux/x86_64/usr/bin/qcc",
+      "package_id": "com.qnx.qnx800.host.linux.x86_64.qcc",
+      "package_version": "8.0.0.00121T202510081309L",
+      "size_bytes": 99968,
+      "sha256": "97beb779f03034da4f829111569cfb5e1953942896690a5f9174798967d9fc33",
+      "package_sha512_matches": true,
+      "package_size_matches": true,
+      "build_id": null
+    },
+    {
+      "path": "host/common/bin/mkqnximage",
+      "package_id": "com.qnx.qnx800.host.mkqnximage",
+      "package_version": "0.6.0.06031T202610011839L",
+      "size_bytes": 45013,
+      "sha256": "39089b2bb5d4c450c922699185faf6bf9632e71545def36feb44d2ee246f965a",
+      "package_sha512_matches": true,
+      "package_size_matches": true,
+      "build_id": null
+    },
+    {
+      "path": "target/qnx/x86_64/usr/lib/libc++.so.2.0",
+      "package_id": "com.qnx.qnx800.target.base.cpp",
+      "package_version": "18.0.0.01506T202610011617L",
+      "size_bytes": 1620672,
+      "sha256": "3f32f3ed367285731a60f3fd05bd4d681050ef8a82d66a2d82059681cd0e714c",
+      "package_sha512_matches": true,
+      "package_size_matches": true,
+      "build_id": "2f3a87c8fc87ac5b73338739f9c076b7"
+    },
+    {
+      "path": "target/qnx/x86_64/lib/libm.so.3",
+      "package_id": "com.qnx.qnx800.target.base.libm",
+      "package_version": "0.0.2.02005T202411230033L",
+      "size_bytes": 256208,
+      "sha256": "bc5e34708c6c9fdd8b8ea06f63ef6443f290194020b9f64e4a2a26e3757cbd41",
+      "package_sha512_matches": true,
+      "package_size_matches": true,
+      "build_id": "42332cc9ac1f48ee63ced28387c7e28a"
+    },
+    {
+      "path": "target/qnx/x86_64/boot/sys/procnto-smp-instr",
+      "package_id": "com.qnx.qnx800.target.microkernel.core",
+      "package_version": "2.8.0.00047T202610300907L",
+      "size_bytes": 69979000,
+      "sha256": "8b524d5f86b61211ef3bb7e5219731d31c8402e0b22c916c3a835ecdaff7176b",
+      "package_sha512_matches": true,
+      "package_size_matches": true,
+      "build_id": "5d307f7740bfbe30497938ac130c0e1f"
+    },
+    {
+      "path": "target/qnx/x86_64/lib/libc.so.6",
+      "package_id": "com.qnx.qnx800.target.microkernel.core",
+      "package_version": "2.8.0.00047T202610300907L",
+      "size_bytes": 1044256,
+      "sha256": "1bd47f4a70624b89631d8125866102131e0c042e092f13ea400bf54ecf9aed5c",
+      "package_sha512_matches": true,
+      "package_size_matches": true,
+      "build_id": "655b868d1695a21beb088b9e10318d99"
+    },
+    {
+      "path": "target/qnx/x86_64/usr/lib/ldqnx-64.so.2",
+      "package_id": "com.qnx.qnx800.target.microkernel.core",
+      "package_version": "2.8.0.00047T202610300907L",
+      "size_bytes": 306784,
+      "sha256": "8d2976b8058bd8046bbd813228ef41b53f51054556db88e08406f82f6b52456d",
+      "package_sha512_matches": true,
+      "package_size_matches": true,
+      "build_id": "6fa7e2c564a26985e2cae4ad199e5d06"
+    },
+    {
+      "path": "target/qnx/x86_64/lib/libgcc_s.so.1",
+      "package_id": "com.qnx.qnx800.target.tools.cpp",
+      "package_version": "12.2.0.01008T202610011452L",
+      "size_bytes": 564832,
+      "sha256": "384227aa5911c9d490de1854911f3d0056b126fa4ba5635950277b87aab7797c",
+      "package_sha512_matches": true,
+      "package_size_matches": true,
+      "build_id": "a90999bbdd7ab2f4acfd885846147d34"
+    }
+  ],
+  "compiler_execution": "Not repeated: Linux host compiler requires the Docker engine, whose socket is denied in this session. Existing cross-build metadata records QCC 12.2.0 / gcc_ntox86_64.",
+  "guest_version": "QNX 8.0.0 2026/10/30-09:10:05EDT x86_64",
+  "release_alignment": "unverified",
+  "limitations": [
+    "Package-specific version numbers and build dates do not alone establish membership in the complete 8.0.6 release set.",
+    "No license storage or license contents were read.",
+    "Only selected assets were hashed; package signatures and the entire SDK were not verified."
+  ],
+  "guest_runtime_comparison": "Five loader/library build IDs match; see qnx-validation-2026-11-23/environment.json. Complete release-set membership remains unverified."
+}

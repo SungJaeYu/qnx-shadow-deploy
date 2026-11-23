@@ -8,7 +8,7 @@ ShadowDeploy is an application-level deployment runtime for QNX 8.0. It runs bas
 
 ## Current status
 
-This repository contains a working **host-verifiable MVP** and a QNX native IPC implementation. **All five QNX executables were cross-built on 2026-11-23; QNX guest execution is still pending.** [Build evidence](docs/evidence/qnx-cross-build.json) records artifact hashes, the QNX loader and native IPC imports. Target validation remains the next release gate.
+This repository contains a working MVP with **native QNX execution verified in QEMU on 2026-11-23**. Policy/staging tests, all eleven functional process scenarios and live deployment passed using `qnx-native-ipc`. The original 10 ms budget also produced preserved failures; this is functional emulation evidence, not a real-time guarantee. See the [verification record](docs/verification.md#native-qnx-execution-2026-11-23) and [original target evidence](docs/evidence/qnx-validation-2026-11-23/README.md).
 
 | Capability | Status |
 | --- | --- |
@@ -17,8 +17,8 @@ This repository contains a working **host-verifiable MVP** and a QNX native IPC 
 | Sequence-boundary promotion and warm fallback | Implemented and tested |
 | Unit, delay, NaN, stale-response, protocol and crash injection | Implemented and tested |
 | English workbench and JSONL evidence | Implemented and tested |
-| QNX `MsgSend` / `MsgReceive` / `MsgReply` and `TimerTimeout` | Cross-built; target execution pending |
-| Late attachment of a separate local artifact, bounded replay and cancellation | Implemented and tested on the host |
+| QNX `MsgSend` / `MsgReceive` / `MsgReply` and `TimerTimeout` | Functional guest tests passed; default-budget failures retained |
+| Late attachment of a separate local artifact, bounded replay and cancellation | Tested on the host and QNX guest |
 | Remote artifact upload and arbitrary app adapters | Planned |
 | Target scheduling, resource limits and hardware timing evidence | Pending |
 
@@ -96,7 +96,7 @@ Default demonstration settings are a 20 ms nominal period, a 10 ms decision budg
 
 The intended target is **QNX SDP / OS 8.0.6, x86-64, QEMU**. The QNX build selects native message passing at compile time. A host build selects bounded POSIX pipes while using the same policy and example workloads.
 
-Follow [QNX setup and validation](docs/qnx-setup.md), including the Apple Silicon Mac container workflow. A licensed SDK with Linux host tools is required. The supplied Ubuntu 24.04 container helper successfully built all five QNX targets and generated a guest image configured with the project executables and C++ runtime. Guest boot remains unverified; the host QEMU installation is the next prerequisite. No QNX binaries, headers, license files or VM images are distributed in this repository.
+Follow [QNX setup and validation](docs/qnx-setup.md), including the Apple Silicon Mac container workflow. A licensed SDK with Linux host tools is required. The existing image booted using native macOS QEMU 11.1.3, TCG, 2 CPUs and 1 GiB RAM. The guest reports OS 8.0.0 with the October 30, 2026 kernel; five guest runtime build IDs match the installed SDK. Complete 8.0.6 release-set alignment still needs confirmation. No QNX binaries, headers, license files or VM images are distributed in this repository.
 
 ## Project map
 

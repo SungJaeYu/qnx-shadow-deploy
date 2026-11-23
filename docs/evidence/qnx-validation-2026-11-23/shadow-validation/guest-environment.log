@@ -1,0 +1,50 @@
+QNX shadowdeploy-qnx 8.0.0 2026/10/30-09:10:05EDT x86pc x86_64
+uid=0(root) gid=0(root) groups=0(root)
+CPU:X86_64 Release:8.0.0  FreeMem:873MB/1023MB BootTime:Nov 23 09:52:52 UTC 2026
+Processes: 18, Threads: 104
+Processor1: 686 AMD 686 F6M6S3 998MHz FPU 
+Processor2: 686 AMD 686 F6M6S3 998MHz FPU 
+ifs on / type ifs 
+/dev/hd0t179 on /data type qnx6 
+/dev/hd0t178 on /system type qnx6 
+/dev/hd0t177 on /boot type qnx6 
+/dev/shmem on /dev/shmem type shmem 
+drwxr-xr-x  6 root root 4096 2026-11-23 09:53 /data
+lrwxrwxrwx  1 root root   13 2026-11-23 08:45 /tmp -> /data/var/tmp
+total 7514
+-r--r--r--  1 root root     183 2026-11-23 08:22 candidate.manifest
+-r-xr-xr-x  1 root root  549056 2026-11-23 08:23 policy-tests
+-r-xr-xr-x  1 root root  157272 2026-11-23 08:23 shadow-candidate
+-r-xr-xr-x  1 root root 1446928 2026-11-23 08:23 shadow-demo
+-r-xr-xr-x  1 root root  157272 2026-11-23 08:23 shadow-worker
+-r-xr-xr-x  1 root root 1536328 2026-11-23 08:24 staging-tests
+	libc++.so.2 => /system/lib/libc++.so.2 (0x2578892000)
+	libm.so.3 => /proc/boot/libm.so.3 (0x25789d3000)
+	libc.so.6 => /proc/boot/libc.so.6 (0x2578a0c000)
+	libgcc_s.so.1 => /proc/boot/libgcc_s.so.1 (0x2578abf000)
+3374818193 1446928 /system/bin/shadowdeploy/shadow-demo
+	libc++.so.2 => /system/lib/libc++.so.2 (0x1921e24000)
+	libm.so.3 => /proc/boot/libm.so.3 (0x1921f65000)
+	libc.so.6 => /proc/boot/libc.so.6 (0x1921f9e000)
+	libgcc_s.so.1 => /proc/boot/libgcc_s.so.1 (0x1922051000)
+1199416101 157272 /system/bin/shadowdeploy/shadow-worker
+	libc++.so.2 => /system/lib/libc++.so.2 (0x179670d000)
+	libm.so.3 => /proc/boot/libm.so.3 (0x179684e000)
+	libc.so.6 => /proc/boot/libc.so.6 (0x1796887000)
+	libgcc_s.so.1 => /proc/boot/libgcc_s.so.1 (0x179693a000)
+767992570 157272 /system/bin/shadowdeploy/shadow-candidate
+	libc++.so.2 => /system/lib/libc++.so.2 (0x1f7d782000)
+	libm.so.3 => /proc/boot/libm.so.3 (0x1f7d8c3000)
+	libc.so.6 => /proc/boot/libc.so.6 (0x1f7d8fc000)
+	libgcc_s.so.1 => /proc/boot/libgcc_s.so.1 (0x1f7d9af000)
+852065806 549056 /system/bin/shadowdeploy/policy-tests
+	libc++.so.2 => /system/lib/libc++.so.2 (0x377037c000)
+	libm.so.3 => /proc/boot/libm.so.3 (0x37704bd000)
+	libc.so.6 => /proc/boot/libc.so.6 (0x37704f6000)
+	libgcc_s.so.1 => /proc/boot/libgcc_s.so.1 (0x37705a9000)
+3585641544 1536328 /system/bin/shadowdeploy/staging-tests
+2108780856 708608 /proc/boot/libc.so.6
+2109008097 241664 /proc/boot/ldqnx-64.so.2
+3794917074 229376 /proc/boot/libm.so.3
+2257009397 122880 /proc/boot/libgcc_s.so.1
+1648519146 1620672 /system/lib/libc++.so.2

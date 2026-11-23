@@ -1,0 +1,7 @@
+# Preserve original target evidence bytes, including terminal CR/LF and padding.
+docs/evidence/qnx-validation-2026-11-23/shadow-validation/* -text
+docs/evidence/qnx-validation-2026-11-23/serial-*.log -text -whitespace
+docs/evidence/qnx-validation-2026-11-23/shadow-validation/*.log -whitespace
+docs/evidence/qnx-validation-2026-11-23/shadow-validation/*.fds -whitespace
+docs/evidence/qnx-validation-2026-11-23/shadow-validation/*.threads -whitespace
+docs/evidence/qnx-validation-2026-11-23/shadow-validation/*.processes -whitespace

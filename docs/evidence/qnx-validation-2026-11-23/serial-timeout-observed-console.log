@@ -1,0 +1,25 @@
+
+END_TIMEOUT_BASE64
+# cat > /tmp/timeout-observed.b64 <<'SHADOW_B64'
+> IyEvYmluL3NoCiMgT2JzZXJ2ZSBuYXRpdmUgd2FpdHMgZm9yIGEgc3RvcHBlZCByZWNlaXZlciBhbmQgYSAyNTAgbXMgZGVsYXllZCByZXBseS4Kc2V0IC1ldQpbICIkKHVuYW1lIC1zKSIgPSBRTlggXSB8fCBleGl0IDIKY2QgL3N5c3RlbS9iaW4vc2hhZG93ZGVwbG95Cm91dD0vZGF0YS9zaGFkb3ctdmFsaWRhdGlvbgpmb3Iga2luZCBp
+> biBzdG9wcGVkIHJlcGx5LW9ic2VydmVkOyBkbwogICAgbG9nPSIkb3V0L3RpbWVvdXQtJGtpbmQuanNvbmwiCiAgICBbICEgLWUgIiRsb2ciIF0gfHwgeyBlY2hvICJSZWZ1c2luZyB0byBvdmVyd3JpdGUgJGxvZyIgPiYyOyBleGl0IDI7IH0KICAgIHNjZW5hcmlvPXByb21vdGUKICAgIFsgIiRraW5kIiAhPSByZXBseS1vYnNlcnZlZCBd
+> IHx8IHNjZW5hcmlvPXJlamVjdC1kZWxheQogICAgLi9zaGFkb3ctZGVtbyAtLXdvcmtlciAuL3NoYWRvdy13b3JrZXIgLS1zY2VuYXJpbyAiJHNjZW5hcmlvIiAtLXNhbXBsZXMgNCBcCiAgICAgICAgLS1wZXJpb2QtbXMgMTAwMCAtLWRlYWRsaW5lLW1zIDE1MCAtLXF1YWxpZnkgMyAtLXByb2JhdGlvbiA4IFwKICAgICAgICA+ICIkbG9n
+> IiAyPiAiJG91dC90aW1lb3V0LSRraW5kLnN0ZGVyciIgJgogICAgYnJva2VyPSQhCiAgICB0cmFwICdraWxsIC1URVJNICIkYnJva2VyIiAyPi9kZXYvbnVsbCB8fCA6OyB3YWl0ICIkYnJva2VyIiB8fCA6JyBFWElUCiAgICB0cmllcz0wCiAgICB1bnRpbCBncmVwIC1xICcic2VxdWVuY2UiOjEsJyAiJGxvZyI7IGRvCiAgICAgICAgdHJp
+> ZXM9JCgodHJpZXMgKyAxKSkKICAgICAgICBbICIkdHJpZXMiIC1sdCAxMDAgXSB8fCBleGl0IDEKICAgICAgICBzbGVlcCAwLjAxCiAgICBkb25lCiAgICBjYW5kaWRhdGU9JChoZWFkIC1uIDEgIiRsb2ciIHwgc2VkICdzLy4qImNhbmRpZGF0ZV9waWQiOlwoWzAtOV0qXCkuKi9cMS8nKQogICAgaWYgWyAiJGtpbmQiID0gc3RvcHBlZCBd
+> OyB0aGVuCiAgICAgICAga2lsbCAtU1RPUCAiJGNhbmRpZGF0ZSIKICAgIGZpCiAgICAjIFBvbGwgdGhyb3VnaCB0aGUgc2Vjb25kIGFjcXVpc2l0aW9uOyBvbmUgbGF0ZSBzbmFwc2hvdCBjYW4gbWlzcyB0aGUgd2FpdC4KICAgIHNsZWVwIDAuNzUKICAgIHRyaWVzPTAKICAgIHN0YXRlcz0iJG91dC90aW1lb3V0LSRraW5kLnRocmVhZHMi
+> CiAgICA6ID4gIiRzdGF0ZXMiCiAgICB1bnRpbCBncmVwIC1FcSAnIChTRU5EfFJFUExZKSAnICIkc3RhdGVzIjsgZG8KICAgICAgICB0cmllcz0kKCh0cmllcyArIDEpKQogICAgICAgIFsgIiR0cmllcyIgLWx0IDEwMCBdIHx8IGV4aXQgMQogICAgICAgIHBpZGluIC1wICIkYnJva2VyIiA+PiAiJHN0YXRlcyIKICAgICAgICBzbGVlcCAw
+> LjAxCiAgICBkb25lCiAgICBpZiB3YWl0ICIkYnJva2VyIjsgdGhlbiBjb2RlPTA7IGVsc2UgY29kZT0kPzsgZmkKICAgIHRyYXAgLSBFWElUCiAgICBlY2hvICIka2luZCAkY29kZSIgPj4gIiRvdXQvdGltZW91dC1leGl0cy50eHQiCiAgICBbICIkY29kZSIgLWVxIDAgXSB8fCBleGl0IDEKZG9uZQpwaWRpbiBhciA+ICIkb3V0L3RpbWVv
+> dXQtZmluaXNoZWQucHJvY2Vzc2VzIgplY2hvICdQQVNTIHRpbWVvdXQgcnVucyBjb21wbGV0ZWQ7IHZlcmlmeSBrZXJuZWwgc3RhdGVzIGFuZCB0cmFjZSBhc3NlcnRpb25zIG9uIHRoZSBob3N0Jwo=
+> SHADOW_B64
+# base64 -d /tmp/timeout-observed.b64 > /tmp/qnx_timeout_observed.sh
+# sh /tmp/qnx_timeout_observed.sh > /data/shadow-validation/timeout-observed-driver.log 2>&1; echo "OBSERVED_TIMEOUT_EXIT=$?"; cat /data/shadow-validation/timeout-observed-driver.log
+OBSERVED_TIMEOUT_EXIT=0
+PASS timeout runs completed; verify kernel states and trace assertions on the host
+# grep -E ' (SEND|REPLY) ' /data/shadow-validation/timeout-stopped.threads /data/shadow-validation/timeout-reply-observed.threads
+/data/shadow-validation/timeout-stopped.threads: 5586962   3 ./shadow-demo                 10r REPLY          5607447                     
+/data/shadow-validation/timeout-reply-observed.threads: 5726226   3 ./shadow-demo                 10r REPLY          5742614                     
+# cp /tmp/qnx_timeout_observed.sh /data/shadow-validation/executed-timeout-observed.sh
+# cd /data
+# tar -cf /data/timeout-observed.tar shadow-validation/timeout-stopped* shadow-validation/timeout-reply-observed* shadow-validation/timeout-observed-driver.log shadow-validation/timeout-exits.txt shadow-validation/timeout-finished.processes shadow-validation/executed-timeout-observed.sh
+# cksum /data/timeout-observed.tar
+1964786645 18432 /data/timeout-observed.tar

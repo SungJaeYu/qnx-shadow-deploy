@@ -1,0 +1,23 @@
+PASS preparation cannot qualify or restart the baseline
+PASS replay to live continuity is checked
+PASS retry clears candidate qualification but preserves output continuity
+PASS operator cancellation still validates the current fallback
+PASS commit prevents staging and cancellation without a fallback
+PASS late acquisition cannot cause a catch-up burst
+PASS processing overrun does not create an input backlog
+PASS promotion starts at the next sequence boundary
+PASS bad candidate never gains authority
+PASS rollback uses current baseline sample
+PASS both workers failing stops output
+PASS loss of standby during probation stops output
+PASS unqualified candidate cannot replace failed baseline
+PASS no fallback is promised after commit
+PASS late and mismatched responses cannot qualify
+PASS deadline equality passes, future sequence does not
+PASS output equality is not required
+PASS individually valid outputs may still be unsafe to switch
+PASS rollback continuity is checked
+PASS duplicate and invalid inputs stop the broker
+PASS invalid configuration is rejected
+PASS a missed publication decision deadline is terminal
+PASS rate and velocity constraints apply before authority
