@@ -146,6 +146,8 @@ class CancelOrderingTraceTests(unittest.TestCase):
             if control and sequence == ready and mutation == "event-order":
                 rows.append(control)
                 control = None
+            if case == "handoff-gated" and sequence == cancel - 1 and mutation == "transfer-before-sample":
+                rows.append(control.pop(0))
             rows.append(current)
             if control:
                 rows.extend(control if isinstance(control, list) else [control])
@@ -245,6 +247,14 @@ class CancelOrderingTraceTests(unittest.TestCase):
         result = self.run_verifier("--boundary")
         self.assertEqual(result.returncode, 1, result.stdout)
         self.assertIn("FAIL handoff-gated ordering", result.stderr)
+
+    def test_handoff_transfer_must_follow_witnessed_sample(self):
+        self.boundary_witness("live-near")
+        self.boundary_witness("handoff-gated", mutation="transfer-before-sample")
+        result = self.run_verifier("--boundary")
+        self.assertEqual(result.returncode, 1, result.stdout)
+        self.assertIn("FAIL handoff-gated ordering: replay transfer did not follow the witnessed sample",
+                      result.stderr)
 
     def incomplete_gated_capture(self, *, code=130, preparation_failed=False, process_survives=False,
                                  snapshot=True):

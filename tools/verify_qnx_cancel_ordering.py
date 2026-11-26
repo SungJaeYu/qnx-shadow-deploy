@@ -224,7 +224,7 @@ def verify_gate(stem, broker, stage_after, case="replay-gated", outstanding=None
 
     check(released_ns - received_ns < 300_000_000 and replied_ns - received_ns < 337_500_000,
           "catch-up reply exceeded observation budget")
-    rows, _ = load(stem.with_suffix(".jsonl"))
+    rows, ticks = load(stem.with_suffix(".jsonl"))
     acceptance = one(rows, "cancel_requested", 1)
     ready = [row for row in rows if row.get("event") == "replay_complete" and row["generation"] == 1]
     # A successful command during replay may be accepted before replay catches up.
@@ -235,6 +235,9 @@ def verify_gate(stem, broker, stage_after, case="replay-gated", outstanding=None
     check(transfer["candidate_pid"] == first == peer and transfer["through_sequence"] == transfer["after_sequence"]
           and transfer["replayed"] >= 17 and rows.index(transfer) < rows.index(acceptance),
           "replay transfer was inconsistent with acceptance or reused a different worker")
+    check(0 < sequence <= len(ticks) and ticks[sequence - 1]["sequence"] == sequence
+          and rows.index(ticks[sequence - 1]) < rows.index(transfer),
+          "replay transfer did not follow the witnessed sample")
     return peer, (transfer["after_sequence"] == acceptance["after_sequence"] == sequence
                   and replied_ns < timings[sequence + 1]["acquired_ns"])
 
