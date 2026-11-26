@@ -49,16 +49,18 @@ int prepare_control_fifo() {
     return 0;
 }
 
-int send_cancel(std::uint64_t& before, std::uint64_t& after) {
-    constexpr char command[] = "cancel\n";
-    static_assert(sizeof(command) - 1 <= PIPE_BUF, "cancel must fit in one atomic FIFO write");
+int write_control(const std::string& command, std::uint64_t& before, std::uint64_t& after) {
+    if (command.size() > PIPE_BUF) {
+        std::cerr << "cancel writer: command exceeds atomic FIFO write limit\n";
+        return 1;
+    }
     before = shadow::monotonic_ns();
-    const auto written = write(STDOUT_FILENO, command, sizeof(command) - 1);
+    const auto written = write(STDOUT_FILENO, command.data(), command.size());
     const int write_error = errno;
     after = shadow::monotonic_ns();
     errno = write_error;
     if (written == -1) return report_error("cancel writer write FIFO");
-    if (written != static_cast<ssize_t>(sizeof(command) - 1)) {
+    if (written != static_cast<ssize_t>(command.size())) {
         std::cerr << "cancel writer: incomplete FIFO write\n";
         return 1;
     }
@@ -103,7 +105,7 @@ int write_cancel(const std::string& stem, bool near_deadline) {
     }
 
     std::uint64_t before{}, after{};
-    if (send_cancel(before, after)) return 1;
+    if (write_control("cancel\n", before, after)) return 1;
     std::ofstream timestamps(stem + ".write");
     timestamps << "before_ns=" << before << " after_ns=" << after << std::endl;
     if (!timestamps) return report_error("cancel writer save write timestamps");
@@ -144,25 +146,47 @@ struct ReplySnapshot {
     }
 };
 
-int stock_replay_cancel(const std::string& stem, pid_t broker, pid_t peer) {
-    if (broker <= 1 || peer <= 1 || broker == peer || prepare_control_fifo()) return 1;
-    const std::string peer_path = "/proc/" + std::to_string(peer) + "/ctl";
-    const int peer_fd = open(peer_path.c_str(), O_RDONLY);
-    if (peer_fd == -1) return report_error("replay observer open candidate procfs");
-    procfs_info info{};
-    const int owner = devctl(peer_fd, DCMD_PROC_INFO, &info, sizeof(info), nullptr);
-    close(peer_fd);
-    if (owner != EOK || info.pid != peer || info.parent != broker) {
-        std::cerr << "replay observer: candidate ownership mismatch or procfs error=" << owner << '\n';
-        return 1;
-    }
+int stock_replay_cancel(const std::string& stem, pid_t broker, pid_t baseline) {
+    if (broker <= 1 || baseline <= 1 || broker == baseline || prepare_control_fifo()) return 1;
     const std::string broker_path = "/proc/" + std::to_string(broker) + "/ctl";
     const int fd = open(broker_path.c_str(), O_RDONLY);
     if (fd == -1) return report_error("replay observer open broker procfs");
 
+    // Sample 16 provides enough history. Target its next 500 ms input boundary,
+    // allowing 30 ms for the command to reach the FIFO before the next poll.
+    // The precise proof uses the actual stage and snapshot timestamps.
+    const auto sample_deadline = shadow::monotonic_ns() + 2000000000ULL;
+    std::uint64_t target_ns{};
+    while (shadow::monotonic_ns() < sample_deadline && !target_ns) {
+        std::ifstream trace(stem + ".jsonl");
+        for (std::string line; std::getline(trace, line);) {
+            if (trace.eof() || line.rfind("{\"type\":\"sample\",\"sequence\":16,", 0) != 0) continue;
+            const std::string key = "\"decision_latency_ms\":";
+            const auto marker = line.find(key);
+            if (marker == std::string::npos) break;
+            const double latency_ms = std::strtod(line.c_str() + marker + key.size(), nullptr);
+            if (latency_ms >= 0 && latency_ms < 450) {
+                target_ns = shadow::monotonic_ns() + 470000000ULL -
+                            static_cast<std::uint64_t>(latency_ms * 1000000);
+            }
+            break;
+        }
+        if (!target_ns) std::this_thread::sleep_for(std::chrono::milliseconds(1));
+    }
+    if (!target_ns) {
+        std::cerr << "replay observer: missing complete acquisition sample 16\n";
+        return 1;
+    }
+    const auto now = shadow::monotonic_ns();
+    if (now < target_ns) {
+        std::this_thread::sleep_for(std::chrono::nanoseconds(target_ns - now));
+    }
+    std::uint64_t stage_before{}, stage_after{};
+    if (write_control("stage " + stem + ".manifest\n", stage_before, stage_after)) return 1;
+
     // This demo has only a baseline dispatch thread, stager and candidate dispatch thread
     // in addition to its main thread. Allow for non-contiguous thread IDs.
-    const auto deadline = shadow::monotonic_ns() + 500000000ULL;
+    const auto deadline = stage_before + 750000000ULL;
     ReplySnapshot pre;
     while (shadow::monotonic_ns() < deadline) {
         for (ReplySnapshot::Tid tid = 2; tid <= 16; ++tid) {
@@ -172,19 +196,32 @@ int stock_replay_cancel(const std::string& stem, pid_t broker, pid_t peer) {
                 std::cerr << "replay observer: before-status error=" << result << '\n';
                 return 1;
             }
-            if (!pre.matches(broker, peer, tid) || pre.status.nsec_since_block < 5000000ULL) continue;
+            if (pre.status.state != STATE_REPLY) continue;
+            const auto peer = pre.status.blocked.connect.pid;
+            if (peer <= 1 || peer == baseline || peer == broker || !pre.matches(broker, peer, tid)) continue;
 
             std::uint64_t before{}, after{};
-            if (send_cancel(before, after)) return 1;
+            if (write_control("cancel\n", before, after)) return 1;
             ReplySnapshot post;
             const int post_result = post.read(fd, tid);
             if (post_result != EOK && post_result != ESRCH) {
                 std::cerr << "replay observer: after-status error=" << post_result << '\n';
                 return 1;
             }
+            const std::string peer_path = "/proc/" + std::to_string(peer) + "/ctl";
+            const int peer_fd = open(peer_path.c_str(), O_RDONLY);
+            if (peer_fd == -1) return report_error("replay observer open candidate procfs");
+            procfs_info info{};
+            const int owner = devctl(peer_fd, DCMD_PROC_INFO, &info, sizeof(info), nullptr);
+            close(peer_fd);
+            if (owner != EOK || info.pid != peer || info.parent != broker) {
+                std::cerr << "replay observer: candidate ownership mismatch or procfs error=" << owner << '\n';
+                return 1;
+            }
             std::ofstream evidence(stem + ".exact");
             evidence << "candidate parent=" << info.parent << " pid=" << info.pid
                      << " start_ns=" << info.start_time << '\n';
+            evidence << "stage before_ns=" << stage_before << " after_ns=" << stage_after << '\n';
             pre.record(evidence, "pre_reply");
             evidence << "write before_ns=" << before << " after_ns=" << after << '\n';
             if (post_result == EOK && post.matches(broker, peer, tid)) {

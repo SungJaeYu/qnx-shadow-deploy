@@ -346,6 +346,45 @@ class CancelOrderingTraceTests(unittest.TestCase):
                 self.assertEqual(result.returncode, 1, result.stdout)
                 self.assertIn("FAIL replay ordering", result.stderr)
 
+    def stage_window(self, *, stage_before=900_000_000, wrong_phase=False):
+        self.exact_replay(post_age=0)
+        stem = self.root / "replay"
+        witness = stem.with_suffix(".exact")
+        lines = witness.read_text().replace("blocked_ns=20000000", "blocked_ns=0").splitlines()
+        lines.insert(1, f"stage before_ns={stage_before} after_ns={stage_before + 100}")
+        witness.write_text("\n".join(lines) + "\n")
+        stem.with_suffix(".manifest").write_text(
+            "executable=/bin/shadow-candidate\nmode=delay\nfault_after=0\nreplay_samples=16\n")
+        stem.with_suffix(".stderr").write_text("".join(json.dumps(
+            dict(type="phase_timing", sequence=sequence, acquired_ns=timestamp),
+            separators=(",", ":")) + "\n"
+            for sequence, timestamp in ((16, 700_000_000), (17, 990_000_000))))
+        if wrong_phase:
+            trace = stem.with_suffix(".jsonl")
+            rows = [json.loads(line) for line in trace.read_text().splitlines()]
+            for row in rows:
+                if row.get("sequence") == 17:
+                    row["phase"] = "shadowing"
+            trace.write_text("".join(json.dumps(row) + "\n" for row in rows))
+
+    def test_stage_window_can_prove_exact_request_with_unsupported_blocked_age(self):
+        self.stage_window()
+        result = self.run_verifier("--replay-exact")
+        self.assertEqual(result.returncode, 0, result.stderr)
+        self.assertIn("PASS replay ordering", result.stdout)
+
+    def test_stage_window_excludes_expired_window_even_with_matching_reply_state(self):
+        self.stage_window(stage_before=752_500_000)
+        result = self.run_verifier("--replay-exact")
+        self.assertEqual(result.returncode, 77, result.stdout)
+        self.assertIn("INCONCLUSIVE replay ordering", result.stdout)
+
+    def test_stage_window_requires_warming_at_cancel_acceptance(self):
+        self.stage_window(wrong_phase=True)
+        result = self.run_verifier("--replay-exact")
+        self.assertEqual(result.returncode, 1, result.stdout)
+        self.assertIn("FAIL replay behavior", result.stderr)
+
     def test_stock_replay_ordering_is_inconclusive_with_two_matching_snapshots(self):
         self.fixture("live")
         self.fixture("replay")

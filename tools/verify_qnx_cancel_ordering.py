@@ -167,7 +167,17 @@ def verify_observation(stem, case, broker, first, outstanding):
     return peer, bracket
 
 
-def verify_exact_replay(stem, broker):
+def phase_timings(stem):
+    timings = {}
+    for line in stem.with_suffix(".stderr").read_text().splitlines():
+        if line.startswith('{"type":"phase_timing",'):
+            row = json.loads(line)
+            check(row["sequence"] not in timings, "duplicate native phase timing")
+            timings[row["sequence"]] = row
+    return timings
+
+
+def verify_exact_replay(stem, broker, stage_after):
     code = int(stem.with_suffix(".exact.exit").read_text())
     path = stem.with_suffix(".exact")
     check(code in {0, 77}, f"native stock replay observer exited {code}")
@@ -175,7 +185,12 @@ def verify_exact_replay(stem, broker):
         check(not path.exists(), "missed pre-write observation contradicts exact replay evidence")
         return 0, False
     lines = path.read_text().splitlines()
-    check(len(lines) == 4, "incomplete exact replay evidence")
+    check(len(lines) in {4, 5}, "incomplete exact replay evidence")
+    stage_times = None
+    if len(lines) == 5:
+        fields = re.fullmatch(r"stage before_ns=(\d+) after_ns=(\d+)", lines.pop(1))
+        check(fields, "malformed stock replay stage write timestamps")
+        stage_times = tuple(map(int, fields.groups()))
     owner = re.fullmatch(r"candidate parent=(\d+) pid=(\d+) start_ns=(\d+)", lines[0])
     check(owner, "malformed candidate ownership evidence")
     parent, peer, start = map(int, owner.groups())
@@ -199,13 +214,29 @@ def verify_exact_replay(stem, broker):
     check(write, "malformed stock replay write timestamps")
     before, after = map(int, write.groups())
     check(pre_end <= before <= after, "invalid stock replay pre-write chronology")
+    if stage_times:
+        stage_before, stage_written = stage_times
+        check(0 < stage_before <= stage_written <= pre_start, "invalid stock replay stage chronology")
+        manifest = dict(line.split("=", 1) for line in stem.with_suffix(".manifest").read_text().splitlines()
+                        if line and not line.startswith("#"))
+        check(Path(manifest["executable"]).name == "shadow-candidate"
+              and manifest["mode"] == "delay" and manifest["fault_after"] == "0"
+              and manifest["replay_samples"] == "16", "stock replay stage used an unexpected fixture")
+        timing = phase_timings(stem)
+        check(timing[stage_after]["acquired_ns"] <= stage_before <= stage_written
+              <= timing[stage_after + 1]["acquired_ns"], "stage write did not precede its recorded acceptance")
     if lines[3] == "post_unobserved":
         return peer, False
     post, post_start, post_end, post_age = snapshot(lines[3], "post_reply")
     check(after <= post_start, "invalid stock replay post-write chronology")
-    rounding_ns = 2_000_000
     if pre != post:
         return peer, False
+    if stage_times:
+        # The candidate cannot receive a request before its deployment is sent.
+        # The stock worker delays 250 ms before replying to every request.
+        # Both observations therefore identify its first request in this window.
+        return peer, post_end - stage_before < 248_000_000
+    rounding_ns = 2_000_000
     # The post snapshot may have been sampled as late as its end and the pre
     # snapshot as early as its start. Its entire blocked interval must cover both.
     age_covers_pre = post_age - rounding_ns > post_end - pre_start
@@ -256,12 +287,7 @@ def verify_gate(stem, broker, stage_after, case="replay-gated", outstanding=None
     check(write, "malformed FIFO write timestamps")
     before, after = map(int, write.groups())
     check(received_ns <= before <= after <= released_ns, "FIFO write was outside the held reply")
-    timings = {}
-    for line in stem.with_suffix(".stderr").read_text().splitlines():
-        if line.startswith('{"type":"phase_timing",'):
-            row = json.loads(line)
-            check(row["sequence"] not in timings, "duplicate native phase timing")
-            timings[row["sequence"]] = row
+    timings = phase_timings(stem)
     current = timings[sequence]
     check(current["acquired_ns"] == acquired and current["ipc_deadline_ns"] == acquired + 337_500_000,
           "gate witness disagrees with native acquisition or IPC budget")
@@ -394,8 +420,8 @@ def main():
                 }[case]
                 print(f"{'PASS' if bracket else 'INCONCLUSIVE'} {label} ordering: {description}")
             elif mode == "--replay-exact":
-                first, bracket = verify_exact_replay(stem, broker)
-                print(f"{'PASS' if bracket else 'INCONCLUSIVE'} replay ordering: continuous native REPLY block across write")
+                first, bracket = verify_exact_replay(stem, broker, stage_after)
+                print(f"{'PASS' if bracket else 'INCONCLUSIVE'} replay ordering: same stock replay request across FIFO write")
             else:
                 peer, bracket = verify_observation(stem, case, broker, first, outstanding)
                 first = first or peer

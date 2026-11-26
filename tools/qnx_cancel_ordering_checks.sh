@@ -98,8 +98,8 @@ for name in $cases; do
     log="$stem.jsonl"
     mkfifo "$out/control.fifo"
     set --
-    case "$name" in
-        live-near|handoff-gated) set -- --phase-timing ;;
+    case "$name:$mode" in
+        live-near:*|handoff-gated:*|replay:replay-exact) set -- --phase-timing ;;
     esac
     ./shadow-demo "$@" --worker ./shadow-worker --control-stdin --samples 44 \
         --period-ms 500 --deadline-ms 450 --qualify 1 --probation 10 \
@@ -107,7 +107,11 @@ for name in $cases; do
     broker=$!
     exec 3> "$out/control.fifo"
     printf '%s\n' "$broker" > "$stem.broker-pid"
-    wait_trace '"type":"sample","sequence":16,'
+    if [ "$mode" = replay-exact ]; then
+        wait_trace '"type":"sample","sequence":15,'
+    else
+        wait_trace '"type":"sample","sequence":16,'
+    fi
     pidin -p "$broker" fds > "$stem-baseline.fds"
     case "$name" in
         live-near|handoff-gated)
@@ -116,8 +120,10 @@ for name in $cases; do
             writer=$!
             ;;
     esac
-    printf 'stage %s/%s.manifest\n' "$out" "$name" >&3
-    [ "$name" = replay-gated ] || wait_trace '"generation":1,.*"event":"stage_requested"'
+    if [ "$mode" != replay-exact ]; then
+        printf 'stage %s/%s.manifest\n' "$out" "$name" >&3
+        [ "$name" = replay-gated ] || wait_trace '"generation":1,.*"event":"stage_requested"'
+    fi
     candidate=
     if [ "$name" = live ]; then
         wait_trace '"generation":1,.*"event":"candidate_promoted"'
@@ -137,19 +143,10 @@ for name in $cases; do
             exit 1
         fi
     elif [ "$mode" = replay-exact ]; then
-        count=0
-        while [ "$count" -lt 100 ]; do
-            pidin ar > "$stem-worker.processes"
-            candidate=$(awk '$2 ~ /(^|\/)shadow-candidate$/ && $3=="delay" && $4=="0" {p=$1; ++n} END {if (n==1) print p}' "$stem-worker.processes")
-            [ -z "$candidate" ] || break
-            count=$((count + 1))
-            sleep 0.01
-        done
-        code=77
-        if [ -n "$candidate" ]; then
-            if ./qnx-cancel-replay-worker --stock-replay-cancel "$stem" "$broker" "$candidate" \
-                >&3 3>&- 2> "$stem.exact.stderr"; then code=0; else code=$?; fi
-        fi
+        baseline=$(sed -n 's/^{"type":"meta",.*"baseline_pid":\([0-9][0-9]*\),.*/\1/p' "$log")
+        if ./qnx-cancel-replay-worker --stock-replay-cancel "$stem" "$broker" "$baseline" \
+            >&3 3>&- 2> "$stem.exact.stderr"; then code=0; else code=$?; fi
+        pidin ar > "$stem-worker.processes"
         printf '%s\n' "$code" > "$stem.exact.exit"
         case "$code" in
             0) ;;
