@@ -10,14 +10,48 @@ out=$2
 case "$out" in /*) ;; *) echo 'Output directory must be absolute.' >&2; exit 2 ;; esac
 mkdir "$out"
 log=$out/cycles.jsonl
+fifo=$out/control.fifo
 broker=
-cleanup() {
-    exec 3>&-
-    if [ -n "$broker" ]; then
-        kill -TERM "$broker" 2>/dev/null || :
-        wait "$broker" || :
+controller=
+
+owned_by() {
+    [ "$(ps -p "$1" -o ppid= | tr -d '[:space:]')" = "$2" ]
+}
+
+stop_child() {
+    pid=$1
+    [ -n "$pid" ] && owned_by "$pid" "$$" || return 0
+    kill -TERM "$pid" 2>/dev/null || :
+    attempts=0
+    while owned_by "$pid" "$$" && [ "$attempts" -lt 40 ]; do
+        attempts=$((attempts + 1))
+        sleep 0.05
+    done
+    if owned_by "$pid" "$$"; then
+        if [ "$pid" = "$broker" ]; then
+            echo 'Broker did not stop after TERM; terminating its remaining children.' >&2
+            ps -A -o pid= -o ppid= |
+                awk -v parent="$pid" '$2 == parent {print $1}' |
+                while read -r child; do
+                    if owned_by "$pid" "$$" && owned_by "$child" "$pid"; then
+                        kill -KILL "$child" 2>/dev/null || :
+                    fi
+                done
+        fi
+        if owned_by "$pid" "$$"; then
+            kill -KILL "$pid" 2>/dev/null || :
+        fi
     fi
-    rm -f "$out/control.fifo"
+}
+
+cleanup() {
+    stop_child "$controller"
+    stop_child "$broker"
+    if [ -n "$broker" ] && ! kill -0 "$broker" 2>/dev/null; then
+        if wait "$broker"; then code=0; else code=$?; fi
+        printf '%s\n' "$code" > "$out/exit"
+    fi
+    rm -f "$fifo"
 }
 trap cleanup EXIT
 trap 'exit 130' INT TERM
@@ -59,46 +93,84 @@ SHADOW_CANDIDATE="$(pwd -P)/shadow-candidate" awk '
     /^executable=/ {print "executable=" ENVIRON["SHADOW_CANDIDATE"]; next}
     {print}
 ' candidate.manifest > "$out/candidate.manifest"
-mkfifo "$out/control.fifo"
-./shadow-demo --worker ./shadow-worker --control-stdin --samples 320 \
+control() {
+    # This child alone can block opening the FIFO. The parent supervises both ends.
+    trap - EXIT INT TERM
+    trap 'exit 1' PIPE
+    exec 3> "$fifo"
+    printf 'broker %s\n' "$broker" > "$out/retirement"
+    meta=$(wait_row '"type":"meta"')
+    baseline=$(child_pid "$meta" baseline_pid)
+    wait_row '"sequence":20,' >/dev/null
+
+    generation=1
+    while [ "$generation" -le 21 ]; do
+        printf 'stage %s/candidate.manifest\n' "$out" >&3
+        wait_row "\"generation\":$generation,.*\"event\":\"stage_requested\"" >/dev/null
+        if [ "$generation" -eq 21 ]; then
+            committed=$(wait_row '"generation":21,.*"event":"candidate_committed"' 500)
+            final=$(child_pid "$committed" candidate_pid)
+            wait_retired "$baseline"
+            kill -0 "$broker" && kill -0 "$final" || fail 'broker or final candidate missing after commit'
+            printf 'baseline %s\n' "$baseline" >> "$out/retirement"
+        else
+            replayed=$(wait_row "\"generation\":$generation,.*\"event\":\"replay_complete\"")
+            candidate=$(child_pid "$replayed" candidate_pid)
+            [ "$candidate" -ne "$baseline" ] || fail 'candidate PID equals baseline PID'
+            boundary=$(printf '%s\n' "$replayed" | sed -n 's/.*"after_sequence":\([0-9][0-9]*\)[,}].*/\1/p')
+            [ -n "$boundary" ] || fail 'missing replay boundary'
+            wait_row "\"type\":\"sample\",\"sequence\":$((boundary + 1)),.*\"phase\":\"shadowing\"" >/dev/null
+            printf 'cancel\n' >&3
+            wait_row "\"generation\":$generation,.*\"event\":\"candidate_cancelled\"" >/dev/null
+            wait_retired "$candidate"
+            kill -0 "$broker" && kill -0 "$baseline" || fail 'broker or baseline missing after cancellation'
+            printf 'cancelled %s %s\n' "$generation" "$candidate" >> "$out/retirement"
+        fi
+        generation=$((generation + 1))
+    done
+
+    wait_row '"type":"summary"' 14000 >/dev/null
+    attempts=0
+    until [ -s "$out/exit" ]; do
+        [ "$attempts" -lt 40 ] || fail 'broker emitted summary but did not exit'
+        attempts=$((attempts + 1))
+        sleep 0.05
+    done
+    broker=
+    read -r code < "$out/exit"
+    wait_retired "$final"
+    [ "$code" -eq 0 ] || fail "broker exited with $code"
+    printf 'final %s\n' "$final" >> "$out/retirement"
+}
+
+mkfifo "$fifo"
+./shadow-demo --worker ./shadow-worker --control-stdin --samples 640 \
     --period-ms "${SHADOW_PERIOD_MS:-20}" --deadline-ms "${SHADOW_DEADLINE_MS:-10}" \
-    < "$out/control.fifo" > "$log" 2> "$out/stderr" &
+    > "$log" 2> "$out/stderr" < "$fifo" &
 broker=$!
-printf 'broker %s\n' "$broker" > "$out/retirement"
-exec 3> "$out/control.fifo"
+printf '%s\n' "$broker" > "$out/broker-pid"
+control &
+controller=$!
 
-meta=$(wait_row '"type":"meta"')
-baseline=$(child_pid "$meta" baseline_pid)
-wait_row '"sequence":20,' >/dev/null
-
-generation=1
-while [ "$generation" -le 21 ]; do
-    printf 'stage %s/candidate.manifest\n' "$out" >&3
-    wait_row "\"generation\":$generation,.*\"event\":\"stage_requested\"" >/dev/null
-    if [ "$generation" -eq 21 ]; then
-        committed=$(wait_row '"generation":21,.*"event":"candidate_committed"' 500)
-        final=$(child_pid "$committed" candidate_pid)
-        wait_retired "$baseline"
-        kill -0 "$broker" && kill -0 "$final" || fail 'broker or final candidate missing after commit'
-        printf 'baseline %s\n' "$baseline" >> "$out/retirement"
-    else
-        replayed=$(wait_row "\"generation\":$generation,.*\"event\":\"replay_complete\"")
-        candidate=$(child_pid "$replayed" candidate_pid)
-        [ "$candidate" -ne "$baseline" ] || fail 'candidate PID equals baseline PID'
-        printf 'cancel\n' >&3
-        wait_row "\"generation\":$generation,.*\"event\":\"candidate_cancelled\"" >/dev/null
-        wait_retired "$candidate"
-        kill -0 "$broker" && kill -0 "$baseline" || fail 'broker or baseline missing after cancellation'
-        printf 'cancelled %s %s\n' "$generation" "$candidate" >> "$out/retirement"
+# A failed broker launch, blocked FIFO open or hung broker exit cannot hold
+# the parent in an unbounded open or wait.
+attempts=0
+while kill -0 "$controller" 2>/dev/null; do
+    if [ -n "$broker" ] && ! kill -0 "$broker" 2>/dev/null; then
+        if wait "$broker"; then code=0; else code=$?; fi
+        broker=
+        printf '%s\n' "$code" > "$out/exit"
+        [ "$code" -eq 0 ] || fail "broker exited with $code"
     fi
-    generation=$((generation + 1))
+    if [ "$attempts" -eq 200 ] && ! grep -q '"type":"meta"' "$log"; then
+        fail 'broker startup or FIFO rendezvous timed out'
+    fi
+    [ "$attempts" -lt 14400 ] || fail 'controller exceeded run timeout'
+    attempts=$((attempts + 1))
+    sleep 0.05
 done
-
-wait_row '"type":"summary"' 8000 >/dev/null
-if wait "$broker"; then code=0; else code=$?; fi
-broker=
-printf '%s\n' "$code" > "$out/exit"
-wait_retired "$final"
-printf 'final %s\n' "$final" >> "$out/retirement"
-[ "$code" -eq 0 ] || fail "broker exited with $code"
+if wait "$controller"; then code=0; else code=$?; fi
+controller=
+[ "$code" -eq 0 ] && grep -q '^final [0-9][0-9]*$' "$out/retirement" ||
+    fail 'controller did not complete'
 echo "Captured 20 cancellations and a final commit in $out"
