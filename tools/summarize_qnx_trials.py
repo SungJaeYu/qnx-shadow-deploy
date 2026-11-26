@@ -328,9 +328,9 @@ def trial(root, name, condition, count, period, deadline, loops, legacy, exits):
         expected_exit = 130 if interrupted else (3 if summary["phase"] == "failed" else 0)
         check(result["exit_code"] is None or result["exit_code"] == expected_exit,
               "broker exit conflicts with trace termination")
-        result.update(measure(ticks, meta))
-        continuity = trial_continuity(meta, summary, count, result["unexpected_deadline_failure_samples"])
-        result["continuity"] = continuity
+        measurements = measure(ticks, meta)
+        continuity = trial_continuity(meta, summary, count, measurements["unexpected_deadline_failure_samples"])
+        result.update(measurements, continuity=continuity)
         result.update(observed_samples=len(ticks), observed_outputs=summary["outputs"],
                       missing_outputs_vs_requested=count - summary["outputs"],
                       observed_samples_without_output=summary["missing_outputs"],

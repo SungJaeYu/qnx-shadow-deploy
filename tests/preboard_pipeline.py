@@ -106,6 +106,45 @@ class Pipeline(unittest.TestCase):
             outcome = trial(root, "idle-1", "idle", 8, 10, 5, 0, False, {})
             self.assertEqual(outcome["status"], "invalid")
 
+    def test_invalid_trial_plan_does_not_publish_deadline_measurements(self):
+        metadata = {
+            "type": "meta", "schema": 2, "backend": "qnx-native-ipc", "scenario": "live-deployment",
+            "requested_inputs": 9, "period_ms": 10, "deadline_ms": 5, "ipc_budget_ms": 3.75,
+            "baseline_pid": 10, "candidate_pid": -1, "position_unit": "m",
+            "qualification_samples": 20, "probation_samples": 40,
+        }
+        tick = {
+            "type": "sample", "sequence": 1, "phase": "failed", "source": "none",
+            "event": "output_stopped", "reason": "decision_deadline_exceeded", "generation": 0,
+            "baseline": None, "candidate": None, "baseline_check": "deadline_exceeded",
+            "candidate_check": "not_running", "baseline_pid": 10, "candidate_pid": -1,
+            "output": None, "publication_miss": True, "scheduled_release_offset_ns": 0,
+            "acquired_offset_ns": 1_000_000, "decision_offset_ns": 7_000_000,
+            "time_s": .001, "decision_latency_ms": 6, "acquisition_interval_ms": None,
+            "release_lateness_ms": 1, "nominal_slot_lateness_ms": 1, "nominal_grid_lateness_ms": 1,
+            "nominal_slot": 0, "skipped_nominal_slots": 0,
+        }
+        summary = {
+            "type": "summary", "phase": "failed", "interrupted": False,
+            "samples": 1, "outputs": 0, "missing_outputs": 1, "publication_misses": 1,
+            "requested_inputs": 9, "acquired_inputs": 1, "unprocessed_inputs": 8,
+            "selected_outputs": 0, "missing_selected_outputs": 1, "decision_deadline_misses": 1,
+            "last_nominal_slot": 0, "initial_unoccupied_slots": 0, "skipped_nominal_slots": 0,
+            "max_acquisition_interval_ms": None, "max_nominal_slot_lateness_ms": 1,
+            "max_nominal_grid_lateness_ms": 1, "max_scheduling_lateness_ms": 1,
+            "max_selected_interval_ms": None, "effective_selected_rate_hz": None,
+            "external_delivery": "unmeasured",
+        }
+        with tempfile.TemporaryDirectory() as directory:
+            root = Path(directory)
+            (root / "idle-1.jsonl").write_bytes(encode(metadata) + encode(tick) + encode(summary))
+            outcome = trial(root, "idle-1", "idle", 8, 10, 5, 0, False, {})
+        self.assertEqual(outcome["status"], "invalid")
+        self.assertEqual(outcome["error"], "continuity request count differs from trial plan")
+        self.assertEqual(outcome["trace_observed_samples"], 1)
+        self.assertIsNone(outcome["observed_samples"])
+        self.assertNotIn("unexpected_deadline_failure_samples", outcome)
+
     def test_trace(self):
         with tempfile.TemporaryDirectory() as directory:
             trace = Path(directory) / "trace.mm"
