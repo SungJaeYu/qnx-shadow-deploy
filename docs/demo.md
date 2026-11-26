@@ -1,5 +1,7 @@
 # Demonstration script
 
+[Play the archived QNX guest demonstration](native-qnx-demo.mp4) or see [how to reproduce it](evaluator.md#archived-native-demo).
+
 ## Core message
 
 "A process can be alive and still be wrong. ShadowDeploy tests a candidate on the same input stream before allowing it to supply output."
