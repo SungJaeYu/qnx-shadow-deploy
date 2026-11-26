@@ -87,6 +87,9 @@ if(BUILD_TESTING)
     add_test(NAME preboard-pipeline COMMAND ${Python3_EXECUTABLE}
       ${CMAKE_CURRENT_SOURCE_DIR}/tests/preboard_pipeline.py $<TARGET_FILE_DIR:shadow-demo>)
     set_tests_properties(preboard-pipeline PROPERTIES TIMEOUT 20)
+    add_test(NAME qnx-cancel-ordering-verifier COMMAND ${Python3_EXECUTABLE}
+      ${CMAKE_CURRENT_SOURCE_DIR}/tests/qnx_cancel_ordering_verifier.py)
+    set_tests_properties(qnx-cancel-ordering-verifier PROPERTIES TIMEOUT 10)
     find_program(SHADOW_NODE_EXECUTABLE node)
     if(SHADOW_NODE_EXECUTABLE)
       add_test(NAME workbench-continuity COMMAND ${SHADOW_NODE_EXECUTABLE}
