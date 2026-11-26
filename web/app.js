@@ -9,7 +9,7 @@ const descriptions = {
   "reject-nan": "A NaN cannot become a published sensor result.",
   "reject-stale": "A response for the wrong input sequence is rejected.",
   "reject-protocol": "The candidate responds with an incompatible protocol version.",
-  "reject-switch": "Both streams are individually valid, but switching between them would create a 50-meter jump.",
+  "reject-switch": "Both streams produce valid estimates. The broker keeps the baseline because the switch would exceed the 5-meter selected-output continuity limit.",
   "no-fallback": "Both processes exit during probation. The broker stops publishing because no valid result remains.",
   "post-commit-failure": "The candidate fails after the standby has been retired. The broker stops; it cannot roll back."
 };

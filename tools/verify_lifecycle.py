@@ -2,10 +2,13 @@
 """Verify a fresh tools/lifecycle_checks.sh run exported from a host or guest."""
 
 import argparse
+from collections import Counter
 import json
 import math
 from pathlib import Path
 import re
+
+from verify_qnx_logs import validate_continuity
 
 
 def check(condition, message):
@@ -20,13 +23,21 @@ def only(rows, event, generation):
     return matches[0]
 
 
+class NativeEvidenceUnavailable(ValueError):
+    pass
+
+
 def verify_native(path, broker, baseline, first, second):
     connections = {}
     for phase in ("baseline", "probation", "rollback", "committed"):
-        text = (path / f"{phase}.fds").read_text()
+        try:
+            text = (path / f"{phase}.fds").read_text()
+        except OSError as error:
+            raise NativeEvidenceUnavailable(f"{phase} broker fd snapshot unavailable") from error
         connections[phase] = [(fd, int(pid)) for fd, pid in
-                              re.findall(r"^\s+(\d+s?)\s+(\d+)\s", text, re.M)]
-        check(connections[phase], f"missing {phase} broker fd snapshot")
+                              re.findall(r"^[ \t]*(\d+s?)[ \t]+(\d+)[ \t]", text, re.M)]
+        if not {"0", "1", "2"} <= {fd for fd, _ in connections[phase]}:
+            raise NativeEvidenceUnavailable(f"{phase} broker fd snapshot lacks standard descriptors")
     expected = {"baseline": {baseline}, "probation": {baseline, first},
                 "rollback": {baseline}, "committed": {second}}
     for phase, pids in expected.items():
@@ -35,10 +46,26 @@ def verify_native(path, broker, baseline, first, second):
         check(sorted(worker_connections) == sorted(pids), f"{phase} side-channel identities")
     check(sorted(connections["rollback"]) == sorted(connections["baseline"]),
           "rollback left extra broker connections or descriptors")
-    remaining = (path / "finished.processes").read_text()
-    remaining_pids = {int(pid) for pid in re.findall(r"^\s*(\d+)\s", remaining, re.M)}
-    check(remaining_pids and not (remaining_pids & {broker, baseline, first, second}),
-          "missing process list or surviving owned process")
+    initial_resources = Counter((fd.endswith("s"), second if pid == baseline else pid)
+                                for fd, pid in connections["baseline"])
+    committed_resources = Counter((fd.endswith("s"), pid) for fd, pid in connections["committed"])
+    check(committed_resources == initial_resources,
+          "commit left extra descriptors or changed the expected connection peers")
+
+    def process_ids(phase):
+        try:
+            text = (path / f"{phase}.processes").read_text()
+        except OSError as error:
+            raise NativeEvidenceUnavailable(f"{phase} process list unavailable") from error
+        return {int(pid) for pid, command in re.findall(r"^[ \t]*(\d+)[ \t]+(\S+)", text, re.M)
+                if Path(command).name != "pidin"}
+
+    owned = {broker, baseline, first, second}
+    initial_pids, remaining_pids = process_ids("baseline"), process_ids("finished")
+    check(not (remaining_pids & owned), "owned process remained after broker exit")
+    initial_system = initial_pids - owned
+    if not {broker, baseline} <= initial_pids or not initial_system or not initial_system <= remaining_pids:
+        raise NativeEvidenceUnavailable("process snapshots lack a comparable baseline and finished system view")
     return {phase: sorted(pids) for phase, pids in expected.items()}
 
 
@@ -58,6 +85,8 @@ def verify(path):
     requested = meta["requested_inputs"]
     check(requested == 90 and [tick["sequence"] for tick in ticks] == list(range(1, requested + 1)),
           "incomplete or missing input sequence")
+    check(validate_continuity(meta, summary, ticks) is True,
+          "v2 lifecycle requires continuity metrics")
     baseline = meta["baseline_pid"]
     broker = int((path / "broker-pid").read_text())
     check(meta["candidate_pid"] == -1, "candidate started before staging")
@@ -186,7 +215,10 @@ def verify(path):
         "max_output_step_m": round(max_output_step, 9), "timing": timing,
     }
     if backend == "qnx-native-ipc":
-        evidence["native_connections"] = verify_native(path, broker, baseline, first, second)
+        try:
+            evidence["native_connections"] = verify_native(path, broker, baseline, first, second)
+        except NativeEvidenceUnavailable as error:
+            evidence["native_cleanup"] = {"verdict": "inconclusive", "reason": str(error)}
     return evidence
 
 
@@ -201,7 +233,9 @@ def main():
     except (OSError, ValueError, IndexError, KeyError, TypeError) as error:
         parser.exit(1, f"FAIL {args.fresh_run_dir}: {error}\n")
     print(json.dumps(evidence, indent=2, sort_keys=True))
-    return not args.functional_only and evidence["timing"]["verdict"] != "pass"
+    if not args.functional_only and evidence["timing"]["verdict"] != "pass":
+        return 1
+    return 77 if "native_cleanup" in evidence else 0
 
 
 if __name__ == "__main__":

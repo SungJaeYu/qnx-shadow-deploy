@@ -142,6 +142,40 @@ class DeploymentIntegration(unittest.TestCase):
         trace.write_text("".join(json.dumps(row) + "\n" for row in rows))
         rejects("stage, replay and promotion boundaries out of order")
 
+        rows = [json.loads(line) for line in original_trace.splitlines()]
+        rows[-1]["skipped_nominal_slots"] += 1
+        trace.write_text("".join(json.dumps(row) + "\n" for row in rows))
+        rejects("invalid continuity field: skipped_nominal_slots")
+
+        rows = [json.loads(line) for line in original_trace.splitlines()]
+        rows[0]["backend"] = "qnx-native-ipc"
+        trace.write_text("".join(json.dumps(row) + "\n" for row in rows))
+        broker = int((synthetic / "broker-pid").read_text())
+        baseline = rows[0]["baseline_pid"]
+        first, second = [row["candidate_pid"] for row in rows if row.get("event") == "candidate_promoted"]
+        ordinary_fds = " 0 1 control\n 1 1 log\n 2 1 log\n 4 1 pipe\n 5 1 pipe\n"
+        (synthetic / "baseline.fds").write_text(ordinary_fds + f" 0s {baseline} native\n")
+        shutil.copyfile(synthetic / "baseline.fds", synthetic / "rollback.fds")
+        (synthetic / "probation.fds").write_text(ordinary_fds +
+                                                f" 0s {baseline} native\n 1s {first} native\n")
+        committed = synthetic / "committed.fds"
+        committed.write_text(ordinary_fds + f" 2s {second} native\n")
+        observer = max(broker, baseline, first, second) + 1
+        system_processes = "1 system\n2 service\n"
+        (synthetic / "baseline.processes").write_text(
+            system_processes + f"{broker} broker\n{baseline} worker\n{observer} /bin/pidin ar\n")
+        finished = synthetic / "finished.processes"
+        finished.write_text(system_processes + f"{observer + 1} /bin/pidin ar\n")
+        subprocess.run(command, check=True, capture_output=True, text=True, timeout=5)
+
+        committed.write_text(committed.read_text() + " 6 1 leaked-pipe\n")
+        rejects("commit left extra descriptors")
+        committed.write_text(ordinary_fds + f" 2s {second} native\n")
+        finished.write_text("1 system\n")
+        result = subprocess.run(command, capture_output=True, text=True, timeout=5)
+        self.assertEqual(result.returncode, 77, result.stdout + result.stderr)
+        self.assertEqual(json.loads(result.stdout)["native_cleanup"]["verdict"], "inconclusive")
+
     def test_separate_artifact_replays_then_qualifies_live(self):
         rows = self.run_live(self.manifest())
         ready = next(r for r in rows if r.get("event") == "replay_complete")

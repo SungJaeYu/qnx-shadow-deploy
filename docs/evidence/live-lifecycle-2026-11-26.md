@@ -30,7 +30,7 @@ through the second generation's commit.
 
 The broker exited 0 and the functional checks passed. The strict verifier
 exited 1 because of the skipped nominal slot. The run directory at
-`/private/tmp/qnx-lifecycle-final-current` retains the broker trace and
+`artifacts/lifecycle-host-2026-11-26` retains the broker trace and
 retirement records. The trace SHA-256 is
 `5253f8b36b8ab83aecbd8aee56702a536fff29a8daff1e004557d61eb71a9061`.
 The full host CTest run passed all eight suites, including the lifecycle
