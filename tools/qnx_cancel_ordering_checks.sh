@@ -80,61 +80,65 @@ for name in $cases; do
     wait_trace '"type":"sample","sequence":16,'
     pidin -p "$broker" fds > "$stem-baseline.fds"
     printf 'stage %s/%s.manifest\n' "$out" "$name" >&3
-    wait_trace '"generation":1,.*"event":"stage_requested"'
+    [ "$name" = replay-gated ] || wait_trace '"generation":1,.*"event":"stage_requested"'
     candidate=
     if [ "$name" = live ]; then
         wait_trace '"generation":1,.*"event":"candidate_promoted"'
         candidate=$(sed -n '/"generation":1,.*"event":"candidate_promoted"/s/.*"candidate_pid":\([0-9][0-9]*\),.*/\1/p' "$log")
-    elif [ "$name" = replay-gated ]; then
+    fi
+
+    if [ "$name" = replay-gated ]; then
         count=0
-        until grep -q '^received pid=' "$stem.witness" 2>/dev/null; do
+        while :; do
+            receipt=
+            if { IFS= read -r receipt < "$stem.witness"; } 2>/dev/null; then
+                case "$receipt" in
+                    "received pid="*) break ;;
+                esac
+            fi
             count=$((count + 1))
             [ "$count" -lt 200 ] || { echo 'INCONCLUSIVE: no receipt witness.' >&2; exit 77; }
             sleep 0.005
         done
-        candidate=$(sed -n 's/^received pid=\([0-9][0-9]*\) .*/\1/p' "$stem.witness")
-    fi
-
-    tid=
-    observed_from=0
-    count=0
-    attempts=100
-    [ "$name" != replay-gated ] || attempts=3
-    while [ "$count" -lt "$attempts" ]; do
-        if [ "$name" = replay ] && [ -z "$candidate" ]; then
-            pidin ar > "$stem-worker.processes"
-            candidate=$(awk '$2 ~ /(^|\/)shadow-candidate$/ && $3=="delay" && $4=="0" {p=$1; ++n} END {if (n==1) print p}' "$stem-worker.processes")
-        fi
+        # The worker checks this exact receipt before releasing the first reply.
+        printf 'cancel\n' >&3
+        printf '%s\n' "$receipt" > "$stem.release"
+    else
+        tid=
+        observed_from=0
+        count=0
+        while [ "$count" -lt 100 ]; do
+            if [ "$name" = replay ] && [ -z "$candidate" ]; then
+                pidin ar > "$stem-worker.processes"
+                candidate=$(awk '$2 ~ /(^|\/)shadow-candidate$/ && $3=="delay" && $4=="0" {p=$1; ++n} END {if (n==1) print p}' "$stem-worker.processes")
+            fi
+            if [ -n "$candidate" ]; then
+                observed_from=$(last_sample)
+                pidin -p "$broker" -f abJB > "$stem-before.threads"
+                tid=$(reply_tid "$stem-before.threads")
+                [ -z "$tid" ] || break
+            fi
+            count=$((count + 1))
+            sleep 0.01
+        done
+        before=$(last_sample)
+        printf 'cancel\n' >&3
+        after=$(last_sample)
+        after_tid=
         if [ -n "$candidate" ]; then
-            observed_from=$(last_sample)
-            pidin -p "$broker" -f abJB > "$stem-before.threads"
-            tid=$(reply_tid "$stem-before.threads")
-            [ -z "$tid" ] || break
+            pidin -p "$broker" -f abJB > "$stem-after.threads"
+            after_tid=$(reply_tid "$stem-after.threads")
         fi
-        count=$((count + 1))
-        sleep 0.01
-    done
-    before=$(last_sample)
-    printf 'cancel\n' >&3
-    after=$(last_sample)
-    after_tid=
-    if [ -n "$candidate" ]; then
-        pidin -p "$broker" -f abJB > "$stem-after.threads"
-        after_tid=$(reply_tid "$stem-after.threads")
-    fi
-    observed_through=$(last_sample)
-    printf 'broker=%s peer=%s before_tid=%s after_tid=%s before_observation=%s before_write=%s after_write=%s after_observation=%s\n' \
-        "$broker" "${candidate:-0}" "${tid:-0}" "${after_tid:-0}" \
-        "$observed_from" "$before" "$after" "$observed_through" > "$stem-ordering.txt"
-    # Release only after the cancel write and both observation records are complete.
-    if [ "$name" = replay-gated ]; then
-        : > "$stem.release"
-    fi
-    # For the live case, both views must be from the same unpublished sample.
-    # Replay can advance to another historical request without publishing a live sample.
-    if [ -z "$tid" ] || [ "$tid" != "$after_tid" ] ||
-        { [ "$name" = live ] && { [ "$observed_from" != "$before" ] || [ "$before" != "$after" ] || [ "$before" != "$observed_through" ]; }; }; then
-        inconclusive=1
+        observed_through=$(last_sample)
+        printf 'broker=%s peer=%s before_tid=%s after_tid=%s before_observation=%s before_write=%s after_write=%s after_observation=%s\n' \
+            "$broker" "${candidate:-0}" "${tid:-0}" "${after_tid:-0}" \
+            "$observed_from" "$before" "$after" "$observed_through" > "$stem-ordering.txt"
+        # For the live case, both views must be from the same unpublished sample.
+        # Replay can advance to another historical request without publishing a live sample.
+        if [ -z "$tid" ] || [ "$tid" != "$after_tid" ] ||
+            { [ "$name" = live ] && { [ "$observed_from" != "$before" ] || [ "$before" != "$after" ] || [ "$before" != "$observed_through" ]; }; }; then
+            inconclusive=1
+        fi
     fi
 
     wait_trace '"generation":1,.*"event":"candidate_cancelled"'

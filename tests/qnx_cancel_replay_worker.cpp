@@ -6,6 +6,7 @@
 #include <cstdlib>
 #include <fstream>
 #include <iostream>
+#include <sstream>
 #include <string>
 #include <sys/neutrino.h>
 #include <thread>
@@ -40,17 +41,22 @@ int main() {
 
         const auto received = shadow::monotonic_ns();
         if (first) {
-            witness << "received pid=" << getpid() << " sequence=" << sample.sequence
+            std::ostringstream receipt;
+            receipt << "received pid=" << getpid() << " sender_pid=" << info.pid
+                    << " sequence=" << sample.sequence
                     << " acquired_ns=" << sample.acquired_ns << " rcvid=" << rcvid
-                    << " time_ns=" << received << std::endl;
+                    << " time_ns=" << received;
+            const auto receipt_line = receipt.str();
+            witness << receipt_line << std::endl;
             const auto gate_deadline = received + 300000000ULL;
             for (;;) {
                 if (shadow::monotonic_ns() >= gate_deadline) {
                     std::cerr << "replay reply gate expired\n";
                     return 1;
                 }
-                if (access(release_path.c_str(), F_OK) == 0) break;
-                if (errno != ENOENT) return 1;
+                std::ifstream gate(release_path);
+                std::string token;
+                if (std::getline(gate, token) && token == receipt_line) break;
                 std::this_thread::sleep_for(std::chrono::milliseconds(1));
             }
             witness << "released sequence=" << sample.sequence << " rcvid=" << rcvid

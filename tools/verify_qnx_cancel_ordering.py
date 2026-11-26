@@ -25,7 +25,7 @@ def reply_tids(path, broker, peer):
 def observe(stem, broker, expected_peer, outstanding):
     names = ("broker", "peer", "before_tid", "after_tid", "before_observation", "before_write",
              "after_write", "after_observation")
-    text = stem.with_suffix(".ordering.txt").read_text().strip()
+    text = Path(f"{stem}-ordering.txt").read_text().strip()
     match = re.fullmatch(" ".join(name + r"=(\d+)" for name in names), text)
     check(match, "malformed command-write observation")
     b, peer, before_tid, after_tid, *watermarks = map(int, match.groups())
@@ -160,31 +160,36 @@ def verify_observation(stem, case, broker, first, outstanding):
     return peer, bracket
 
 
-def verify_gate(stem, peer, stage_after):
+def verify_gate(stem, broker, stage_after):
     path = stem.with_suffix(".witness")
-    if not path.exists():
-        return False
-    lines = path.read_text().splitlines()
+    lines = path.read_text().splitlines() if path.exists() else []
+    if not lines:
+        return 0, False
+    receipt = re.fullmatch(r"received pid=(\d+) sender_pid=(\d+) sequence=(\d+) acquired_ns=(\d+) "
+                           r"rcvid=(\d+) time_ns=(\d+)", lines[0])
+    check(receipt, "malformed gated replay receipt")
+    peer, sender, sequence, acquired, rcvid, received_ns = map(int, receipt.groups())
+    check(peer > 1 and sender == broker and sequence == stage_after - 15 and sequence > 0 and rcvid > 0,
+          "gated replay witness does not identify the broker and first request")
+
+    token = stem.with_suffix(".release")
+    if token.exists():
+        check(token.read_text() == lines[0] + "\n", "gate token does not match the immutable receipt")
     if len(lines) < 3:
-        return False
-    check(len(lines) == 3 and stem.with_suffix(".release").is_file(),
-          "unexpected gated replay witness or missing release file")
-    receipt = re.fullmatch(r"received pid=(\d+) sequence=(\d+) acquired_ns=(\d+) rcvid=(\d+) time_ns=(\d+)",
-                           lines[0])
+        return peer, False
+    check(len(lines) == 3 and token.is_file(), "unexpected gated replay witness or missing release token")
     release = re.fullmatch(r"released sequence=(\d+) rcvid=(\d+) time_ns=(\d+)", lines[1])
     reply = re.fullmatch(r"replied sequence=(\d+) rcvid=(\d+) time_ns=(\d+) result=(-?\d+)", lines[2])
-    check(receipt and release and reply, "malformed gated replay witness")
-    pid, sequence, acquired, rcvid, received_ns = map(int, receipt.groups())
+    check(release and reply, "malformed gated replay release or reply")
     released_sequence, released_rcvid, released_ns = map(int, release.groups())
     replied_sequence, replied_rcvid, replied_ns, result = map(int, reply.groups())
-    check(pid == peer and sequence == stage_after - 15 and sequence > 0 and rcvid > 0
-          and sequence == released_sequence == replied_sequence and rcvid == released_rcvid == replied_rcvid,
-          "gated replay witness changed worker or first request identity")
+    check(sequence == released_sequence == replied_sequence and rcvid == released_rcvid == replied_rcvid,
+          "gated replay witness changed the first request identity")
     check(0 < acquired < received_ns <= released_ns <= replied_ns
           and released_ns - received_ns < 300_000_000
           and replied_ns - received_ns < 337_500_000 and result == 0,
           "gated replay reply failed or exceeded observation budget")
-    return True
+    return peer, True
 
 
 def verify_cleanup(stem, broker, baseline, first, second, ticks, sequence):
@@ -215,25 +220,21 @@ def main():
         print(f"PASS {case} behavior: cancelled_sample={cancelled} retry_committed_sample={committed}")
         bracket = False
         try:
-            peer, bracket = verify_observation(stem, case, broker, first, outstanding)
-            first = first or peer
-            if case != "live":
-                print(f"{'PASS' if bracket else 'INCONCLUSIVE'} {case} observation: matching REPLY sender and peer")
-            else:
-                print(f"{'PASS' if bracket else 'INCONCLUSIVE'} live ordering: same exchange across the write")
-        except malformed as error:
-            print(f"FAIL {case} observation: {error}", file=sys.stderr)
-            verdict = 1
-        if case == "replay":
-            print("INCONCLUSIVE replay ordering: no witness identifies the same replay request across the write")
-        if case == "replay-gated":
-            try:
-                witnessed = verify_gate(stem, first, stage_after)
-                bracket = bracket and witnessed
+            if case == "replay-gated":
+                first, bracket = verify_gate(stem, broker, stage_after)
                 print(f"{'PASS' if bracket else 'INCONCLUSIVE'} gated replay ordering: first request across the write")
-            except malformed as error:
-                print(f"FAIL gated replay ordering: {error}", file=sys.stderr)
-                verdict = 1
+            else:
+                peer, bracket = verify_observation(stem, case, broker, first, outstanding)
+                first = first or peer
+                if case == "replay":
+                    print(f"{'PASS' if bracket else 'INCONCLUSIVE'} replay observation: matching REPLY sender and peer")
+                    print("INCONCLUSIVE replay ordering: no witness identifies the same replay request across the write")
+                else:
+                    print(f"{'PASS' if bracket else 'INCONCLUSIVE'} live ordering: same exchange across the write")
+        except malformed as error:
+            label = "gated replay" if case == "replay-gated" else case
+            print(f"FAIL {label} ordering: {error}", file=sys.stderr)
+            verdict = 1
         try:
             verify_cleanup(stem, broker, baseline, first, second, ticks, cancelled)
         except malformed as error:

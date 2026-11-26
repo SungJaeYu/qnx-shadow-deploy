@@ -30,7 +30,7 @@ class CancelOrderingEvidenceTests(unittest.TestCase):
         Path(f"{self.stem}{extension}").write_text(text)
 
     def ordering(self, before_tid=2, after_tid=2, watermark=21, final=21):
-        self.write(".ordering.txt", f"broker=43 peer=47 before_tid={before_tid} after_tid={after_tid} "
+        self.write("-ordering.txt", f"broker=43 peer=47 before_tid={before_tid} after_tid={after_tid} "
                    f"before_observation={watermark} before_write={watermark} after_write={watermark} "
                    f"after_observation={final}\n")
 
@@ -151,7 +151,7 @@ class CancelOrderingTraceTests(unittest.TestCase):
         write(".exit", "0\n")
         pid, tid = (47, 2) if peer_known else (0, 0)
         watermark = cancel - 2 if live else cancel - 1
-        write(".ordering.txt", f"broker=43 peer={pid} before_tid={tid} after_tid={tid} "
+        write("-ordering.txt", f"broker=43 peer={pid} before_tid={tid} after_tid={tid} "
               f"before_observation={watermark} before_write={watermark} after_write={watermark} "
               f"after_observation={watermark}\n")
         if peer_known:
@@ -165,13 +165,19 @@ class CancelOrderingTraceTests(unittest.TestCase):
         write("-cancelled.processes", "1 procnto\n43 broker\n46 baseline\n")
         write("-finished.processes", "1 procnto\n")
 
-    def gated_witness(self, *, reply_rcvid=123, reply_ns=1_030_000_000, result=0, complete=True):
+    def gated_witness(self, *, reply_rcvid=123, reply_ns=1_030_000_000, result=0, complete=True,
+                      sender=43, token_matches=True, receipt_present=True):
         self.fixture("replay-gated")
         stem = self.root / "replay-gated"
-        stem.with_suffix(".release").touch()
-        receipt = "received pid=47 sequence=1 acquired_ns=50 rcvid=123 time_ns=1000000000\n"
+        # Gated evidence needs no stock pidin thread snapshots or sample watermarks.
+        for suffix in ("-ordering.txt", "-before.threads", "-after.threads"):
+            Path(f"{stem}{suffix}").unlink()
+        if not receipt_present:
+            return
+        receipt = f"received pid=47 sender_pid={sender} sequence=1 acquired_ns=50 rcvid=123 time_ns=1000000000\n"
         release = "released sequence=1 rcvid=123 time_ns=1020000000\n"
         reply = f"replied sequence=1 rcvid={reply_rcvid} time_ns={reply_ns} result={result}\n"
+        stem.with_suffix(".release").write_text(receipt if token_matches else "incorrect token\n")
         stem.with_suffix(".witness").write_text(receipt + release + (reply if complete else ""))
 
     def run_verifier(self, *args):
@@ -219,8 +225,16 @@ class CancelOrderingTraceTests(unittest.TestCase):
         self.assertEqual(result.returncode, 77, result.stderr)
         self.assertIn("INCONCLUSIVE gated replay ordering", result.stdout)
 
+    def test_gated_without_receipt_is_inconclusive(self):
+        self.gated_witness(receipt_present=False)
+        result = self.run_verifier("--gated")
+        self.assertEqual(result.returncode, 77, result.stderr)
+        self.assertIn("INCONCLUSIVE gated replay ordering", result.stdout)
+        self.assertIn("INCONCLUSIVE replay-gated cleanup", result.stdout)
+
     def test_gated_requires_matching_request_success_and_budget(self):
-        for changes in (dict(reply_rcvid=124), dict(reply_ns=1_340_000_000), dict(result=-1)):
+        for changes in (dict(reply_rcvid=124), dict(reply_ns=1_340_000_000), dict(result=-1),
+                        dict(sender=78), dict(token_matches=False)):
             with self.subTest(changes=changes):
                 self.gated_witness(**changes)
                 result = self.run_verifier("--gated")
