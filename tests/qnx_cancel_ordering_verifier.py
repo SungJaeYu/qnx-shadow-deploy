@@ -165,9 +165,18 @@ class CancelOrderingTraceTests(unittest.TestCase):
         write("-cancelled.processes", "1 procnto\n43 broker\n46 baseline\n")
         write("-finished.processes", "1 procnto\n")
 
-    def run_verifier(self):
+    def gated_witness(self, *, reply_rcvid=123, reply_ns=1_030_000_000, result=0, complete=True):
+        self.fixture("replay-gated")
+        stem = self.root / "replay-gated"
+        stem.with_suffix(".release").touch()
+        receipt = "received pid=47 sequence=1 acquired_ns=50 rcvid=123 time_ns=1000000000\n"
+        release = "released sequence=1 rcvid=123 time_ns=1020000000\n"
+        reply = f"replied sequence=1 rcvid={reply_rcvid} time_ns={reply_ns} result={result}\n"
+        stem.with_suffix(".witness").write_text(receipt + release + (reply if complete else ""))
+
+    def run_verifier(self, *args):
         verifier = Path(__file__).resolve().parents[1] / "tools" / "verify_qnx_cancel_ordering.py"
-        return subprocess.run([sys.executable, str(verifier), str(self.root)],
+        return subprocess.run([sys.executable, str(verifier), str(self.root), *args],
                               text=True, capture_output=True, check=False)
 
     def test_stock_replay_ordering_is_inconclusive_with_two_matching_snapshots(self):
@@ -196,6 +205,27 @@ class CancelOrderingTraceTests(unittest.TestCase):
         self.assertEqual(result.returncode, 77, result.stderr)
         self.assertIn("PASS replay cleanup", result.stdout)
         self.assertIn("INCONCLUSIVE replay cleanup", result.stdout)
+
+    def test_gated_first_request_can_pass(self):
+        self.gated_witness()
+        result = self.run_verifier("--gated")
+        self.assertEqual(result.returncode, 0, result.stderr)
+        self.assertIn("PASS gated replay ordering", result.stdout)
+        self.assertIn("PASS replay-gated cleanup", result.stdout)
+
+    def test_gated_without_reply_is_inconclusive(self):
+        self.gated_witness(complete=False)
+        result = self.run_verifier("--gated")
+        self.assertEqual(result.returncode, 77, result.stderr)
+        self.assertIn("INCONCLUSIVE gated replay ordering", result.stdout)
+
+    def test_gated_requires_matching_request_success_and_budget(self):
+        for changes in (dict(reply_rcvid=124), dict(reply_ns=1_340_000_000), dict(result=-1)):
+            with self.subTest(changes=changes):
+                self.gated_witness(**changes)
+                result = self.run_verifier("--gated")
+                self.assertEqual(result.returncode, 1, result.stderr)
+                self.assertIn("FAIL gated replay ordering", result.stderr)
 
     def test_retry_requires_sample_phase_current_candidate_and_order(self):
         self.fixture("live")

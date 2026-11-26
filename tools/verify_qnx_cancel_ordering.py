@@ -148,16 +148,43 @@ def verify_behavior(stem, case):
               "replay worker graduated or gained authority before cancellation")
     check(min(broker, baseline, second) > 1 and len({broker, baseline, second}) == 3,
           "process identity was invalid or reused")
-    return broker, baseline, first, second, outstanding, sequence, commit["sequence"], ticks
+    return broker, baseline, first, second, outstanding, sequence, commit["sequence"], ticks, stage["after_sequence"]
 
 
-def verify_observation(stem, broker, first, outstanding):
+def verify_observation(stem, case, broker, first, outstanding):
     peer, bracket = observe(stem, broker, first, outstanding)
-    if not first and peer:
+    if case == "replay" and peer:
         workers = Path(f"{stem}-worker.processes").read_text()
         check(re.search(rf"^\s*{peer}[ \t]+(?:\S*/)?shadow-candidate[ \t]+delay[ \t]+0[ \t]*$",
                         workers, re.M), "REPLY peer wasn't the staged delay worker")
     return peer, bracket
+
+
+def verify_gate(stem, peer, stage_after):
+    path = stem.with_suffix(".witness")
+    if not path.exists():
+        return False
+    lines = path.read_text().splitlines()
+    if len(lines) < 3:
+        return False
+    check(len(lines) == 3 and stem.with_suffix(".release").is_file(),
+          "unexpected gated replay witness or missing release file")
+    receipt = re.fullmatch(r"received pid=(\d+) sequence=(\d+) acquired_ns=(\d+) rcvid=(\d+) time_ns=(\d+)",
+                           lines[0])
+    release = re.fullmatch(r"released sequence=(\d+) rcvid=(\d+) time_ns=(\d+)", lines[1])
+    reply = re.fullmatch(r"replied sequence=(\d+) rcvid=(\d+) time_ns=(\d+) result=(-?\d+)", lines[2])
+    check(receipt and release and reply, "malformed gated replay witness")
+    pid, sequence, acquired, rcvid, received_ns = map(int, receipt.groups())
+    released_sequence, released_rcvid, released_ns = map(int, release.groups())
+    replied_sequence, replied_rcvid, replied_ns, result = map(int, reply.groups())
+    check(pid == peer and sequence == stage_after - 15 and sequence > 0 and rcvid > 0
+          and sequence == released_sequence == replied_sequence and rcvid == released_rcvid == replied_rcvid,
+          "gated replay witness changed worker or first request identity")
+    check(0 < acquired < received_ns <= released_ns <= replied_ns
+          and released_ns - received_ns < 300_000_000
+          and replied_ns - received_ns < 337_500_000 and result == 0,
+          "gated replay reply failed or exceeded observation budget")
+    return True
 
 
 def verify_cleanup(stem, broker, baseline, first, second, ticks, sequence):
@@ -171,15 +198,16 @@ def verify_cleanup(stem, broker, baseline, first, second, ticks, sequence):
 
 
 def main():
-    if len(sys.argv) != 2:
-        print("usage: verify_qnx_cancel_ordering.py FRESH_TRACE_DIR", file=sys.stderr)
+    if not (len(sys.argv) == 2 or len(sys.argv) == 3 and sys.argv[2] == "--gated"):
+        print("usage: verify_qnx_cancel_ordering.py FRESH_TRACE_DIR [--gated]", file=sys.stderr)
         return 2
     verdict = 0
     malformed = (OSError, ValueError, KeyError, IndexError, TypeError)
-    for case in ("live", "replay"):
+    cases = ("replay-gated",) if len(sys.argv) == 3 else ("live", "replay")
+    for case in cases:
         stem = Path(sys.argv[1]) / case
         try:
-            broker, baseline, first, second, outstanding, cancelled, committed, ticks = verify_behavior(stem, case)
+            broker, baseline, first, second, outstanding, cancelled, committed, ticks, stage_after = verify_behavior(stem, case)
         except malformed as error:
             print(f"FAIL {case} behavior: {error}", file=sys.stderr)
             verdict = 1
@@ -187,10 +215,10 @@ def main():
         print(f"PASS {case} behavior: cancelled_sample={cancelled} retry_committed_sample={committed}")
         bracket = False
         try:
-            peer, bracket = verify_observation(stem, broker, first, outstanding)
+            peer, bracket = verify_observation(stem, case, broker, first, outstanding)
             first = first or peer
-            if case == "replay":
-                print(f"{'PASS' if bracket else 'INCONCLUSIVE'} replay observation: matching REPLY sender and peer")
+            if case != "live":
+                print(f"{'PASS' if bracket else 'INCONCLUSIVE'} {case} observation: matching REPLY sender and peer")
             else:
                 print(f"{'PASS' if bracket else 'INCONCLUSIVE'} live ordering: same exchange across the write")
         except malformed as error:
@@ -198,6 +226,14 @@ def main():
             verdict = 1
         if case == "replay":
             print("INCONCLUSIVE replay ordering: no witness identifies the same replay request across the write")
+        if case == "replay-gated":
+            try:
+                witnessed = verify_gate(stem, first, stage_after)
+                bracket = bracket and witnessed
+                print(f"{'PASS' if bracket else 'INCONCLUSIVE'} gated replay ordering: first request across the write")
+            except malformed as error:
+                print(f"FAIL gated replay ordering: {error}", file=sys.stderr)
+                verdict = 1
         try:
             verify_cleanup(stem, broker, baseline, first, second, ticks, cancelled)
         except malformed as error:

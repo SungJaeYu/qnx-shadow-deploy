@@ -1,5 +1,5 @@
 #!/bin/sh
-# Observe the production candidate's normal IPC path with its supported delay mode.
+# Observe operator cancellation with the stock worker or a gated replay witness.
 set -eu
 [ "$(uname -s)" = QNX ] || { echo 'This check requires QNX.' >&2; exit 2; }
 cd "${SHADOW_QNX_TARGET_DIR:-/system/bin/shadowdeploy}"
@@ -7,6 +7,14 @@ out=${SHADOW_QNX_TRACE_DIR:-/data/shadow-cancel-ordering}
 case "$out" in
     /*) ;;
     *) echo 'SHADOW_QNX_TRACE_DIR must be absolute.' >&2; exit 2 ;;
+esac
+case "${1:-stock}" in
+    stock) cases="live replay" ;;
+    gated)
+        cases="replay-gated"
+        [ -x ./qnx-cancel-replay-worker ] || { echo 'Missing qnx-cancel-replay-worker.' >&2; exit 2; }
+        ;;
+    *) echo 'Expected stock or gated.' >&2; exit 2 ;;
 esac
 mkdir "$out"
 broker=
@@ -42,7 +50,7 @@ reply_tid() {
 }
 
 manifest() {
-    candidate_path="$(pwd -P)/shadow-candidate" fault_after="$2" awk -v mode="$3" '
+    candidate_path="$(pwd -P)/${4:-shadow-candidate}" fault_after="$2" awk -v mode="$3" '
         /^executable=/ {print "executable=" ENVIRON["candidate_path"]; next}
         /^fault_after=/ {print "fault_after=" ENVIRON["fault_after"]; next}
         /^mode=/ {print "mode=" mode; next}
@@ -53,9 +61,13 @@ manifest() {
 manifest good 0 good
 manifest live 22 delay
 manifest replay 0 delay
+if [ "$cases" = replay-gated ]; then
+    manifest replay-gated 0 good qnx-cancel-replay-worker
+    export SHADOW_QNX_REPLAY_GATE_DIR="$out"
+fi
 inconclusive=0
 
-for name in live replay; do
+for name in $cases; do
     stem="$out/$name"
     log="$stem.jsonl"
     mkfifo "$out/control.fifo"
@@ -73,12 +85,22 @@ for name in live replay; do
     if [ "$name" = live ]; then
         wait_trace '"generation":1,.*"event":"candidate_promoted"'
         candidate=$(sed -n '/"generation":1,.*"event":"candidate_promoted"/s/.*"candidate_pid":\([0-9][0-9]*\),.*/\1/p' "$log")
+    elif [ "$name" = replay-gated ]; then
+        count=0
+        until grep -q '^received pid=' "$stem.witness" 2>/dev/null; do
+            count=$((count + 1))
+            [ "$count" -lt 200 ] || { echo 'INCONCLUSIVE: no receipt witness.' >&2; exit 77; }
+            sleep 0.005
+        done
+        candidate=$(sed -n 's/^received pid=\([0-9][0-9]*\) .*/\1/p' "$stem.witness")
     fi
 
     tid=
     observed_from=0
     count=0
-    while [ "$count" -lt 100 ]; do
+    attempts=100
+    [ "$name" != replay-gated ] || attempts=3
+    while [ "$count" -lt "$attempts" ]; do
         if [ "$name" = replay ] && [ -z "$candidate" ]; then
             pidin ar > "$stem-worker.processes"
             candidate=$(awk '$2 ~ /(^|\/)shadow-candidate$/ && $3=="delay" && $4=="0" {p=$1; ++n} END {if (n==1) print p}' "$stem-worker.processes")
@@ -104,6 +126,10 @@ for name in live replay; do
     printf 'broker=%s peer=%s before_tid=%s after_tid=%s before_observation=%s before_write=%s after_write=%s after_observation=%s\n' \
         "$broker" "${candidate:-0}" "${tid:-0}" "${after_tid:-0}" \
         "$observed_from" "$before" "$after" "$observed_through" > "$stem-ordering.txt"
+    # Release only after the cancel write and both observation records are complete.
+    if [ "$name" = replay-gated ]; then
+        : > "$stem.release"
+    fi
     # For the live case, both views must be from the same unpublished sample.
     # Replay can advance to another historical request without publishing a live sample.
     if [ -z "$tid" ] || [ "$tid" != "$after_tid" ] ||
