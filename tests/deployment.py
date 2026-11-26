@@ -84,11 +84,17 @@ class DeploymentIntegration(unittest.TestCase):
         return rows
 
     def test_late_attachment_crash_rollback_and_retry(self):
+        self.check_lifecycle_run("lifecycle_checks.sh")
+
+    def test_loaded_lifecycle_crash_and_retry(self):
+        self.check_lifecycle_run("lifecycle_loaded_checks.sh", "--loaded")
+
+    def check_lifecycle_run(self, driver, *verify_options):
         tools = Path(__file__).resolve().parents[1] / "tools"
         directory = Path(tempfile.mkdtemp(prefix="lifecycle-", dir=BUILD))
         evidence = directory / "evidence"
         try:
-            command = ["sh", str(tools / "lifecycle_checks.sh"), str(BUILD), str(evidence)]
+            command = ["sh", str(tools / driver), str(BUILD), str(evidence)]
             with subprocess.Popen(command, start_new_session=True) as runner:
                 try:
                     code = runner.wait(timeout=30)
@@ -102,8 +108,17 @@ class DeploymentIntegration(unittest.TestCase):
                 if code:
                     raise subprocess.CalledProcessError(code, command)
             subprocess.run([sys.executable, str(tools / "verify_lifecycle.py"), "--functional-only",
-                            str(evidence)], check=True, timeout=5)
-            self.check_lifecycle_verifier_rejects_modified_evidence(tools, evidence)
+                            *verify_options, str(evidence)], check=True, timeout=5)
+            if verify_options:
+                manifest = evidence / "candidate-crash.manifest"
+                manifest.write_text(manifest.read_text().replace("fault_after=38", "fault_after=39"))
+                result = subprocess.run([sys.executable, str(tools / "verify_lifecycle.py"),
+                                         "--functional-only", "--loaded", str(evidence)],
+                                        capture_output=True, text=True, timeout=5)
+                self.assertEqual(result.returncode, 1, result.stdout + result.stderr)
+                self.assertIn("injected crash sequence", result.stderr)
+            else:
+                self.check_lifecycle_verifier_rejects_modified_evidence(tools, evidence)
         except (subprocess.SubprocessError, OSError, AssertionError) as error:
             self.fail(f"{error}; lifecycle evidence preserved at {directory}")
         else:

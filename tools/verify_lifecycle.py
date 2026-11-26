@@ -69,7 +69,7 @@ def verify_native(path, broker, baseline, first, second):
     return {phase: sorted(pids) for phase, pids in expected.items()}
 
 
-def verify(path):
+def verify(path, loaded=False):
     rows = [json.loads(line) for line in (path / "lifecycle.jsonl").read_text().splitlines()]
     meta, summary = rows[0], rows[-1]
     check(meta["type"] == "meta" and meta["schema"] == 2 and summary["type"] == "summary",
@@ -115,6 +115,15 @@ def verify(path):
         ("stage_requested", 2), ("replay_complete", 2),
     ], "unexpected deployment event or generation chronology")
     first_stage, first_ready, second_stage, second_ready = deployment
+    if loaded:
+        crash = dict(line.split("=", 1) for line in
+                     (path / "candidate-crash.manifest").read_text().splitlines())
+        retry = dict(line.split("=", 1) for line in
+                     (path / "candidate.manifest").read_text().splitlines())
+        check(first_stage["after_sequence"] == 20, "loaded run must stage after sample 20")
+        check(crash == {**retry, "mode": "crash", "fault_after": str(rollback_sequence)} and
+              retry["mode"] == "good" and retry["fault_after"] == "0" and rollback_sequence == 38,
+              "injected crash sequence or healthy retry manifest does not match the loaded run")
     boundaries = []
     for stage, ready, promoted, pid, earliest in (
         (first_stage, first_ready, first_promote, first, 20),
@@ -214,7 +223,10 @@ def verify(path):
         "second_promotion": second_promote["sequence"], "commit": commit["sequence"],
         "max_output_step_m": round(max_output_step, 9), "timing": timing,
     }
-    if backend == "qnx-native-ipc":
+    if loaded:
+        evidence["validation_scope"] = "loaded-lifecycle"
+        evidence["descriptor_snapshots"] = "not collected"
+    elif backend == "qnx-native-ipc":
         try:
             evidence["native_connections"] = verify_native(path, broker, baseline, first, second)
         except NativeEvidenceUnavailable as error:
@@ -227,9 +239,11 @@ def main():
     parser.add_argument("fresh_run_dir", type=Path)
     parser.add_argument("--functional-only", action="store_true",
                         help="report nominal-grid timing without gating the host functional check")
+    parser.add_argument("--loaded", action="store_true",
+                        help="verify the loaded driver and its fixed crash injection without descriptor snapshots")
     args = parser.parse_args()
     try:
-        evidence = verify(args.fresh_run_dir)
+        evidence = verify(args.fresh_run_dir, loaded=args.loaded)
     except (OSError, ValueError, IndexError, KeyError, TypeError) as error:
         parser.exit(1, f"FAIL {args.fresh_run_dir}: {error}\n")
     print(json.dumps(evidence, indent=2, sort_keys=True))

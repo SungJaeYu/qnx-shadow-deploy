@@ -136,6 +136,18 @@ sh /data/shadowdeploy/lifecycle_checks.sh /data/shadowdeploy /data/lifecycle-new
 
 Export that directory and run `python3 tools/verify_lifecycle.py PATH_TO_EXPORTED_DIRECTORY` on the host. It checks the live qualification counts, current-sample rollback, worker IDs, broker connections and process retirement. Its standalone timing gate checks the declared 200/150 ms run for skipped slots and decision misses. Retain the run directory and stderr even if the driver or verifier exits unsuccessfully. The host `live-deployment` CTest uses the same driver and reports nominal-grid timing alongside its functional verdict.
 
+For a timed run under load, transfer `tools/lifecycle_loaded_checks.sh` alongside the same binaries and manifest. Start the configured workload before invoking the driver and retain its workload evidence with the exported run. Use a fresh directory for each attempt.
+
+```sh
+sh /data/shadowdeploy/lifecycle_loaded_checks.sh /data/shadowdeploy /data/lifecycle-loaded
+```
+
+```sh
+python3 tools/verify_lifecycle.py --loaded PATH_TO_EXPORTED_DIRECTORY
+```
+
+The broker starts the first stage after sample 20. The first candidate uses the stock crash mode at sample 38. A streaming shell observer records the broker's telemetry and requests a healthy second stage after the first worker disconnects and baseline authority resumes. The verifier requires the crash to occur in probation, fresh qualification for each generation, 90 selected outputs at the original 200/150 ms configuration, and distinct worker identities that have retired by broker exit. It separately gates skipped nominal slots and deadline misses. Use `lifecycle_checks.sh` in a separate run to audit native process and descriptor snapshots. The loaded run performs no `pidin` snapshots during acquisition.
+
 For protocol v2 kernel conformance, build and transfer the QNX-only `qnx-reply-conformance` executable and run it on the guest. It uses an owned loopback channel to check the status, copied bytes, untouched suffix and production decoder verdict for each test reply.
 
 Capture the serial session on the Mac, for example with `script -q serial-original.log bash tools/run_qnx_vm.sh`. Export only the project log directory before quitting. The recorded run created a tar archive, printed its `cksum`, sent it as base64 over serial, and verified the decoded host archive's checksum and length. Preserve JSONL bytes and stderr separately; do not scrape only successful summaries. After extraction, run `python3 tools/verify_qnx_logs.py PATH_TO_EXPORTED_LOG_DIRECTORY`. The [evidence README](evidence/qnx-validation-2026-11-23/README.md) records the exact export checksums and limitations.
