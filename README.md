@@ -2,15 +2,16 @@
 
 ShadowDeploy gives a new sensor-processing application the same inputs as the running baseline. A QNX broker checks the candidate's outputs and response times before switching output authority at an input sequence boundary. During probation, the broker keeps the baseline available for fallback. The example uses a synthetic position stream.
 
+- [Same-broker lifecycle · 40 seconds](docs/qnx-lifecycle-demo.mp4) follows replay and qualification through promotion, crash, rollback, retry, and commit in one recorded QNX guest run.
+- [Failure-first demo · 44 seconds](docs/native-qnx-demo.mp4) shows deadline failure and other decisions from separate archived QNX guest runs.
+
+[Video sources, reproduction, and release gates](docs/evaluator.md)
+
 ## Evaluator overview
 
 - **Host.** The local workbench runs the compiled broker and separate worker processes over POSIX pipes. The recorded crash-and-retry run selected all 90 outputs and skipped one nominal slot. [Host lifecycle record](docs/evidence/live-lifecycle-2026-11-26.md#host-functional-observation)
 - **QNX x86-64 in QEMU.** Native IPC validation passed the policy and staging checks, live deployment, and all 11 functional scenarios. The 11 scenarios used a 100 ms period and a 75 ms decision budget. At the default 20 ms period, 10 ms budget, and 7.5 ms IPC cutoff, five scenarios stopped early on deadline failures. [Original verification record](docs/verification.md#native-qnx-execution-2026-11-23)
 - **Raspberry Pi 4B (2 GB).** QNX AArch64 application artifacts were cross-built. BSP image provisioning, execution on the physical board, and hardware timing measurements are pending. [Pi qualification procedure](docs/qnx-pi4-qualification.md)
-
-On November 26, the QNX guest crash-and-retry run selected 90 of 90 outputs with zero decision deadline misses and one skipped nominal slot. [Lifecycle evidence](docs/evidence/live-lifecycle-2026-11-26.md)
-
-[Play the 44-second English demonstration](docs/native-qnx-demo.mp4) or see [trace provenance and release gates](docs/evaluator.md). The video presents selected decisions from archived native QNX guest runs.
 
 ![ShadowDeploy workbench during a host run](docs/workbench.jpg)
 

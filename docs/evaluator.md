@@ -10,6 +10,25 @@ current valid baseline sample. After commit retires the baseline, loss of
 valid authority stops output. Delivery, supervision and output selection are
 complementary responsibilities. [QNX High Availability Framework](https://www.qnx.com/developers/docs/8.0/com.qnx.doc.ham/topic/hamover.html)
 
+## Recorded same-broker lifecycle
+
+[Play the 40-second English MP4](qnx-lifecycle-demo.mp4). The illustrated
+summary follows one recorded QNX x86-64 guest run under QEMU TCG. It shows
+replay, fresh qualification, promotion at sequence 25, rollback at 27, and
+the second candidate's promotion at 32 and commit at 55. The strict timing
+verifier failed on one skipped nominal slot despite selecting all 90
+requested outputs. Physical hardware timing remains unmeasured.
+[November 26 lifecycle observations](evidence/live-lifecycle-2026-11-26.md#qnx-x86-64-guest-observation)
+
+Regenerate the MP4 from the repository root with Python 3.9+, ImageMagick
+(a `magick` executable with SVG support), a sans-serif font such as DejaVu
+Sans, and FFmpeg with libx264. The renderer reads the Markdown summary.
+Font and encoder choices may change the file bytes.
+
+```sh
+python3 tools/render_lifecycle_demo.py docs/qnx-lifecycle-demo.mp4
+```
+
 ## Archived native demo
 
 [Play the 44-second H.264 MP4](native-qnx-demo.mp4). English captions present
@@ -55,9 +74,11 @@ python3 tools/render_native_demo.py --font /path/to/font.ttf docs/native-qnx-dem
 
 For [#6](https://github.com/SungJaeYu/qnx-shadow-deploy/issues/6),
 the [single-broker lifecycle driver](../tools/lifecycle_checks.sh) supplies a
-repeatable rollback and retry sequence. For the release demonstration, record the provisioned Raspberry Pi 4B after the functional, IPC and load
-gates. Show board identity, stage, reject, cancel/retry, promote, rollback and
-cleanup. Replay that same exported board trace in the workbench. For
+repeatable rollback and retry sequence shown in the
+[recorded guest recap](#recorded-same-broker-lifecycle). For the release
+demonstration, record the provisioned Raspberry Pi 4B after the functional,
+IPC and load gates. Show board identity, stage, reject, cancel/retry, promote,
+rollback and cleanup. Replay that same exported board trace in the workbench. For
 [#8](https://github.com/SungJaeYu/qnx-shadow-deploy/issues/8), attach each
 run to its platform, source revision, image/binary hashes and verdict.
 For [#13](https://github.com/SungJaeYu/qnx-shadow-deploy/issues/13), the local
