@@ -85,3 +85,18 @@ The state and connection fields follow the QNX documentation.
 [Thread information](https://www.qnx.com/developers/docs/8.0/com.qnx.doc.neutrino.prog/topic/process_Thread_info.html)
 [pidin output fields](https://www.qnx.com/developers/docs/8.0/com.qnx.doc.neutrino.utilities/topic/p/pidin.html)
 [ConnectServerInfo enumeration](https://www.qnx.com/developers/docs/8.0/com.qnx.doc.neutrino.lib_ref/topic/c/connectserverinfo.html)
+
+## Observer comparison on QNX x86-64
+
+On November 26, 2026, the same fixture build ran with both observers in a
+QEMU guest with two vCPUs and 1 GiB of memory. Each cell covers 12 attempts.
+
+| IPC cutoff | Direct procfs | External `pidin` |
+| --- | --- | --- |
+| 7.5 ms (default) | 12 passed | 12 inconclusive |
+| 112.5 ms | 12 passed | 12 passed |
+
+The direct observer verified the dispatch thread and receiver endpoint
+before the original cutoff. These runs cover the gated receiver cases.
+Operator cancellation at a deployment boundary requires a separate test.
+[Issue #3 observation](https://github.com/SungJaeYu/qnx-shadow-deploy/issues/3#issuecomment-7185310975)
