@@ -219,6 +219,22 @@ def measure(ticks, meta):
     }
 
 
+def trial_continuity(meta, summary, count, deadline_failures):
+    if "requested_inputs" not in meta:
+        return None
+    check(meta["requested_inputs"] == count, "continuity request count differs from trial plan")
+    continuity = {key: summary[key] for key in (
+        "initial_unoccupied_slots", "skipped_nominal_slots", "max_acquisition_interval_ms",
+        "max_scheduling_lateness_ms", "max_nominal_grid_lateness_ms",
+        "max_selected_interval_ms", "effective_selected_rate_hz", "external_delivery",
+    )}
+    continuity["passed"] = (summary["acquired_inputs"] == summary["selected_outputs"] == count
+                            and not summary["initial_unoccupied_slots"]
+                            and not summary["skipped_nominal_slots"]
+                            and not deadline_failures)
+    return continuity
+
+
 def trial(root, name, condition, count, period, deadline, loops, legacy, exits):
     result = {
         "trial": name, "condition": condition, "busy_loops": loops, "requested_samples": count,
@@ -291,6 +307,8 @@ def trial(root, name, condition, count, period, deadline, loops, legacy, exits):
         check(result["exit_code"] is None or result["exit_code"] == expected_exit,
               "broker exit conflicts with trace termination")
         result.update(measure(ticks, meta))
+        continuity = trial_continuity(meta, summary, count, result["unexpected_deadline_failure_samples"])
+        result["continuity"] = continuity
         result.update(observed_samples=len(ticks), observed_outputs=summary["outputs"],
                       missing_outputs_vs_requested=count - summary["outputs"],
                       observed_samples_without_output=summary["missing_outputs"],
@@ -324,7 +342,8 @@ def trial(root, name, condition, count, period, deadline, loops, legacy, exits):
         elif summary["phase"] == "failed" and result["exit_code"] == 3:
             result["status"] = "unexpected_stop"
         elif (result["exit_code"] == 0 and summary["phase"] != "failed"
-              and summary["outputs"] == count and not result["unexpected_deadline_failure_samples"]):
+              and summary["outputs"] == count and not result["unexpected_deadline_failure_samples"]
+              and (continuity is None or continuity["passed"])):
             result["status"] = "pass"
         else:
             result["status"] = "failed"

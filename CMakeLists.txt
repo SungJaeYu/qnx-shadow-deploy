@@ -83,6 +83,11 @@ if(BUILD_TESTING)
     add_test(NAME preboard-pipeline COMMAND ${Python3_EXECUTABLE}
       ${CMAKE_CURRENT_SOURCE_DIR}/tests/preboard_pipeline.py $<TARGET_FILE_DIR:shadow-demo>)
     set_tests_properties(preboard-pipeline PROPERTIES TIMEOUT 20)
+    find_program(SHADOW_NODE_EXECUTABLE node)
+    if(SHADOW_NODE_EXECUTABLE)
+      add_test(NAME workbench-continuity COMMAND ${SHADOW_NODE_EXECUTABLE}
+        ${CMAKE_CURRENT_SOURCE_DIR}/tests/workbench_continuity.js)
+    endif()
   endif()
 endif()
 install(TARGETS shadow-demo shadow-worker shadow-candidate RUNTIME DESTINATION bin)

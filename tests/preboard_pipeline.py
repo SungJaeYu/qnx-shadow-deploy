@@ -16,6 +16,8 @@ sys.path.insert(0, str(Path(__file__).resolve().parents[1] / "tools"))
 from board_relay import BoardRelay, MAX_FRAME_BYTES, RING_SIZE
 from led_events import LedEvents
 from serve import Handler, ThreadingHTTPServer
+from summarize_qnx_trials import trial_continuity
+from verify_qnx_logs import TraceValidationError, validate_continuity
 
 TOOLS = Path(__file__).resolve().parents[1] / "tools"
 
@@ -34,6 +36,41 @@ def sample(sequence, phase="shadowing", event=""):
 
 
 class Pipeline(unittest.TestCase):
+    def test_continuity_validator(self):
+        metadata = {"period_ms": 10, "requested_inputs": 8}
+        ticks = [
+            {"nominal_slot": 0, "acquired_offset_ns": 1_000_000,
+             "decision_offset_ns": 2_000_000, "scheduled_release_offset_ns": 0,
+             "release_lateness_ms": 1, "nominal_slot_lateness_ms": 1, "nominal_grid_lateness_ms": 1,
+             "skipped_nominal_slots": 0, "acquisition_interval_ms": None, "output": 10},
+            {"nominal_slot": 2, "acquired_offset_ns": 21_000_000,
+             "decision_offset_ns": 22_000_000, "scheduled_release_offset_ns": 11_000_000,
+             "release_lateness_ms": 10, "nominal_slot_lateness_ms": 1, "nominal_grid_lateness_ms": 11,
+             "skipped_nominal_slots": 1, "acquisition_interval_ms": 20, "output": 10},
+        ]
+        summary = {
+            "samples": 2, "outputs": 2, "missing_outputs": 0, "publication_misses": 0,
+            "requested_inputs": 8, "acquired_inputs": 2, "unprocessed_inputs": 6,
+            "selected_outputs": 2, "missing_selected_outputs": 0, "decision_deadline_misses": 0,
+            "last_nominal_slot": 2, "initial_unoccupied_slots": 0, "skipped_nominal_slots": 1,
+            "max_acquisition_interval_ms": 20, "max_nominal_slot_lateness_ms": 1, "max_nominal_grid_lateness_ms": 11,
+            "max_scheduling_lateness_ms": 10, "max_selected_interval_ms": 20,
+            "effective_selected_rate_hz": 50, "external_delivery": "unmeasured",
+        }
+        self.assertTrue(validate_continuity(metadata, summary, ticks))
+        self.assertFalse(validate_continuity({"period_ms": 10}, {}, []))
+        self.assertIsNone(trial_continuity({}, {}, 8, 0))
+        self.assertFalse(trial_continuity(metadata, summary, 8, 0)["passed"])
+        complete = dict(summary, acquired_inputs=8, selected_outputs=8)
+        self.assertFalse(trial_continuity(metadata, complete, 8, 0)["passed"])
+        complete["skipped_nominal_slots"] = 0
+        self.assertFalse(trial_continuity(metadata, complete, 8, 1)["passed"])
+        self.assertTrue(trial_continuity(metadata, complete, 8, 0)["passed"])
+        with self.assertRaises(TraceValidationError):
+            validate_continuity(metadata, dict(summary, skipped_nominal_slots=7), ticks)
+        with self.assertRaises(TraceValidationError):
+            validate_continuity(metadata, dict(summary, max_selected_interval_ms=None), ticks)
+
     def test_trace(self):
         with tempfile.TemporaryDirectory() as directory:
             trace = Path(directory) / "trace.mm"
@@ -63,6 +100,21 @@ class Pipeline(unittest.TestCase):
             result = subprocess.run(command[:-1] + [str(fifo)], capture_output=True, text=True, timeout=2)
             self.assertEqual(result.returncode, 2, result.stderr)
             self.assertIn("regular file", result.stderr)
+
+    def test_relay_keeps_producer_continuity_after_eviction(self):
+        relay = BoardRelay("pi4")
+        total = RING_SIZE + 1
+        summary = {"type": "summary", "samples": total, "acquired_inputs": total,
+                   "requested_inputs": total + 2, "skipped_nominal_slots": 3,
+                   "unprocessed_inputs": 2, "external_delivery": "unmeasured"}
+        data = encode(dict(meta(), requested_inputs=total + 2))
+        data += b"".join(encode(sample(sequence)) for sequence in range(1, total + 1))
+        relay.consume(io.BytesIO(data + encode(summary)))
+        view = relay.snapshot()
+        self.assertTrue(view["complete"])
+        self.assertEqual(view["evicted"], 2)
+        self.assertEqual(view["sequence_gaps"], 0)
+        self.assertEqual(view["rows"][-1], summary)
 
     def test_relay_slow_readers_and_disconnect(self):
         relay = BoardRelay("pi4")

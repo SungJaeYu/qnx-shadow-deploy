@@ -1,3 +1,4 @@
+#include "shadow/continuity.hpp"
 #include "shadow/policy.hpp"
 #include "shadow/schedule.hpp"
 #include <functional>
@@ -68,6 +69,32 @@ int main() {
         {"processing overrun does not create an input backlog", [] {
             CHECK(next_release_ns(100000000, 180000000, 30000000) == 180000000);
             CHECK(next_release_ns(180000000, 181000000, 30000000) == 210000000);
+        }},
+        {"continuity uses fixed slots and separates the early-stop tail", [] {
+            ServiceContinuity continuity(100, 10);
+            CHECK(!continuity.max_acquisition_interval_ns);
+            const auto first = continuity.acquire(113, 100);
+            CHECK(first.nominal_slot == 1);
+            CHECK(first.skipped_slots == 0);
+            CHECK(first.nominal_lateness_ns == 3);
+            CHECK(first.scheduling_lateness_ns == 13);
+            CHECK(continuity.initial_unoccupied_slots == 1);
+            continuity.decide(114, true, false);
+            const auto second = continuity.acquire(140, 123);
+            CHECK(second.nominal_slot == 4);
+            CHECK(second.skipped_slots == 2);
+            CHECK(second.acquisition_interval_ns == 27);
+            CHECK(second.nominal_grid_lateness_ns == 30);
+            continuity.decide(149, false, true);
+            continuity.acquire(151, 150);
+            continuity.decide(152, true, false);
+            CHECK(continuity.skipped_slots == 2);
+            CHECK(continuity.max_acquisition_interval_ns == 27);
+            CHECK(continuity.max_selected_interval_ns == 38);
+            CHECK(continuity.selected_span_ns == 38);
+            CHECK(continuity.selected == 2);
+            CHECK(continuity.acquired == 3);
+            CHECK(continuity.decision_deadline_misses == 1);
         }},
         {"promotion starts at the next sequence boundary", [] {
             Supervisor g(quick());

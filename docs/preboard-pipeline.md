@@ -57,3 +57,57 @@ tail -n +1 -f /tmp/shadow-run-001/run.jsonl |
 The state is `qualification` during warming and shadowing, `normal` when an eligible version owns output outside qualification, and `rollback` for the rollback or probation-cancellation sample and the next nine sequence slots by default. A sequence gap consumes elapsed slots. Failed state, summary, new metadata, malformed input, normal EOF and handled termination reset the indication to `off`.
 
 To connect hardware, install a target adapter executable and pass `--adapter /absolute/path/to/adapter`. The consumer invokes it with exactly one argument from `off`, `normal`, `qualification` or `rollback`. Each call must set the complete desired LED state idempotently and return success within one second. The adapter should map those states to approved BSP GPIO operations, initialize its output pins safely, and turn all indicator outputs off for `off`. Example mappings on a three-channel LED are green for normal, amber for qualification and red for rollback. A command failure triggers a final attempt to set `off`. Use a board-specific driver or resource manager and verify pin mapping, voltage, and driver privileges before enabling the adapter. GPIO hardware operation and the required Python runtime on a deployment image have yet to be verified on the board.
+
+## Periodic service continuity
+
+The broker measures acquisition and decision timing on its monotonic clock.
+Slot zero begins at the first scheduled release after metadata is written.
+Slot `n` covers the half-open interval `[n × period, (n + 1) × period)` from
+that origin. The scheduler still rebases each next release on actual acquisition
+and completed work. The nominal grid measures cumulative drift and skipped
+slots independently of the rebased schedule.
+
+The summary horizon ends at the nominal slot containing the last acquisition.
+`initial_unoccupied_slots` counts slots before the first acquisition.
+`skipped_nominal_slots` counts empty slots strictly between successive
+acquisitions. The first acquisition contributes zero to that second count.
+With no acquisitions the last slot is null and both counts are zero.
+Remaining requested acquisitions are reported separately as `unprocessed_inputs`
+after an early stop or interruption. The nominal horizon can exceed the request
+count when the broker takes longer than planned to acquire all requested inputs.
+
+- Metadata records `requested_inputs`. Samples record `nominal_slot`,
+  `acquired_offset_ns`, `scheduled_release_offset_ns` and `decision_offset_ns`.
+  The offsets are elapsed nanoseconds from slot zero. The decision timestamp
+  covers the selection attempt, including attempts that stop service.
+- Each sample records `release_lateness_ms` relative to its actual scheduled
+  release and `nominal_slot_lateness_ms` relative to the start of its occupied
+  nominal slot. This second value is the offset within the slot. The slot index
+  and skipped-slot counts show drift across slot boundaries.
+  `nominal_grid_lateness_ms` measures total drift from the scheduled time of
+  that input sequence on the original grid, including whole skipped slots.
+- `acquisition_interval_ms` is the elapsed time since the preceding acquisition
+  and is null on the first sample. The final summary gives the maximum and the
+  workbench labels latest and maximum separately.
+- The summary accounts for requested, acquired, selected, missing selected and
+  unprocessed inputs. A decision deadline miss counts a selection attempt that
+  exceeded the acquisition-relative deadline. The older `samples`, `outputs`,
+  `missing_outputs` and `publication_misses` keys retain their meanings.
+- `max_selected_interval_ms` is the maximum elapsed time between successive
+  successful broker selections. `effective_selected_rate_hz` is the number of
+  successful selection intervals divided by the elapsed seconds from first to
+  last selection. Both values are null until at least two successful selections
+  exist. The maximum acquisition interval likewise requires two acquisitions.
+  Lateness maxima require at least one acquisition.
+
+The broker reports `external_delivery: "unmeasured"`. The relay window shows
+frames received by the workbench and counts missing and evicted frames separately.
+Once a broker summary arrives, its continuity values describe the producer run
+even if the relay window contains a subset of frames. Older recordings display
+unavailable continuity values.
+
+The #5 controlled-trial analyzer checks these fields against the emitted
+acquisition and selection timestamps. A new run passes the continuity check if
+every requested input was acquired and selected, no observed nominal slot in
+the measured horizon was unoccupied, and no unexpected deadline failure occurred.
+Older traces retain their original criteria with continuity marked unavailable.

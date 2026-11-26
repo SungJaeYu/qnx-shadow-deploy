@@ -9,6 +9,8 @@ import unittest
 
 DEMO, WORKER = map(lambda value: str(Path(value).resolve()), sys.argv[1:3])
 sys.argv = [sys.argv[0]]
+sys.path.insert(0, str(Path(__file__).resolve().parents[1] / "tools"))
+from verify_qnx_logs import validate_continuity
 
 
 class ProcessIntegration(unittest.TestCase):
@@ -34,6 +36,19 @@ class ProcessIntegration(unittest.TestCase):
         self.assertEqual(rows[-1]["phase"], expected_phase)
         self.assertIn(expected_event, [row["event"] for row in ticks])
         self.assertEqual(rows[-1]["outputs"], sum(row["output"] is not None for row in ticks))
+        summary = rows[-1]
+        self.assertEqual(rows[0]["requested_inputs"], 22)
+        self.assertEqual(summary["acquired_inputs"], len(ticks))
+        self.assertEqual(summary["unprocessed_inputs"], 22 - len(ticks))
+        self.assertEqual(summary["selected_outputs"], summary["outputs"])
+        self.assertEqual(summary["missing_selected_outputs"], len(ticks) - summary["outputs"])
+        self.assertEqual(summary["decision_deadline_misses"], summary["publication_misses"])
+        self.assertEqual(summary["skipped_nominal_slots"], sum(r["skipped_nominal_slots"] for r in ticks))
+        self.assertEqual(summary["last_nominal_slot"], ticks[-1]["nominal_slot"])
+        self.assertEqual(summary["max_scheduling_lateness_ms"], max(r["release_lateness_ms"] for r in ticks))
+        self.assertIsNone(ticks[0]["acquisition_interval_ms"])
+        self.assertEqual(summary["external_delivery"], "unmeasured")
+        self.assertTrue(validate_continuity(rows[0], summary, ticks))
         for row in ticks:
             if row["output"] is not None:
                 self.assertEqual(row["output"], row[row["source"]]["position"])
@@ -45,6 +60,27 @@ class ProcessIntegration(unittest.TestCase):
             rollback = next(row for row in ticks if row["event"] == "candidate_rolled_back")
             self.assertEqual(rollback["source"], "baseline")
         return rows
+
+    def test_interrupted_run_has_no_missing_tail(self):
+        command = [DEMO, "--worker", WORKER, "--scenario", "promote", "--samples", "20",
+                   "--period-ms", "200", "--deadline-ms", "150"]
+        with subprocess.Popen(command, stdout=subprocess.PIPE, stderr=subprocess.PIPE, text=True) as proc:
+            first = [json.loads(proc.stdout.readline()) for _ in range(2)]
+            proc.terminate()
+            stdout, stderr = proc.communicate(timeout=5)
+            self.assertEqual(proc.returncode, 130, stderr)
+        rows = first + [json.loads(line) for line in stdout.splitlines()]
+        summary = rows[-1]
+        self.assertEqual(summary["acquired_inputs"], len(rows) - 2)
+        self.assertGreater(summary["unprocessed_inputs"], 0)
+        self.assertTrue(validate_continuity(rows[0], summary, rows[1:-1]))
+        self.assertEqual(summary["unprocessed_inputs"], 20 - summary["acquired_inputs"])
+        self.assertEqual(summary["missing_selected_outputs"], 0)
+        self.assertEqual(summary["skipped_nominal_slots"], sum(row["skipped_nominal_slots"] for row in rows[1:-1]))
+        if summary["acquired_inputs"] == 1:
+            self.assertIsNone(summary["max_acquisition_interval_ms"])
+            self.assertIsNone(summary["max_selected_interval_ms"])
+            self.assertIsNone(summary["effective_selected_rate_hz"])
 
     def test_promote(self):
         rows = self.run_scenario("promote", "committed", "candidate_committed")

@@ -1,3 +1,4 @@
+#include "shadow/continuity.hpp"
 #include "shadow/io.hpp"
 #include "shadow/policy.hpp"
 #include "shadow/process.hpp"
@@ -74,6 +75,10 @@ std::vector<double> load_sensor_trace(const std::string& path, unsigned samples)
 }
 void value(double x) {
     if (std::isfinite(x)) std::cout << x;
+    else std::cout << "null";
+}
+void milliseconds(std::optional<std::uint64_t> ns) {
+    if (ns) std::cout << static_cast<double>(*ns) / 1e6;
     else std::cout << "null";
 }
 void observation(const shadow::Observation& o, const shadow::Sample& sample) {
@@ -218,11 +223,12 @@ int main(int argc, char** argv) {
                   << ",\"qualification_samples\":" << qualify
                   << ",\"probation_samples\":" << probation << ",\"position_unit\":\"m\"";
         std::cout << ",\"producer_run_id\":\"" << baseline->pid() << "-" << run_stamp_ns << "\"";
+        std::cout << ",\"requested_inputs\":" << samples;
         if (!trace.empty()) std::cout << ",\"input_source\":\"sensor-trace-mm\"";
         std::cout << "}" << std::endl;
         const auto start = monotonic_ns();
         auto next_release = start;
-        unsigned outputs = 0, misses = 0, emitted = 0;
+        ServiceContinuity continuity(start, contract.period_ns);
         for (unsigned i = 1; i <= samples && !interrupted; ++i) {
             const auto now = monotonic_ns();
             if (now < next_release) std::this_thread::sleep_for(std::chrono::nanoseconds(next_release - now));
@@ -287,14 +293,14 @@ int main(int argc, char** argv) {
             // Do not describe receipt latency as end-to-end output latency.
             const auto selected_ns = monotonic_ns();
             const bool publication_miss = selected_ns > deadline;
+            const auto timing = continuity.acquire(sample.acquired_ns, next_release);
             if (publication_miss) {
                 auto stopped = supervisor.stop_output("decision_deadline_exceeded");
                 stopped.baseline_check = decision.baseline_check;
                 stopped.candidate_check = decision.candidate_check;
-                decision = std::move(stopped); ++misses;
+                decision = std::move(stopped);
             }
-            if (decision.output) ++outputs;
-            ++emitted;
+            continuity.decide(selected_ns, decision.output.has_value(), publication_miss);
             std::cout << "{\"type\":\"sample\",\"sequence\":" << i << ",\"time_s\":" << seconds
                       << ",\"truth\":";
             if (trace.empty()) value(truth); else std::cout << "null";
@@ -311,8 +317,20 @@ int main(int argc, char** argv) {
                       << "\",\"candidate_check\":\"" << decision.candidate_check
                       << "\",\"decision_latency_ms\":" << static_cast<double>(selected_ns - sample.acquired_ns) / 1e6
                       << ",\"publication_miss\":" << (publication_miss ? "true" : "false")
-                      << ",\"release_lateness_ms\":" << static_cast<double>(sample.acquired_ns - next_release) / 1e6
-                      << "}" << std::endl;
+                      << ",\"nominal_slot\":" << timing.nominal_slot
+                      << ",\"skipped_nominal_slots\":" << timing.skipped_slots
+                      << ",\"acquired_offset_ns\":" << sample.acquired_ns - start
+                      << ",\"scheduled_release_offset_ns\":" << next_release - start
+                      << ",\"decision_offset_ns\":" << selected_ns - start
+                      << ",\"release_lateness_ms\":";
+            milliseconds(timing.scheduling_lateness_ns);
+            std::cout << ",\"nominal_slot_lateness_ms\":";
+            milliseconds(timing.nominal_lateness_ns);
+            std::cout << ",\"nominal_grid_lateness_ms\":";
+            milliseconds(timing.nominal_grid_lateness_ns);
+            std::cout << ",\"acquisition_interval_ms\":";
+            milliseconds(timing.acquisition_interval_ns);
+            std::cout << "}" << std::endl;
             // Retire children after the decision. They cannot publish directly.
             if (!supervisor.needs_candidate()) candidate.reset();
             if (!supervisor.needs_baseline()) baseline.reset();
@@ -320,10 +338,38 @@ int main(int argc, char** argv) {
             // Rebase on actual acquisition, not the old nominal release grid.
             next_release = next_release_ns(sample.acquired_ns, monotonic_ns(), contract.period_ns);
         }
+        const auto missing = continuity.acquired - continuity.selected;
         std::cout << "{\"type\":\"summary\",\"phase\":\"" << name(supervisor.phase())
-                  << "\",\"samples\":" << emitted << ",\"outputs\":" << outputs
-                  << ",\"missing_outputs\":" << emitted - outputs << ",\"publication_misses\":" << misses
-                  << ",\"interrupted\":" << (interrupted ? "true" : "false") << "}" << std::endl;
+                  << "\",\"samples\":" << continuity.acquired << ",\"outputs\":" << continuity.selected
+                  << ",\"missing_outputs\":" << missing
+                  << ",\"publication_misses\":" << continuity.decision_deadline_misses
+                  << ",\"interrupted\":" << (interrupted ? "true" : "false")
+                  << ",\"requested_inputs\":" << samples
+                  << ",\"acquired_inputs\":" << continuity.acquired
+                  << ",\"selected_outputs\":" << continuity.selected
+                  << ",\"missing_selected_outputs\":" << missing
+                  << ",\"unprocessed_inputs\":" << samples - continuity.acquired
+                  << ",\"decision_deadline_misses\":" << continuity.decision_deadline_misses
+                  << ",\"initial_unoccupied_slots\":" << continuity.initial_unoccupied_slots
+                  << ",\"skipped_nominal_slots\":" << continuity.skipped_slots
+                  << ",\"last_nominal_slot\":";
+        if (continuity.last_nominal_slot) std::cout << *continuity.last_nominal_slot;
+        else std::cout << "null";
+        std::cout << ",\"max_scheduling_lateness_ms\":";
+        milliseconds(continuity.max_scheduling_lateness_ns);
+        std::cout << ",\"max_nominal_slot_lateness_ms\":";
+        milliseconds(continuity.max_nominal_slot_lateness_ns);
+        std::cout << ",\"max_nominal_grid_lateness_ms\":";
+        milliseconds(continuity.max_nominal_grid_lateness_ns);
+        std::cout << ",\"max_acquisition_interval_ms\":";
+        milliseconds(continuity.max_acquisition_interval_ns);
+        std::cout << ",\"max_selected_interval_ms\":";
+        milliseconds(continuity.max_selected_interval_ns);
+        std::cout << ",\"effective_selected_rate_hz\":";
+        if (continuity.selected_span_ns)
+            std::cout << (continuity.selected - 1) * 1e9 / static_cast<double>(continuity.selected_span_ns);
+        else std::cout << "null";
+        std::cout << ",\"external_delivery\":\"unmeasured\"}" << std::endl;
         return interrupted ? 130 : (supervisor.phase() == Phase::failed ? 3 : 0);
     } catch (const std::exception& error) {
         std::cerr << "shadow-demo: " << error.what() << '\n'; return 2;

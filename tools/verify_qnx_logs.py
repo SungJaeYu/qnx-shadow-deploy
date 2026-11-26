@@ -1,6 +1,7 @@
 #!/usr/bin/env python3
 """Check exported native traces without running QNX binaries on the host."""
 import json
+import math
 from pathlib import Path
 import re
 import sys
@@ -18,6 +19,81 @@ def check(condition, description):
 def load(path):
     rows = [json.loads(line) for line in path.read_text().splitlines()]
     return validate_rows(path, rows)
+
+
+def validate_continuity(meta, summary, ticks):
+    """Verify optional producer metrics against exact monotonic offsets."""
+    if "requested_inputs" not in meta:
+        check("requested_inputs" not in summary and not any("nominal_slot" in row for row in ticks),
+              "incomplete continuity schema")
+        return False
+    requested = meta["requested_inputs"]
+    check(type(requested) is int and 1 <= requested <= 1_000_000 and len(ticks) <= requested,
+          "invalid requested input count")
+    period_ms = meta["period_ms"]
+    check(type(period_ms) is int and 1 <= period_ms <= 1000, "invalid continuity period")
+    period_ns = period_ms * 1_000_000
+
+    def fields(row, expected):
+        for key, value in expected.items():
+            actual = row.get(key)
+            if isinstance(value, float):
+                matches = type(actual) in (int, float) and math.isclose(actual, value, rel_tol=1e-9)
+            else:
+                matches = type(actual) is type(value) and actual == value
+            check(key in row and matches, f"invalid continuity field: {key}")
+
+    previous_acquired = None
+    last_slot = None
+    initial = skipped = 0
+    intervals, scheduling, nominal, grid, selected = [], [], [], [], []
+    for index, row in enumerate(ticks):
+        acquired, scheduled, decision = (row.get(key) for key in
+                                         ("acquired_offset_ns", "scheduled_release_offset_ns",
+                                          "decision_offset_ns"))
+        check(all(type(value) is int for value in (acquired, scheduled, decision))
+              and 0 <= scheduled <= acquired <= decision, "invalid continuity offsets")
+        slot, remainder = divmod(acquired, period_ns)
+        gap = 0
+        interval_ms = None
+        if previous_acquired is None:
+            check(scheduled == 0, "first release must be the nominal origin")
+            initial = slot
+        else:
+            check(scheduled >= previous_acquired + period_ns, "release outside no-burst schedule")
+            interval_ms = (acquired - previous_acquired) / 1e6
+            intervals.append(interval_ms)
+            gap = slot - last_slot - 1
+        scheduling.append((acquired - scheduled) / 1e6)
+        nominal.append(remainder / 1e6)
+        grid.append((acquired - index * period_ns) / 1e6)
+        fields(row, {
+            "nominal_slot": slot, "skipped_nominal_slots": gap, "acquisition_interval_ms": interval_ms,
+            "release_lateness_ms": scheduling[-1], "nominal_slot_lateness_ms": nominal[-1],
+            "nominal_grid_lateness_ms": grid[-1],
+        })
+        if row["output"] is not None:
+            selected.append(decision)
+        skipped += gap
+        previous_acquired, last_slot = acquired, slot
+    selected_intervals = [(current - previous) / 1e6 for previous, current in zip(selected, selected[1:])]
+    check(all(value > 0 for value in selected_intervals), "out-of-order selections")
+    fields(summary, {
+        "requested_inputs": requested, "acquired_inputs": len(ticks),
+        "unprocessed_inputs": requested - len(ticks), "selected_outputs": summary["outputs"],
+        "missing_selected_outputs": summary["missing_outputs"],
+        "decision_deadline_misses": summary["publication_misses"],
+        "initial_unoccupied_slots": initial, "skipped_nominal_slots": skipped,
+        "last_nominal_slot": last_slot, "max_scheduling_lateness_ms": max(scheduling, default=None),
+        "max_nominal_slot_lateness_ms": max(nominal, default=None),
+        "max_nominal_grid_lateness_ms": max(grid, default=None),
+        "max_acquisition_interval_ms": max(intervals, default=None),
+        "max_selected_interval_ms": max(selected_intervals, default=None),
+        "effective_selected_rate_hz": ((len(selected) - 1) * 1e9 / (selected[-1] - selected[0])
+                                       if selected_intervals else None),
+        "external_delivery": "unmeasured",
+    })
+    return True
 
 
 def validate_rows(path, rows, *, allow_interrupted=False):
@@ -54,6 +130,7 @@ def validate_rows(path, rows, *, allow_interrupted=False):
     if summary["phase"] == "failed":
         check(ticks[-1]["source"] == "none" and ticks[-1]["output"] is None,
               f"{path.name}: failed run did not stop output")
+    validate_continuity(meta, summary, ticks)
     return rows, ticks
 
 

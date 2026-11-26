@@ -19,8 +19,27 @@ const pretty = value => String(value || "").replaceAll("_", " ");
 function requestDraw() {
   if (!redrawPending) { redrawPending = true; requestAnimationFrame(() => { redrawPending = false; draw(); }); }
 }
+const formatMetric = (value, unit) => Number.isFinite(value) ? `${value.toFixed(2)} ${unit}` : "—";
+function showContinuity(latest, summary) {
+  const hasSummary = Number.isFinite(summary?.requested_inputs);
+  $("continuity-counts").textContent = hasSummary
+    ? `${summary.acquired_inputs} / ${summary.requested_inputs} acquired · ${summary.selected_outputs} selected · ${summary.missing_selected_outputs} missing · ${summary.unprocessed_inputs} unprocessed`
+    : Number.isFinite(latest?.nominal_slot) ? "Run totals pending summary" : "Unavailable";
+  const interval = (last, max) => Number.isFinite(last) || Number.isFinite(max)
+    ? `${formatMetric(last, "ms")} / ${formatMetric(max, "ms")}` : "—";
+  $("continuity-acquisition").textContent = interval(latest?.acquisition_interval_ms, summary?.max_acquisition_interval_ms);
+  $("continuity-scheduling").textContent = interval(
+    Number.isFinite(latest?.nominal_slot) ? latest.release_lateness_ms : null, summary?.max_scheduling_lateness_ms);
+  $("continuity-nominal").textContent = interval(latest?.nominal_grid_lateness_ms, summary?.max_nominal_grid_lateness_ms);
+  $("continuity-gap").textContent = Number.isFinite(summary?.max_selected_interval_ms)
+    ? `${formatMetric(summary.max_selected_interval_ms, "ms")} / ${formatMetric(summary.effective_selected_rate_hz, "Hz")}` : "—";
+  $("continuity-slots").textContent = hasSummary
+    ? `${summary.skipped_nominal_slots} / ${summary.initial_unoccupied_slots}` : "—";
+  $("continuity-misses").textContent = hasSummary ? summary.decision_deadline_misses : "—";
+}
 function reset() {
   records = []; samples = []; count = 0; missing = 0;
+  showContinuity();
   $("events").replaceChildren(); $("error").hidden = true; $("empty").hidden = false;
   $("reference-label").textContent = "Reference";
   $("backend").textContent = "Waiting for run metadata";
@@ -54,6 +73,7 @@ function accept(row, replay = false, board = null) {
     if (!Number.isFinite(row.sequence) || !Number.isFinite(row.time_s) || (row.truth !== null && !Number.isFinite(row.truth))) throw new Error("Invalid sample record");
     if (samples.length && row.sequence <= samples[samples.length - 1].sequence) throw new Error("Recording sequences must increase");
     samples.push(row); $("empty").hidden = true;
+    showContinuity(row);
     if (row.output === null) ++missing; else ++count;
     $("outputs").textContent = count; $("missing").textContent = missing;
     $("owner").textContent = pretty(row.source); $("latency").textContent = `${Number(row.decision_latency_ms).toFixed(2)} ms`;
@@ -72,8 +92,15 @@ function accept(row, replay = false, board = null) {
       const meta = records[0];
       $("backend").textContent = `${board ? board.source : replay ? "Recorded" : "Live"} ${meta.backend === "qnx-native-ipc" ? "QNX native IPC" : "host POSIX process run"} · baseline PID ${meta.baseline_pid} · candidate PID ${row.candidate_pid} · generation ${row.generation}`;
     }
+  } else if (row.type === "summary") {
+    const latest = samples[samples.length - 1];
+    showContinuity(board && latest?.sequence !== row.samples ? null : latest, row);
+    if (Number.isFinite(row.selected_outputs)) {
+      $("outputs").textContent = row.selected_outputs;
+      $("missing").textContent = row.missing_selected_outputs;
+    }
   } else if (row.type === "error") throw new Error(row.message);
-  else if (row.type !== "summary") throw new Error("Unknown record type");
+  else throw new Error("Unknown record type");
 }
 async function run() {
   if (running || watchingBoard) return;
@@ -127,7 +154,7 @@ async function watchBoard() {
       const signature = JSON.stringify(board);
       if (signature !== previous) {
         previous = signature;
-        status.textContent = `${board.source} · upstream ${board.upstream} · ${board.sequence_gaps} missing samples · ${board.evicted} older rows evicted · ${board.malformed} malformed · ${board.oversize} oversized`;
+        status.textContent = `${board.source} · upstream ${board.upstream} · ${board.sequence_gaps} missing relay sample frames · ${board.evicted} older rows evicted · ${board.malformed} malformed · ${board.oversize} oversized`;
         $("connection").textContent = board.complete ? "Board run complete" : board.upstream === "connected" ? "Board stream connected" : "Board stream disconnected";
         reset();
         if (board.meta) {

@@ -398,6 +398,28 @@ canvas {
   font-variant-numeric:tabular-nums;
 }
 
+.continuity {
+  padding:20px 0;
+  border-bottom:1px solid var(--line);
+}
+
+.continuity dl {
+  display:grid;
+  grid-template-columns:repeat(auto-fit,minmax(165px,1fr));
+  gap:12px 18px;
+  margin:14px 0;
+}
+
+.continuity p, .continuity dt {
+  color:var(--muted);
+  font-size:12px;
+}
+
+.continuity dd {
+  margin:4px 0 0;
+  font-variant-numeric:tabular-nums;
+}
+
 .events {
   margin-top:24px;
 }
