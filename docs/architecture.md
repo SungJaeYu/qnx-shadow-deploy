@@ -121,10 +121,16 @@ records and implement their own timeout and safe state if output ceases.
 In this mode, run stdout through a separate writable pipe for best-effort
 telemetry or use `--no-telemetry` when stdout goes to a terminal or file.
 Keep stderr separate when stdout telemetry is enabled. The broker sets
-`O_NONBLOCK` on diagnostic and telemetry pipe writers. It writes one
-complete telemetry row at a time and drops the row when the pipe cannot
-take it, including when a row exceeds the atomic write limit. A summary
-that reaches stdout reports `telemetry_records_dropped` up to that row.
+`O_NONBLOCK` on diagnostic and telemetry pipe writers. Give the broker
+exclusive use of the stdout write end so other writers cannot interleave
+bytes of a partial row. The broker retains at most one unfinished row, tries
+to finish it before emitting the next row, and drops new rows when the pipe
+cannot accept them. Once authority has closed, the broker allows up to 20 ms
+for telemetry draining. If an unfinished row cannot be completed within
+that window or the reader disconnects, the broker stops writing telemetry.
+Consumers should process newline-terminated rows and discard any incomplete
+trailing line at EOF. A summary that reaches stdout reports
+`telemetry_records_dropped` up to that row.
 Stderr also reports the final drop count when nonzero and reports delivery
 errors with the last selected and last delivered sequence. Stderr pipe
 reports are best-effort under backpressure. Exit status 4 remains the

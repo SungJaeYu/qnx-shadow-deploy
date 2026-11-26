@@ -29,9 +29,14 @@ def records(data):
 
 def fill(sink):
     os.set_blocking(sink.fileno(), False)
+    written = 0
     for chunk in (b"x" * 512, b"x"):
-        while sink.write(chunk) is not None:
-            pass
+        while True:
+            count = sink.write(chunk)
+            if count is None:
+                break
+            written += count
+    return written
 
 
 class OutputDelivery(unittest.TestCase):
@@ -51,7 +56,9 @@ class OutputDelivery(unittest.TestCase):
         self.assertEqual([row["sequence"] for row in authority], list(range(1, 9)))
         self.assertEqual([row["source"] for row in authority],
                          ["baseline", "baseline", "candidate", "candidate"] + ["baseline"] * 4)
-        for actual, sample in zip(authority, telemetry[1:-1]):
+        samples = telemetry[1:-1]
+        self.assertEqual([row["sequence"] for row in samples], list(range(1, 9)))
+        for actual, sample in zip(authority, samples):
             self.assertEqual(actual["type"], "authoritative_output")
             self.assertEqual(actual["schema"], 1)
             self.assertEqual(actual["producer_run_id"], telemetry[0]["producer_run_id"])
@@ -105,6 +112,41 @@ class OutputDelivery(unittest.TestCase):
                 self.assertEqual(result.returncode, 0, result.stderr)
                 self.assertEqual([row["sequence"] for row in records(source.read())], list(range(1, 9)))
                 self.assertIn(b"telemetry_records_dropped=10", result.stderr)
+
+    def test_telemetry_reader_resumes_without_malformed_rows(self):
+        with pipe() as (source, sink), pipe() as (log, log_sink):
+            filler_bytes = fill(log_sink)
+            fd = sink.fileno()
+            with subprocess.Popen(COMMAND + ["--output-fd", str(fd)], pass_fds=(fd,),
+                                  stdout=log_sink, stderr=subprocess.PIPE) as process:
+                log_sink.close()
+                sink.close()
+                first = []
+                for _ in range(2):
+                    self.assertTrue(select.select([source], [], [], 3)[0])
+                    first.append(json.loads(source.readline()))
+                self.assertEqual([row["sequence"] for row in first], [1, 2])
+                chunks = []
+                while True:
+                    self.assertTrue(select.select([log], [], [], 3)[0])
+                    chunk = log.read(4096)
+                    if not chunk:
+                        break
+                    chunks.append(chunk)
+                _, stderr = process.communicate(timeout=3)
+            self.assertEqual(process.returncode, 0, stderr)
+            self.assertEqual([row["sequence"] for row in first + records(source.read())],
+                             list(range(1, 9)))
+        received = b"".join(chunks)
+        self.assertEqual(received[:filler_bytes], b"x" * filler_bytes)
+        telemetry_bytes = received[filler_bytes:]
+        self.assertTrue(telemetry_bytes.endswith(b"\n"))
+        telemetry = records(telemetry_bytes)
+        self.assertGreaterEqual(len(telemetry), 2)
+        self.assertEqual(telemetry[-2]["sequence"], 8)
+        self.assertEqual(telemetry[-1]["type"], "summary")
+        self.assertEqual(telemetry[-1]["delivered_outputs"], 8)
+        self.assertGreater(telemetry[-1]["telemetry_records_dropped"], 0)
 
     def test_rejects_invalid_output_descriptor_and_aliases(self):
         with pipe() as (source, sink):

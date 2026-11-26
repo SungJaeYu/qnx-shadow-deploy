@@ -83,6 +83,8 @@ bool same_pipe(int first, int second) {
            a.st_dev == b.st_dev && a.st_ino == b.st_ino;
 }
 
+constexpr std::uint64_t telemetry_shutdown_grace_ns = 20'000'000;
+
 struct AtomicPipe {
     int fd;
     std::size_t record_limit;
@@ -111,20 +113,68 @@ struct AtomicPipe {
 
 class Telemetry {
 public:
-    Telemetry(bool split, bool disabled, AtomicPipe pipe)
+    Telemetry(bool split, bool disabled)
         : stream(split ? static_cast<std::ostream&>(record_) : std::cout),
-          split_(split), disabled_(disabled), pipe_(pipe) {}
+          split_(split), disabled_(disabled) {}
 
     void emit() {
-        if (split_) {
-            if (!disabled_ && pipe_.write_record(record_.str())) ++dropped;
-            record_.str({});
-        } else {
+        if (!split_) {
             stream.flush();
+            return;
         }
+        if (!disabled_) {
+            resume_pending();
+            if (pipe_failed_ || !pending_.empty()) {
+                ++dropped;
+            } else {
+                pending_ = record_.str();
+                resume_pending();
+                // If no bytes were sent, dropping the entire row leaves nothing to finish.
+                if (!pending_.empty() && pending_offset_ == 0) {
+                    ++dropped;
+                    pending_.clear();
+                }
+            }
+        }
+        record_.str({});
+    }
+
+    void drain(std::uint64_t deadline_ns) {
+        while (!pending_.empty()) {
+            const auto now = shadow::monotonic_ns();
+            if (now >= deadline_ns) break;
+            const auto wait_ms = static_cast<int>((deadline_ns - now + 999'999) / 1'000'000);
+            pollfd fd{STDOUT_FILENO, POLLOUT, 0};
+            if (::poll(&fd, 1, wait_ms) <= 0 || !(fd.revents & POLLOUT)) break;
+            resume_pending();
+        }
+        if (!pending_.empty()) abandon_pending();
     }
 
 private:
+    void resume_pending() {
+        if (pending_.empty()) return;
+        const auto count = ::write(STDOUT_FILENO, pending_.data() + pending_offset_,
+                                   pending_.size() - pending_offset_);
+        if (count > 0) {
+            pending_offset_ += static_cast<std::size_t>(count);
+            if (pending_offset_ == pending_.size()) {
+                pending_.clear();
+                pending_offset_ = 0;
+            }
+        } else if (count == 0 || (errno != EAGAIN && errno != EWOULDBLOCK && errno != EINTR)) {
+            abandon_pending();
+        }
+    }
+
+    void abandon_pending() {
+        ++dropped;
+        pending_.clear();
+        pending_offset_ = 0;
+        // A partial row may be visible. Never append another row to its prefix.
+        pipe_failed_ = true;
+    }
+
     std::ostringstream record_;
 public:
     std::ostream& stream;
@@ -132,7 +182,9 @@ public:
 private:
     bool split_;
     bool disabled_;
-    AtomicPipe pipe_;
+    bool pipe_failed_ = false;
+    std::string pending_;
+    std::size_t pending_offset_ = 0;
 };
 
 void value(std::ostream& out, double x) {
@@ -350,7 +402,6 @@ int main(int argc, char** argv) {
         if (no_telemetry && output_fd == -1)
             throw std::invalid_argument("--no-telemetry requires --output-fd");
         AtomicPipe authority{output_fd, 0};
-        AtomicPipe telemetry_pipe{STDOUT_FILENO, 0};
         if (split_output) {
             if (output_fd <= STDERR_FILENO || same_pipe(output_fd, STDIN_FILENO) ||
                 same_pipe(output_fd, STDOUT_FILENO))
@@ -363,12 +414,11 @@ int main(int argc, char** argv) {
             if (!no_telemetry) {
                 if (same_pipe(STDOUT_FILENO, STDERR_FILENO))
                     throw std::invalid_argument("split output requires separate stdout and stderr, or --no-telemetry");
-                telemetry_pipe = AtomicPipe::prepare(STDOUT_FILENO);
-                if (!telemetry_pipe.record_limit)
+                if (!AtomicPipe::prepare(STDOUT_FILENO).record_limit)
                     throw std::invalid_argument("split output requires a writable stdout pipe or --no-telemetry");
             }
         }
-        Telemetry telemetry(split_output, no_telemetry, telemetry_pipe);
+        Telemetry telemetry(split_output, no_telemetry);
         auto& out = telemetry.stream;
         const auto trace = trace_path.empty() ? std::vector<double>{} : load_sensor_trace(trace_path, samples);
         std::signal(SIGPIPE, SIG_IGN);
@@ -564,7 +614,12 @@ int main(int argc, char** argv) {
             // Rebase on actual acquisition, not the old nominal release grid.
             next_release = next_release_ns(sample.acquired_ns, monotonic_ns(), contract.period_ns);
         }
-        if (split_output) ::close(output_fd);
+        std::uint64_t telemetry_deadline_ns = 0;
+        if (split_output) {
+            ::close(output_fd);
+            telemetry_deadline_ns = monotonic_ns() + telemetry_shutdown_grace_ns;
+            telemetry.drain(telemetry_deadline_ns);
+        }
         const auto missing = continuity.acquired - continuity.selected;
         out << "{\"type\":\"summary\",\"phase\":\"" << name(supervisor.phase())
                   << "\",\"samples\":" << continuity.acquired << ",\"outputs\":" << continuity.selected
@@ -611,6 +666,7 @@ int main(int argc, char** argv) {
         }
         out << ",\"external_delivery\":\"unmeasured\"}\n";
         telemetry.emit();
+        if (split_output) telemetry.drain(telemetry_deadline_ns);
         if (delivery_error) {
             std::ostringstream error;
             error << "shadow-demo: " << delivery_error
