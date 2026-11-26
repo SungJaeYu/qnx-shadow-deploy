@@ -1,6 +1,7 @@
 #!/usr/bin/env python3
 """Summarize fixed native QNX trial plans without emitting raw trace records."""
 import argparse
+from datetime import datetime
 import json
 import math
 from pathlib import Path
@@ -36,22 +37,90 @@ def legacy_exits(root):
     return entries
 
 
+def process_snapshot(path):
+    lines = path.read_text().splitlines()
+    check(lines and lines[0].lower().split() == ["pid", "arguments"], "invalid process snapshot header")
+    pids = set()
+    for line in lines[1:]:
+        if not line.strip():
+            continue
+        fields = line.split(maxsplit=1)
+        check(len(fields) == 2 and re.fullmatch(r"[1-9][0-9]*", fields[0]), "invalid process snapshot row")
+        pid = int(fields[0])
+        check(pid not in pids, "duplicate PID in process snapshot")
+        pids.add(pid)
+    check(pids, "empty process snapshot")
+    return pids
+
+
+def binary_checksums(path):
+    entries = {}
+    for line in path.read_text().splitlines():
+        fields = line.split(maxsplit=2)
+        check(len(fields) == 3 and fields[0].isascii() and fields[0].isdecimal()
+              and re.fullmatch(r"[1-9][0-9]*", fields[1]), "invalid binary checksum record")
+        checksum, size, binary = fields
+        name = Path(binary).name
+        check(0 <= int(checksum) <= 0xFFFFFFFF and Path(binary).is_absolute()
+              and name in ("shadow-demo", "shadow-worker") and name not in entries,
+              "invalid binary checksum identity")
+        entries[name] = (int(checksum), int(size), binary)
+    check(len(entries) == 2, "missing binary checksum")
+    return entries
+
+
+def environment_metadata(path):
+    fields = {}
+    for line in path.read_text().splitlines():
+        if not line.strip() or line.lstrip().startswith("#"):
+            continue
+        key, separator, value = line.partition("=")
+        check(separator and re.fullmatch(r"[a-z][a-z0-9_]*", key) and value.strip() and key not in fields,
+              "invalid environment metadata field")
+        fields[key] = value.strip()
+    check(fields.get("target") in ("qemu", "pi4"), "missing target identity")
+    mapped = fields.get("build_provenance")
+    revision = fields.get("source_revision", "")
+    check((mapped == "source_mapped" and re.fullmatch(r"[0-9a-f]{40}", revision))
+          or (mapped == "unmapped" and revision == "unknown"), "invalid source provenance")
+    check(re.fullmatch(r"[0-9a-f]{64}", fields.get("image_sha256", "")), "invalid image SHA-256")
+    if "disk_sha256" in fields:
+        check(re.fullmatch(r"[0-9a-f]{64}", fields["disk_sha256"]), "invalid disk SHA-256")
+    return {key: fields[key] for key in ("target", "build_provenance", "source_revision", "image_sha256")}
+
+
 def controlled_context(root):
-    files = ("environment.txt", "uname.txt", "pidin-info.txt", "initial.processes",
-             "binaries.cksum")
-    present = all((root / name).is_file() and (root / name).stat().st_size for name in files)
-    stable = ((root / "final-binaries.cksum").is_file() and (root / "binaries.cksum").is_file()
-              and (root / "final-binaries.cksum").read_bytes() == (root / "binaries.cksum").read_bytes())
-    status = root / "collection-status"
-    return {
+    context = {
         "environment_file": "environment.txt",
         "identity_file": "uname.txt",
         "cpu_and_memory_file": "pidin-info.txt",
         "binary_checksum_file": "binaries.cksum",
-        "provenance_files_present": bool(present),
-        "binary_checksums_unchanged": stable,
-        "collector_completed": status.is_file() and status.read_text().strip() == "complete",
+        "provenance_valid": False,
+        "binary_checksums_unchanged": False,
+        "collector_completed": False,
     }
+    try:
+        context.update(environment_metadata(root / "environment.txt"))
+        uname = (root / "uname.txt").read_text().strip()
+        check(re.fullmatch(r"QNX\s+[^\s]+\s+[0-9.]+\s+[^\n]+", uname), "invalid QNX uname record")
+        if context["target"] == "pi4":
+            check(uname.split()[-1].lower() in ("aarch64", "aarch64le"), "invalid Pi architecture")
+        info = (root / "pidin-info.txt").read_text()
+        check(re.search(r"CPU:\S+\s+Release:\S+.*FreeMem:", info)
+              and re.search(r"^Processor[1-9][0-9]*:", info, re.M), "invalid QNX pidin info")
+        process_snapshot(root / "initial.processes")
+        initial = binary_checksums(root / "binaries.cksum")
+        context["provenance_valid"] = True
+        final = binary_checksums(root / "final-binaries.cksum")
+        context["binary_checksums_unchanged"] = final == initial
+        status = (root / "collection-status").read_text().strip()
+        check(status in ("complete", "interrupted", "aborted_cleanup"), "invalid collection status")
+        context["collector_completed"] = status == "complete"
+    except TraceValidationError as error:
+        context["error"] = str(error)
+    except (OSError, ValueError) as error:
+        context["error"] = type(error).__name__
+    return context
 
 
 def owned_processes(root, name, baseline_pid, expected_loops):
@@ -61,10 +130,52 @@ def owned_processes(root, name, baseline_pid, expected_loops):
     check(min(owned) > 0 and len(owned) == 2 + len(loads), "invalid owned PIDs")
     check(len(loads) == expected_loops, "wrong number of load processes")
     check((root / f"{name}.load-complete").read_text().strip() == "yes", "load process exited early")
-    processes = (root / f"{name}.processes").read_text().splitlines()
-    running = {int(line.split()[0]) for line in processes if line.split() and line.split()[0].isdecimal()}
-    check(running, "missing process snapshot")
+    check((root / f"{name}.cleanup").read_text().strip() == "verified", "collector cleanup unverified")
+    check(not (root / f"{name}.unreaped-pids").exists(), "collector had unreaped children")
+    running = process_snapshot(root / f"{name}.processes")
     check(not (owned & running), "owned process visible after trial")
+
+
+def verify_baseline_only(meta, summary, ticks, row_count):
+    check(meta["scenario"] == "live-deployment" and meta["schema"] == 2
+          and meta["baseline_pid"] > 0 and meta["candidate_pid"] == -1
+          and meta["position_unit"] == "m" and "input_source" not in meta
+          and meta["ipc_budget_ms"] == 0.75 * meta["deadline_ms"]
+          and (meta["qualification_samples"], meta["probation_samples"]) == (20, 40)
+          and row_count == len(ticks) + 2 and summary["phase"] in ("idle", "failed"),
+          "trial was not baseline-only")
+    checks = {
+        "ok", "unavailable", "deadline_exceeded", "worker_disconnected", "protocol_mismatch",
+        "stale_or_mismatched_output", "non_finite_output", "position_out_of_range",
+        "velocity_out_of_range", "position_step_exceeded",
+    }
+    for index, row in enumerate(ticks):
+        check(row["candidate"] is None and row["candidate_pid"] == -1
+              and row["baseline_pid"] == meta["baseline_pid"]
+              and type(row["generation"]) is int and row["generation"] == 0,
+              "candidate present or baseline PID changed")
+        failed = index == len(ticks) - 1 and summary["phase"] == "failed"
+        baseline = row["baseline_check"]
+        candidate = row["candidate_check"]
+        reason = row["reason"]
+        if failed:
+            check(row["phase"] == "failed" and row["source"] == "none"
+                  and row["event"] == "output_stopped" and row["output"] is None, "invalid terminal sample")
+            invalid_input = baseline == candidate == ""
+            check(invalid_input or (baseline in checks and candidate == "not_running"),
+                  "invalid terminal worker checks")
+            if row["publication_miss"]:
+                check(reason == "decision_deadline_exceeded", "decision miss reason mismatch")
+            elif invalid_input:
+                check(reason == "invalid_or_non_monotonic_input", "invalid input reason mismatch")
+            elif baseline == "ok":
+                check(reason == "output_discontinuity", "output stop reason mismatch")
+            else:
+                check(reason == "baseline_" + baseline, "baseline stop reason mismatch")
+        else:
+            check(row["phase"] == "idle" and row["source"] == "baseline" and row["output"] is not None
+                  and row["event"] == reason == "" and baseline == "ok" and candidate == "not_running",
+                  "invalid baseline output semantics")
 
 
 def measure(ticks, meta):
@@ -84,7 +195,10 @@ def measure(ticks, meta):
         miss = row["publication_miss"]
         check(type(miss) is bool, "invalid publication miss flag")
         # The producer's printed precision can round a near-boundary miss to the deadline.
-        check(miss or row["decision_latency_ms"] <= meta["deadline_ms"], "unreported decision miss")
+        decision_ms = row["decision_latency_ms"]
+        budget = meta["deadline_ms"]
+        check((miss and decision_ms >= budget) or (not miss and decision_ms <= budget),
+              "decision timing conflicts with miss flag")
         checks = [row[key] for key in ("baseline_check", "candidate_check")]
         if miss or "deadline_exceeded" in checks:
             failures.append({
@@ -115,11 +229,6 @@ def trial(root, name, condition, count, period, deadline, loops, legacy, exits):
     try:
         stop_marker = root / f"{name}.operator-stop"
         result["operator_stop_requested"] = not legacy and stop_marker.is_file()
-        status_path = root / f"{name}.exit"
-        if legacy:
-            result["exit_code"] = exits.get(name)
-        elif status_path.is_file():
-            result["exit_code"] = int(status_path.read_text())
         if not path.is_file():
             return result
         # Inspect framing before the strict verifier rejects incomplete/interrupted files.
@@ -139,7 +248,7 @@ def trial(root, name, condition, count, period, deadline, loops, legacy, exits):
             return result
         check(all(row.get("type") not in ("meta", "summary") for row in rows[1:-1]),
               "duplicate metadata or summary")
-        interrupted = rows[-1].get("interrupted") is True and result["exit_code"] == 130
+        interrupted = rows[-1].get("interrupted") is True
         rows, ticks = validate_rows(path, rows, allow_interrupted=interrupted)
         meta, summary = rows[0], rows[-1]
         check(type(summary["interrupted"]) is bool, "invalid interruption flag")
@@ -154,19 +263,8 @@ def trial(root, name, condition, count, period, deadline, loops, legacy, exits):
         if legacy:
             check(meta["scenario"] == "rollback" and meta["candidate_pid"] > 0, "not a legacy rollback trace")
         else:
-            check(meta["scenario"] == "live-deployment" and meta["candidate_pid"] == -1
-                  and meta["baseline_pid"] > 0 and len(rows) == len(ticks) + 2
-                  and all(row["candidate_pid"] == -1 and row["candidate"] is None
-                          and row["baseline_pid"] == meta["baseline_pid"]
-                          and row["phase"] in ("idle", "failed")
-                          and row["source"] in ("baseline", "none") for row in ticks),
-                  "trial was not baseline-only")
-        result.update(measure(ticks, meta))
-        result.update(observed_samples=len(ticks), observed_outputs=summary["outputs"],
-                      missing_outputs_vs_requested=count - summary["outputs"],
-                      observed_samples_without_output=summary["missing_outputs"],
-                      unobserved_requested_samples=count - len(ticks))
-
+            verify_baseline_only(meta, summary, ticks, len(rows))
+        reason = None
         if summary["phase"] == "failed":
             check(ticks[-1]["event"] == "output_stopped" and summary["missing_outputs"] == 1
                   and all(row["phase"] != "failed" and row["event"] != "output_stopped"
@@ -174,17 +272,37 @@ def trial(root, name, condition, count, period, deadline, loops, legacy, exits):
             reason = ticks[-1]["reason"]
             check(isinstance(reason, str) and re.fullmatch(r"[a-z][a-z0-9_]{0,95}", reason),
                   "invalid output stop reason")
-            result["stop_reason"] = reason
         else:
             check(all(row["event"] != "output_stopped" for row in ticks), "unreported output stop")
-        if not legacy:
+
+        result.update(measure(ticks, meta))
+        result.update(observed_samples=len(ticks), observed_outputs=summary["outputs"],
+                      missing_outputs_vs_requested=count - summary["outputs"],
+                      observed_samples_without_output=summary["missing_outputs"],
+                      unobserved_requested_samples=count - len(ticks), stop_reason=reason)
+        if legacy:
+            result["exit_code"] = exits.get(name)
+        else:
+            status = (root / f"{name}.exit").read_text().strip()
+            check(re.fullmatch(r"(?:0|[1-9][0-9]{0,2})", status) and int(status) <= 255,
+                  "invalid broker exit record")
+            result["exit_code"] = int(status)
+            check((root / f"{name}.stderr").is_file(), "missing broker stderr")
+            if result["operator_stop_requested"]:
+                check(stop_marker.read_text().strip() == "requested", "invalid operator stop marker")
+            times = []
             for suffix in ("started", "finished"):
                 timestamp = (root / f"{name}.{suffix}").read_text().strip()
-                check(timestamp, "missing trial timestamp")
+                check(re.fullmatch(r"[0-9]{4}-[0-9]{2}-[0-9]{2}T[0-9]{2}:[0-9]{2}:[0-9]{2}Z", timestamp),
+                      "invalid trial timestamp")
+                times.append(datetime.strptime(timestamp, "%Y-%m-%dT%H:%M:%SZ"))
                 result[suffix + "_utc"] = timestamp
+            check(times[0] <= times[1], "reversed trial timestamps")
             owned_processes(root, name, meta["baseline_pid"], loops)
             result["process_cleanup_checked"] = True
 
+        check(result["exit_code"] is None or (result["exit_code"] == 130) == interrupted,
+              "broker exit and interruption disagree")
         if interrupted:
             result["status"] = "operator_stopped" if result["operator_stop_requested"] else "interrupted"
         elif result["exit_code"] is None or result["operator_stop_requested"]:
@@ -256,7 +374,7 @@ def main():
         "trials": results,
     }, indent=2, allow_nan=False))
     if context is not None and not all(context[key] for key in (
-            "provenance_files_present", "binary_checksums_unchanged", "collector_completed")):
+            "provenance_valid", "binary_checksums_unchanged", "collector_completed")):
         return 1
     return 0 if all(row["status"] == "pass" for row in results) else 1
 

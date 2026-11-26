@@ -221,11 +221,20 @@ idle trial (no added load) and one CPU trial (a fixed number of target shell
 busy loops). The broker writes straight to the evidence filesystem. Load
 processes run across each CPU attempt and are terminated and reaped before
 the next attempt. Store all attempts, including nonzero exits, as a single
-collection.
+collection. The collector allows three seconds for its direct children to
+exit after TERM. It stops the matrix if cleanup cannot be verified and
+preserves any remaining PIDs for diagnosis. Worker PIDs from the trace
+are checked against the post-trial snapshot.
 
-Prepare a nonempty `environment.txt` before the run. Include the target
-and image identity, source revision or unknown mapping, SDK/BSP version,
-binary SHA-256 values from the bundle, scheduler policy, priorities and
+Prepare `environment.txt` before the run, with one `key=value` field per
+line and optional `#` comments. Set `target` to `qemu` or `pi4` and
+`image_sha256` to the verified 64-digit image SHA-256. Use
+`build_provenance=source_mapped` with the full Git commit in
+`source_revision` when binary provenance has been verified, or
+`build_provenance=unmapped` with `source_revision=unknown` for an image
+whose binary-to-source mapping is unavailable. For a separate QEMU disk,
+record `disk_sha256`. Add SDK/BSP version, binary SHA-256 values from the
+bundle, scheduler policy, priorities and
 affinity, and the evidence filesystem. Record observed CPU and memory
 conditions and, on the Pi, cooling, temperature and throttling. For QEMU,
 include host architecture/OS, QEMU version, accelerator, allocated RAM
@@ -284,8 +293,9 @@ The historical 2026-11-26 QEMU comparison can be reanalyzed using
 `--legacy-plan 3 100 20 10 2` after pointing the analyzer at its exported
 `timing/` directory. Those traces ran the candidate-enabled `rollback`
 scenario with and without two busy loops. Keep that result separate from
-the baseline-only controls. The legacy trace bundle does not include the
-per-attempt cleanup records required by the new collector.
+the baseline-only controls. The legacy trace bundle lacks the per-attempt
+cleanup records required by the new collector. The [QEMU trial
+record](qnx-controlled-trials-2026-11-26.md) reports the two collections.
 
 ## Export native evidence
 
