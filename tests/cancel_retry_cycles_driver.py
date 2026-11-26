@@ -33,13 +33,22 @@ def main():
             stdout=subprocess.PIPE,
             stderr=subprocess.PIPE,
             text=True,
+            start_new_session=True,
         ) as driver:
+            completed = False
             try:
                 trace = out / "cycles.jsonl"
                 deadline = time.monotonic() + 5
                 while not trace.exists() or "ready\n" not in trace.read_text():
-                    if driver.poll() is not None or time.monotonic() >= deadline:
-                        raise AssertionError("stub broker did not reach FIFO rendezvous")
+                    if driver.poll() is not None:
+                        stdout, stderr = driver.communicate(timeout=5)
+                        raise AssertionError(
+                            f"driver exited before FIFO rendezvous: {driver.returncode}, {stdout!r}, {stderr!r}"
+                        )
+                    if time.monotonic() >= deadline:
+                        broker_stderr = out / "stderr"
+                        detail = broker_stderr.read_text() if broker_stderr.exists() else "stderr file absent"
+                        raise AssertionError(f"stub broker did not reach FIFO rendezvous: {detail}")
                     time.sleep(0.02)
                 driver.send_signal(signal.SIGTERM)
                 stdout, stderr = driver.communicate(timeout=10)
@@ -49,14 +58,14 @@ def main():
                 assert status.exists(), "cleanup did not record the forced broker exit"
                 assert int(status.read_text()) > 128, status.read_text()
                 assert not (out / "control.fifo").exists(), "cleanup left the control FIFO"
+                completed = True
             finally:
-                if driver.poll() is None:
-                    driver.terminate()
+                if not completed:
                     try:
-                        driver.communicate(timeout=10)
-                    except subprocess.TimeoutExpired:
-                        driver.kill()
-                        driver.communicate()
+                        os.killpg(driver.pid, signal.SIGKILL)
+                    except ProcessLookupError:
+                        pass
+                    driver.communicate(timeout=5)
 
 
 if __name__ == "__main__":
