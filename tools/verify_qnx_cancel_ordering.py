@@ -2,10 +2,11 @@
 """Verify fresh QNX operator cancellation traces and process snapshots."""
 
 from pathlib import Path
+import json
 import re
 import sys
 
-from verify_qnx_logs import check, load
+from verify_qnx_logs import check, load, validate_rows
 
 
 def one(rows, event, generation):
@@ -202,6 +203,42 @@ def verify_cleanup(stem, broker, baseline, first, second, ticks, sequence):
 
 
 
+def verify_incomplete_capture(stem):
+    marker = stem.with_suffix(".capture-inconclusive").read_text().strip()
+    matched = re.fullmatch(r"reason=no-receipt term_sent=([01])", marker)
+    check(matched, "malformed capture-expiration marker")
+    term_sent = matched.group(1) == "1"
+    exit_path = stem.with_suffix(".exit")
+    code = int(exit_path.read_text()) if exit_path.exists() else None
+    check(code in {None, 0} or (code == 130 and term_sent), f"unexpected broker exit {code}")
+
+    path = stem.with_suffix(".jsonl")
+    rows = [json.loads(line) for line in path.read_text().splitlines()]
+    check(rows and rows[0]["type"] == "meta" and rows[0]["backend"] == "qnx-native-ipc",
+          "capture lacks native broker metadata")
+    check(not any(r.get("phase") == "failed" or r.get("publication_miss") or
+                  r.get("event") in {"command_rejected", "preparation_failed"} for r in rows),
+          "broker failure was recorded before capture stopped")
+    check(not any(r.get("event") in {"cancel_requested", "candidate_cancelled", "candidate_committed"}
+                  for r in rows), "no-receipt marker contradicts the capture trace")
+    if rows[-1]["type"] == "summary":
+        validate_rows(path, rows, allow_interrupted=True)
+        check((code != 130 or rows[-1]["interrupted"]) and (code != 0 or not rows[-1]["interrupted"]),
+              "broker exit disagrees with the capture summary")
+
+    finished_path = Path(f"{stem}-finished.processes")
+    known_retired = False
+    if finished_path.exists():
+        broker = int(stem.with_suffix(".broker-pid").read_text())
+        known = {broker, rows[0]["baseline_pid"]}
+        known.update(r["candidate_pid"] for r in rows if r.get("candidate_pid", -1) > 1)
+        check(min(known) > 1, "invalid owned process identity")
+        check(not processes(finished_path) & known, "owned process survived capture termination")
+        known_retired = True
+    return code, known_retired
+
+
+
 def main():
     if not (len(sys.argv) == 2 or len(sys.argv) == 3 and sys.argv[2] == "--gated"):
         print("usage: verify_qnx_cancel_ordering.py FRESH_TRACE_DIR [--gated]", file=sys.stderr)
@@ -211,6 +248,20 @@ def main():
     cases = ("replay-gated",) if len(sys.argv) == 3 else ("live", "replay")
     for case in cases:
         stem = Path(sys.argv[1]) / case
+        if case == "replay-gated" and stem.with_suffix(".capture-inconclusive").exists():
+            try:
+                code, known_retired = verify_incomplete_capture(stem)
+            except malformed as error:
+                print(f"FAIL {case} capture: {error}", file=sys.stderr)
+                verdict = 1
+            else:
+                end = f"broker_exit={code}" if code is not None else "broker exit unproven"
+                print(f"INCONCLUSIVE {case} capture: no receipt witness; {end}")
+                if known_retired:
+                    print(f"PASS {case} final process snapshot: known owned processes absent")
+                print(f"INCONCLUSIVE {case} cleanup: cancelled worker and post-cancel resources unproven")
+                verdict = 77
+            continue
         try:
             broker, baseline, first, second, outstanding, cancelled, committed, ticks, stage_after = verify_behavior(stem, case)
         except malformed as error:

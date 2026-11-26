@@ -180,6 +180,29 @@ class CancelOrderingTraceTests(unittest.TestCase):
         stem.with_suffix(".release").write_text(receipt if token_matches else "incorrect token\n")
         stem.with_suffix(".witness").write_text(receipt + release + (reply if complete else ""))
 
+    def incomplete_gated_capture(self, *, code=130, preparation_failed=False, process_survives=False,
+                                 snapshot=True):
+        self.fixture("replay-gated", peer_known=False)
+        stem = self.root / "replay-gated"
+        trace = stem.with_suffix(".jsonl")
+        rows = [json.loads(line) for line in trace.read_text().splitlines()]
+        sample_17 = next(i for i, row in enumerate(rows) if row.get("sequence") == 17)
+        rows = rows[:sample_17 + 1]
+        if preparation_failed:
+            rows.append(dict(type="deployment", event="preparation_failed", generation=1, after_sequence=17))
+        rows.append(dict(type="summary", phase="warming", samples=17, outputs=17, missing_outputs=0,
+                         publication_misses=0, interrupted=True))
+        trace.write_text("".join(json.dumps(row) + "\n" for row in rows))
+        stem.with_suffix(".capture-inconclusive").write_text("reason=no-receipt term_sent=1\n")
+        stem.with_suffix(".exit").write_text(f"{code}\n")
+        Path(f"{stem}-cancelled.fds").unlink()
+        Path(f"{stem}-cancelled.processes").unlink()
+        finished = Path(f"{stem}-finished.processes")
+        if not snapshot:
+            finished.unlink()
+        elif process_survives:
+            finished.write_text("1 procnto\n46 baseline\n")
+
     def run_verifier(self, *args):
         verifier = Path(__file__).resolve().parents[1] / "tools" / "verify_qnx_cancel_ordering.py"
         return subprocess.run([sys.executable, str(verifier), str(self.root), *args],
@@ -231,6 +254,26 @@ class CancelOrderingTraceTests(unittest.TestCase):
         self.assertEqual(result.returncode, 77, result.stderr)
         self.assertIn("INCONCLUSIVE gated replay ordering", result.stdout)
         self.assertIn("INCONCLUSIVE replay-gated cleanup", result.stdout)
+
+    def test_capture_expiration_preserves_independent_cleanup_limits(self):
+        for snapshot in (False, True):
+            with self.subTest(snapshot=snapshot):
+                self.incomplete_gated_capture(snapshot=snapshot)
+                result = self.run_verifier("--gated")
+                self.assertEqual(result.returncode, 77, result.stderr)
+                self.assertIn("no receipt witness; broker_exit=130", result.stdout)
+                self.assertEqual("PASS replay-gated final process snapshot" in result.stdout, snapshot)
+                self.assertIn("INCONCLUSIVE replay-gated cleanup", result.stdout)
+
+    def test_capture_expiration_never_hides_known_failure(self):
+        for changes, reason in ((dict(code=3), "unexpected broker exit 3"),
+                                (dict(preparation_failed=True), "broker failure was recorded"),
+                                (dict(process_survives=True), "owned process survived")):
+            with self.subTest(changes=changes):
+                self.incomplete_gated_capture(**changes)
+                result = self.run_verifier("--gated")
+                self.assertEqual(result.returncode, 1, result.stdout)
+                self.assertIn(reason, result.stderr)
 
     def test_gated_requires_matching_request_success_and_budget(self):
         for changes in (dict(reply_rcvid=124), dict(reply_ns=1_340_000_000), dict(result=-1),

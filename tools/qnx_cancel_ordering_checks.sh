@@ -26,6 +26,25 @@ cleanup() {
 trap cleanup EXIT
 trap 'exit 130' INT TERM
 
+finish_capture_without_receipt() {
+    term_sent=0
+    if kill -TERM "$broker" 2>/dev/null; then term_sent=1; fi
+    printf 'reason=no-receipt term_sent=%s\n' "$term_sent" > "$stem.capture-inconclusive"
+    if wait "$broker"; then code=0; else code=$?; fi
+    broker=
+    exec 3>&-
+    printf '%s\n' "$code" > "$stem.exit"
+    if pidin ar > "$stem-finished.processes.partial"; then
+        mv "$stem-finished.processes.partial" "$stem-finished.processes"
+    fi
+    if [ "$code" -ne 0 ] && { [ "$code" -ne 130 ] || [ "$term_sent" -ne 1 ]; }; then
+        echo "FAIL: broker exited $code while waiting for a receipt." >&2
+        exit 1
+    fi
+    echo 'INCONCLUSIVE: no receipt witness.' >&2
+    exit 77
+}
+
 wait_trace() {
     count=0
     until grep -Eq "$1" "$log"; do
@@ -97,7 +116,7 @@ for name in $cases; do
                 esac
             fi
             count=$((count + 1))
-            [ "$count" -lt 200 ] || { echo 'INCONCLUSIVE: no receipt witness.' >&2; exit 77; }
+            [ "$count" -lt 200 ] || finish_capture_without_receipt
             sleep 0.005
         done
         # The worker checks this exact receipt before releasing the first reply.
