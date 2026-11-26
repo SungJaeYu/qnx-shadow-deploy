@@ -10,11 +10,12 @@ case "$out" in
 esac
 case "${1:-stock}" in
     stock) cases="live replay" ;;
-    gated)
+    gated | boundary)
         cases="replay-gated"
+        [ "$1" != boundary ] || cases="live-near handoff-gated"
         [ -x ./qnx-cancel-replay-worker ] || { echo 'Missing qnx-cancel-replay-worker.' >&2; exit 2; }
         ;;
-    *) echo 'Expected stock or gated.' >&2; exit 2 ;;
+    *) echo 'Expected stock, gated or boundary.' >&2; exit 2 ;;
 esac
 mkdir "$out"
 broker=
@@ -42,7 +43,8 @@ finish_capture_without_receipt() {
         exit 1
     fi
     echo 'INCONCLUSIVE: no receipt witness.' >&2
-    exit 77
+    rm "$out/control.fifo"
+    return 77
 }
 
 wait_trace() {
@@ -80,17 +82,22 @@ manifest() {
 manifest good 0 good
 manifest live 22 delay
 manifest replay 0 delay
-if [ "$cases" = replay-gated ]; then
-    manifest replay-gated 0 good qnx-cancel-replay-worker
-    export SHADOW_QNX_REPLAY_GATE_DIR="$out"
-fi
+export SHADOW_QNX_REPLAY_GATE_DIR="$out"
 inconclusive=0
 
 for name in $cases; do
+    case "$name" in
+        replay-gated|live-near|handoff-gated) manifest "$name" 0 good qnx-cancel-replay-worker ;;
+    esac
+    export SHADOW_QNX_CANCEL_CASE="$name"
     stem="$out/$name"
     log="$stem.jsonl"
     mkfifo "$out/control.fifo"
-    ./shadow-demo --worker ./shadow-worker --control-stdin --samples 44 \
+    set --
+    case "$name" in
+        live-near|handoff-gated) set -- --phase-timing ;;
+    esac
+    ./shadow-demo "$@" --worker ./shadow-worker --control-stdin --samples 44 \
         --period-ms 500 --deadline-ms 450 --qualify 1 --probation 10 \
         < "$out/control.fifo" > "$log" 2> "$stem.stderr" &
     broker=$!
@@ -106,7 +113,10 @@ for name in $cases; do
         candidate=$(sed -n '/"generation":1,.*"event":"candidate_promoted"/s/.*"candidate_pid":\([0-9][0-9]*\),.*/\1/p' "$log")
     fi
 
-    if [ "$name" = replay-gated ]; then
+    if [ "$name" = replay-gated ] || [ "$name" = live-near ] || [ "$name" = handoff-gated ]; then
+        if [ "$name" = live-near ]; then
+            wait_trace '"type":"sample","sequence":21,'
+        fi
         count=0
         while :; do
             receipt=
@@ -116,12 +126,25 @@ for name in $cases; do
                 esac
             fi
             count=$((count + 1))
-            [ "$count" -lt 200 ] || finish_capture_without_receipt
+            if [ "$count" -ge 200 ]; then
+                finish_capture_without_receipt || inconclusive=1
+                continue 2
+            fi
             sleep 0.005
         done
-        # The worker checks this exact receipt before releasing the first reply.
-        printf 'cancel\n' >&3
-        printf '%s\n' "$receipt" > "$stem.release"
+        # Release only after the complete command write to the broker FIFO.
+        if [ "$name" = replay-gated ]; then
+            printf 'cancel\n' >&3
+            printf '%s\n' "$receipt" > "$stem.release"
+        else
+            target=0
+            if [ "$name" = live-near ]; then
+                acquired=$(printf '%s\n' "$receipt" | sed -n 's/.* acquired_ns=\([0-9][0-9]*\) .*/\1/p')
+                # awk uses doubles, so do the addition in the native helper to preserve ns.
+                target=$acquired
+            fi
+            ./qnx-cancel-replay-worker --write-cancel "$stem" "$target" > "$stem.write"
+        fi
     else
         tid=
         observed_from=0
@@ -176,7 +199,7 @@ for name in $cases; do
     [ "$code" -eq 0 ] || exit 1
 done
 if [ "$inconclusive" -eq 1 ]; then
-    echo 'INCONCLUSIVE: a required REPLY observation window was missed.'
+    echo 'INCONCLUSIVE: a required receipt or REPLY observation window was missed.'
     exit 77
 fi
 echo 'Captured cancellation ordering attempts; run the host verifier.'

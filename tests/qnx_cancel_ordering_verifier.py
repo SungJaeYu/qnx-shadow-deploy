@@ -78,7 +78,7 @@ class CancelOrderingTraceTests(unittest.TestCase):
         self.root = Path(directory.name)
 
     def fixture(self, case, *, peer_known=True, mutation=None):
-        live = case == "live"
+        live = case in {"live", "live-near"}
         staged, cancel = 16, 23 if live else 18
         retry, ready = cancel + 3, cancel + 4
         promote, commit = ready + 2, ready + 11
@@ -94,6 +94,13 @@ class CancelOrderingTraceTests(unittest.TestCase):
             retry: event("stage_requested", 2, retry),
             ready: event("replay_complete", 2, ready, replayed=17, through_sequence=ready, candidate_pid=48),
         }
+        if case == "handoff-gated" and mutation != "missed-transfer":
+            controls[cancel - 1] = [
+                event("replay_complete", 1, cancel - 1, candidate_pid=47, replayed=17,
+                      through_sequence=cancel - 1), controls[cancel - 1]
+            ]
+            if mutation == "acceptance-first":
+                controls[cancel - 1].reverse()
         if live:
             controls[17] = event("replay_complete", 1, 17, candidate_pid=47)
         for sequence in range(1, 45):
@@ -110,7 +117,9 @@ class CancelOrderingTraceTests(unittest.TestCase):
                 if sequence >= cancel:
                     phase = "rolled_back" if live else "rejected"
                     if sequence == cancel:
-                        name, peer = "candidate_cancelled", 47 if live else -1
+                        name = "candidate_cancelled"
+                        if live or (case == "handoff-gated" and mutation != "missed-transfer"):
+                            peer = 47
             if generation == 2:
                 if sequence <= ready:
                     phase = "warming"
@@ -139,7 +148,7 @@ class CancelOrderingTraceTests(unittest.TestCase):
                 control = None
             rows.append(current)
             if control:
-                rows.append(control)
+                rows.extend(control if isinstance(control, list) else [control])
         rows.append(dict(type="summary", phase="committed", samples=44, outputs=44, missing_outputs=0,
                          publication_misses=0, interrupted=False))
 
@@ -179,6 +188,63 @@ class CancelOrderingTraceTests(unittest.TestCase):
         reply = f"replied sequence=1 rcvid={reply_rcvid} time_ns={reply_ns} result={result}\n"
         stem.with_suffix(".release").write_text(receipt if token_matches else "incorrect token\n")
         stem.with_suffix(".witness").write_text(receipt + release + (reply if complete else ""))
+
+    def boundary_witness(self, case, *, mutation=None, offset=300_000_000):
+        self.fixture(case, mutation=mutation)
+        stem = self.root / case
+        live = case == "live-near"
+        sequence = 22 if live else 17
+        acquired = 1_000_000_000
+        received = acquired + 1_000_000
+        before = acquired + (offset if live else 2_000_000)
+        after = before + 100
+        released = after + 100
+        replied = released + 100
+        receipt = (f"received pid=47 sender_pid=43 sequence={sequence} acquired_ns={acquired} "
+                   f"rcvid=123 time_ns={received}\n")
+        stem.with_suffix(".release").write_text(receipt)
+        stem.with_suffix(".witness").write_text(
+            receipt + f"released sequence={sequence} rcvid=123 time_ns={released}\n"
+            f"replied sequence={sequence} rcvid=123 time_ns={replied} result=0\n")
+        stem.with_suffix(".write").write_text(f"before_ns={before} after_ns={after}\n")
+        current = dict(type="phase_timing", sequence=sequence,
+                       acquired_ns=acquired, ipc_deadline_ns=acquired + 337_500_000,
+                       candidate=dict(ipc_start_ns=acquired, ipc_end_ns=replied))
+        next_tick = dict(type="phase_timing", sequence=sequence + 1, acquired_ns=acquired + 500_000_000)
+        stem.with_suffix(".stderr").write_text("".join(
+            json.dumps(row, separators=(",", ":")) + "\n" for row in (current, next_tick)))
+
+    def test_boundary_cases_pass_with_fifo_brackets_and_native_timing(self):
+        self.boundary_witness("live-near")
+        self.boundary_witness("handoff-gated")
+        result = self.run_verifier("--boundary")
+        self.assertEqual(result.returncode, 0, result.stderr)
+        self.assertIn("PASS live-near ordering", result.stdout)
+        self.assertIn("PASS handoff-gated ordering", result.stdout)
+        self.assertIn("PASS handoff-gated cleanup", result.stdout)
+
+    def test_early_fifo_write_limits_live_ordering_verdict_only(self):
+        self.boundary_witness("live-near", offset=200_000_000)
+        self.boundary_witness("handoff-gated")
+        result = self.run_verifier("--boundary")
+        self.assertEqual(result.returncode, 77, result.stderr)
+        self.assertIn("INCONCLUSIVE live-near ordering", result.stdout)
+        self.assertIn("PASS live-near cleanup", result.stdout)
+
+    def test_cancellation_while_still_warming_leaves_handoff_inconclusive(self):
+        self.boundary_witness("live-near")
+        self.boundary_witness("handoff-gated", mutation="missed-transfer")
+        result = self.run_verifier("--boundary")
+        self.assertEqual(result.returncode, 77, result.stderr)
+        self.assertIn("INCONCLUSIVE handoff-gated ordering", result.stdout)
+        self.assertIn("PASS handoff-gated cleanup", result.stdout)
+
+    def test_handoff_acceptance_must_follow_transfer(self):
+        self.boundary_witness("live-near")
+        self.boundary_witness("handoff-gated", mutation="acceptance-first")
+        result = self.run_verifier("--boundary")
+        self.assertEqual(result.returncode, 1, result.stdout)
+        self.assertIn("FAIL handoff-gated ordering", result.stderr)
 
     def incomplete_gated_capture(self, *, code=130, preparation_failed=False, process_survives=False,
                                  snapshot=True):

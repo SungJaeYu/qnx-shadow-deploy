@@ -3,6 +3,7 @@
 
 #include <cerrno>
 #include <chrono>
+#include <cstdint>
 #include <cstdlib>
 #include <fstream>
 #include <iostream>
@@ -12,18 +13,46 @@
 #include <thread>
 #include <unistd.h>
 
-int main() {
+namespace {
+
+int write_cancel(const std::string& stem, std::uint64_t acquired_ns) {
+    std::ifstream witness(stem + ".witness");
+    std::string receipt;
+    if (!std::getline(witness, receipt) || receipt.empty()) return 2;
+    const auto target_ns = acquired_ns ? acquired_ns + 300000000ULL : 0;
+    const auto now = shadow::monotonic_ns();
+    if (now < target_ns) {
+        std::this_thread::sleep_for(std::chrono::nanoseconds(target_ns - now));
+    }
+    const auto before = shadow::monotonic_ns();
+    constexpr char command[] = "cancel\n";
+    if (!shadow::write_exact(3, command, sizeof(command) - 1)) return 1;
+    const auto after = shadow::monotonic_ns();
+    std::cout << "before_ns=" << before << " after_ns=" << after << std::endl;
+    std::ofstream release(stem + ".release");
+    release << receipt << std::endl;
+    return release ? 0 : 1;
+}
+
+}  // namespace
+
+int main(int argc, char** argv) {
+    if (argc == 4 && std::string(argv[1]) == "--write-cancel") {
+        return write_cancel(argv[2], std::stoull(argv[3]));
+    }
     const auto* directory = std::getenv("SHADOW_QNX_REPLAY_GATE_DIR");
     if (!directory) return 2;
-    const std::string stem(directory);
-    const auto release_path = stem + "/replay-gated.release";
-    std::ofstream witness(stem + "/replay-gated.witness");
+    const auto* mode = std::getenv("SHADOW_QNX_CANCEL_CASE");
+    const std::string scenario = mode ? mode : "replay-gated";
+    const std::string stem = std::string(directory) + "/" + scenario;
+    const auto release_path = stem + ".release";
+    std::ofstream witness(stem + ".witness");
     if (!witness) return 2;
 
     shadow::Hello hello{};
     hello.channel = ChannelCreate(0);
     if (hello.channel == -1 || !shadow::write_exact(STDOUT_FILENO, &hello, sizeof(hello))) return 1;
-    bool first = true;
+    unsigned received_samples = 0;
     for (;;) {
         shadow::Sample sample{};
         struct _msg_info info{};
@@ -40,7 +69,11 @@ int main() {
         }
 
         const auto received = shadow::monotonic_ns();
-        if (first) {
+        ++received_samples;
+        const bool gated = (scenario == "replay-gated" && received_samples == 1) ||
+                           (scenario == "handoff-gated" && received_samples == 17) ||
+                           (scenario == "live-near" && sample.sequence == 22);
+        if (gated) {
             std::ostringstream receipt;
             receipt << "received pid=" << getpid() << " sender_pid=" << info.pid
                     << " sequence=" << sample.sequence
@@ -48,10 +81,11 @@ int main() {
                     << " time_ns=" << received;
             const auto receipt_line = receipt.str();
             witness << receipt_line << std::endl;
-            const auto gate_deadline = received + 300000000ULL;
+            const auto gate_deadline = scenario == "live-near"
+                ? sample.acquired_ns + 337500000ULL : received + 300000000ULL;
             for (;;) {
                 if (shadow::monotonic_ns() >= gate_deadline) {
-                    std::cerr << "replay reply gate expired\n";
+                    std::cerr << "cancel fixture reply gate expired\n";
                     return 1;
                 }
                 std::ifstream gate(release_path);
@@ -61,7 +95,7 @@ int main() {
             }
             witness << "released sequence=" << sample.sequence << " rcvid=" << rcvid
                     << " time_ns=" << shadow::monotonic_ns() << std::endl;
-        } else {
+        } else if (scenario == "replay-gated") {
             // Keep preparation active across the next broker input boundary.
             std::this_thread::sleep_for(std::chrono::milliseconds(200));
         }
@@ -71,10 +105,9 @@ int main() {
         estimate.position_m = sample.position_m;
         const shadow::EstimateReply reply{estimate, shadow::estimate_reply_footer};
         const int result = MsgReply(rcvid, shadow::estimate_reply_status, &reply, sizeof(reply));
-        if (first) {
+        if (gated) {
             witness << "replied sequence=" << sample.sequence << " rcvid=" << rcvid
                     << " time_ns=" << shadow::monotonic_ns() << " result=" << result << std::endl;
-            first = false;
         }
         if (result == -1) return 1;
     }
