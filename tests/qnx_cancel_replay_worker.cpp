@@ -136,6 +136,14 @@ struct ReplySnapshot {
                status.blocked.connect.coid >= 0;
     }
 
+    bool same_reply_endpoint(const ReplySnapshot& first) const {
+        const auto& endpoint = status.blocked.connect;
+        const auto& original = first.status.blocked.connect;
+        return matches(first.status.pid, original.pid, first.status.tid) &&
+               status.start_time > 0 && status.start_time == first.status.start_time &&
+               endpoint.chid == original.chid && endpoint.coid == original.coid;
+    }
+
     void record(std::ostream& output, const char* label) const {
         const auto& endpoint = status.blocked.connect;
         output << label << " pid=" << status.pid << " tid=" << status.tid
@@ -145,6 +153,10 @@ struct ReplySnapshot {
                << " blocked_ns=" << status.nsec_since_block << '\n';
     }
 };
+
+bool peer_unavailable(int error) {
+    return error == EACCES || error == EPERM || error == ENOENT || error == ESRCH;
+}
 
 int stock_replay_cancel(const std::string& stem, pid_t broker, pid_t baseline) {
     if (broker <= 1 || baseline <= 1 || broker == baseline || prepare_control_fifo()) return 1;
@@ -200,6 +212,33 @@ int stock_replay_cancel(const std::string& stem, pid_t broker, pid_t baseline) {
             const auto peer = pre.status.blocked.connect.pid;
             if (peer <= 1 || peer == baseline || peer == broker || !pre.matches(broker, peer, tid)) continue;
 
+            // The fresh broker owns only the baseline and the one staged worker.
+            // Check the nonbaseline peer's parent before using its REPLY observation.
+            const std::string peer_path = "/proc/" + std::to_string(peer) + "/ctl";
+            const int peer_fd = open(peer_path.c_str(), O_RDONLY);
+            if (peer_fd == -1) {
+                if (peer_unavailable(errno)) continue;
+                return report_error("replay observer open peer procfs");
+            }
+            procfs_info info{};
+            const int owner = devctl(peer_fd, DCMD_PROC_INFO, &info, sizeof(info), nullptr);
+            close(peer_fd);
+            if (peer_unavailable(owner)) continue;
+            if (owner != EOK) {
+                std::cerr << "replay observer: peer ownership query error=" << owner << '\n';
+                return 1;
+            }
+            if (info.pid != peer || info.parent != broker || !info.start_time) continue;
+
+            ReplySnapshot confirmed;
+            const int confirm_result = confirmed.read(fd, tid);
+            if (confirm_result == ESRCH) continue;
+            if (confirm_result != EOK) {
+                std::cerr << "replay observer: pre-write confirmation error=" << confirm_result << '\n';
+                return 1;
+            }
+            if (!confirmed.same_reply_endpoint(pre)) continue;
+
             std::uint64_t before{}, after{};
             if (write_control("cancel\n", before, after)) return 1;
             ReplySnapshot post;
@@ -208,23 +247,13 @@ int stock_replay_cancel(const std::string& stem, pid_t broker, pid_t baseline) {
                 std::cerr << "replay observer: after-status error=" << post_result << '\n';
                 return 1;
             }
-            const std::string peer_path = "/proc/" + std::to_string(peer) + "/ctl";
-            const int peer_fd = open(peer_path.c_str(), O_RDONLY);
-            if (peer_fd == -1) return report_error("replay observer open candidate procfs");
-            procfs_info info{};
-            const int owner = devctl(peer_fd, DCMD_PROC_INFO, &info, sizeof(info), nullptr);
-            close(peer_fd);
-            if (owner != EOK || info.pid != peer || info.parent != broker) {
-                std::cerr << "replay observer: candidate ownership mismatch or procfs error=" << owner << '\n';
-                return 1;
-            }
             std::ofstream evidence(stem + ".exact");
             evidence << "candidate parent=" << info.parent << " pid=" << info.pid
                      << " start_ns=" << info.start_time << '\n';
             evidence << "stage before_ns=" << stage_before << " after_ns=" << stage_after << '\n';
-            pre.record(evidence, "pre_reply");
+            confirmed.record(evidence, "pre_reply");
             evidence << "write before_ns=" << before << " after_ns=" << after << '\n';
-            if (post_result == EOK && post.matches(broker, peer, tid)) {
+            if (post_result == EOK && post.same_reply_endpoint(confirmed)) {
                 post.record(evidence, "post_reply");
             } else {
                 evidence << "post_unobserved\n";
