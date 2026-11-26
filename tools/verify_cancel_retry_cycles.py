@@ -50,7 +50,7 @@ def verify_timing(meta, summary, samples):
             "service timing summary disagrees with samples")
 
 
-def verify(directory):
+def verify(directory, expected_samples=640):
     rows = [json.loads(line) for line in (directory / "cycles.jsonl").read_text().splitlines()]
     require(len(rows) >= 2 and rows[0]["type"] == "meta" and rows[-1]["type"] == "summary",
             "missing trace envelope")
@@ -65,8 +65,9 @@ def verify(directory):
                                        "candidate_rejected", "candidate_rolled_back"} for row in rows),
             "a command or candidate was rejected unexpectedly")
     samples = [row for row in rows if row["type"] == "sample"]
-    expected_samples = meta["requested_inputs"]
-    require(expected_samples == 640 and [row["sequence"] for row in samples] == list(range(1, expected_samples + 1)),
+    require(meta["requested_inputs"] == expected_samples,
+            f"expected {expected_samples} requested samples, got {meta['requested_inputs']}")
+    require([row["sequence"] for row in samples] == list(range(1, expected_samples + 1)),
             "missing or nonconsecutive live samples")
     require(summary["phase"] == "committed" and summary["interrupted"] is False
             and all(summary[key] == expected_samples for key in
@@ -172,10 +173,12 @@ def verify(directory):
 def main():
     parser = argparse.ArgumentParser(description=__doc__)
     parser.add_argument("fresh_trace_dir", type=Path)
+    parser.add_argument("--samples", type=int, choices=(640, 10000), default=640,
+                        help="expected number of live samples (default: 640)")
     parser.add_argument("--require-timing", action="store_true", help="also require zero empty nominal slots and decision misses")
     args = parser.parse_args()
     try:
-        meta, summary, commit = verify(args.fresh_trace_dir)
+        meta, summary, commit = verify(args.fresh_trace_dir, args.samples)
         print(f"PASS functional: backend={meta['backend']} cancellations=20 commit_sample={commit} "
               f"selected_outputs={summary['outputs']} all workers retired")
         skipped, misses = summary["skipped_nominal_slots"], summary["decision_deadline_misses"]

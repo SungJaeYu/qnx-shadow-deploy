@@ -1,10 +1,22 @@
 #!/bin/sh
 # Run one broker and keep fresh trace and child retirement observations.
 set -eu
-[ "$#" -eq 2 ] || {
-    echo 'usage: sh cancel_retry_cycles.sh BIN_DIR NEW_ABSOLUTE_OUTPUT_DIR' >&2
+[ "$#" -eq 2 ] || [ "$#" -eq 3 ] || {
+    echo 'usage: sh cancel_retry_cycles.sh BIN_DIR NEW_ABSOLUTE_OUTPUT_DIR [640|10000]' >&2
     exit 2
 }
+samples=${3-640}
+case "$samples" in
+    640|10000) ;;
+    *) echo 'Sample count must be 640 or 10000.' >&2; exit 2 ;;
+esac
+period_ms=${SHADOW_PERIOD_MS:-20}
+# Keep the normal run guard and allow longer configured periods on extended runs.
+run_poll_limit=$(awk -v samples="$samples" -v period="$period_ms" 'BEGIN {
+    polls = samples * period / 50 + 2400
+    if (period > 1000 || polls < 14400) polls = 14400
+    printf "%d", polls
+}')
 cd "$1"
 out=$2
 case "$out" in /*) ;; *) echo 'Output directory must be absolute.' >&2; exit 2 ;; esac
@@ -99,6 +111,10 @@ wait_retired() {
     done
 }
 
+summary_seen() {
+    tail -n 1 "$log" | grep -q '^{"type":"summary"'
+}
+
 SHADOW_CANDIDATE="$(pwd -P)/shadow-candidate" awk '
     /^executable=/ {print "executable=" ENVIRON["SHADOW_CANDIDATE"]; next}
     {print}
@@ -139,7 +155,14 @@ control() {
         generation=$((generation + 1))
     done
 
-    wait_row '"type":"summary"' 14000 >/dev/null
+    # The parent watchdog bounds this wait. Inspect only the last trace row.
+    while ! summary_seen; do
+        if ! kill -0 "$broker" 2>/dev/null; then
+            summary_seen || fail 'broker finished before summary'
+            break
+        fi
+        sleep 0.05
+    done
     attempts=0
     until [ -s "$out/exit" ]; do
         [ "$attempts" -lt 40 ] || fail 'broker emitted summary but did not exit'
@@ -154,8 +177,8 @@ control() {
 }
 
 mkfifo "$fifo"
-./shadow-demo --worker ./shadow-worker --control-stdin --samples 640 \
-    --period-ms "${SHADOW_PERIOD_MS:-20}" --deadline-ms "${SHADOW_DEADLINE_MS:-10}" \
+./shadow-demo --worker ./shadow-worker --control-stdin --samples "$samples" \
+    --period-ms "$period_ms" --deadline-ms "${SHADOW_DEADLINE_MS:-10}" \
     > "$log" 2> "$out/stderr" < "$fifo" &
 broker=$!
 printf '%s\n' "$broker" > "$out/broker-pid"
@@ -175,7 +198,7 @@ while kill -0 "$controller" 2>/dev/null; do
     if [ "$attempts" -eq 200 ] && ! grep -q '"type":"meta"' "$log"; then
         fail 'broker startup or FIFO rendezvous timed out'
     fi
-    [ "$attempts" -lt 14400 ] || fail 'controller exceeded run timeout'
+    [ "$attempts" -lt "$run_poll_limit" ] || fail 'controller exceeded run timeout'
     attempts=$((attempts + 1))
     sleep 0.05
 done

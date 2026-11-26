@@ -34,6 +34,14 @@ def event(rows, name, generation=1):
 
 def main(original):
     verify(original)
+    try:
+        verify(original, expected_samples=10000)
+    except ValueError as error:
+        if "expected 10000 requested samples, got 640" not in str(error):
+            raise
+    else:
+        raise AssertionError("a 640-sample trace passed the 10000-sample gate")
+    print("PASS negative: 640-sample trace cannot pass the 10000-sample gate")
     mutate_and_reject(original, "acceptance claims wrong preceding sample",
                       lambda rows: event(rows, "cancel_requested").update(after_sequence=1),
                       "outside its sample boundary")
