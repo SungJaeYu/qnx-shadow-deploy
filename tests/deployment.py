@@ -122,13 +122,20 @@ class DeploymentIntegration(unittest.TestCase):
             subprocess.run([sys.executable, str(tools / "verify_lifecycle.py"), "--functional-only",
                             *verify_options, str(evidence)], check=True, timeout=5)
             if verify_options:
-                manifest = evidence / "candidate-crash.manifest"
-                manifest.write_text(manifest.read_text().replace("fault_after=38", "fault_after=39"))
-                result = subprocess.run([sys.executable, str(tools / "verify_lifecycle.py"),
-                                         "--functional-only", "--loaded", str(evidence)],
-                                        capture_output=True, text=True, timeout=5)
-                self.assertEqual(result.returncode, 1, result.stdout + result.stderr)
-                self.assertIn("injected crash sequence", result.stderr)
+                synthetic = evidence.parent / "synthetic"
+                shutil.copytree(evidence, synthetic)
+                manifest = synthetic / "candidate-crash.manifest"
+                original = manifest.read_text()
+                command = [sys.executable, str(tools / "verify_lifecycle.py"), "--functional-only",
+                           "--loaded", str(synthetic)]
+                for content, message in (
+                    (original.replace("fault_after=38", "fault_after=39"), "injected crash sequence"),
+                    (original + "fault_after=38\n", "invalid or duplicate manifest field"),
+                ):
+                    manifest.write_text(content)
+                    result = subprocess.run(command, capture_output=True, text=True, timeout=5)
+                    self.assertEqual(result.returncode, 1, result.stdout + result.stderr)
+                    self.assertIn(message, result.stderr)
             else:
                 self.check_lifecycle_verifier_rejects_modified_evidence(tools, evidence)
         except (subprocess.SubprocessError, OSError, AssertionError) as error:

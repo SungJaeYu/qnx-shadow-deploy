@@ -23,6 +23,23 @@ def only(rows, event, generation):
     return matches[0]
 
 
+def read_manifest(path):
+    fields = {}
+    with path.open(encoding="utf-8", newline="\n") as source:
+        for line in source:
+            line = line.removesuffix("\n").removesuffix("\r")
+            if not line or line.startswith("#"):
+                continue
+            key, sep, value = line.partition("=")
+            check(sep and key and value and key not in fields,
+                  f"invalid or duplicate manifest field in {path.name}: {key!r}")
+            fields[key] = value
+    check(fields.keys() == {"format", "artifact", "executable", "protocol", "architecture",
+                           "os", "contract", "replay_samples", "mode", "fault_after"},
+          f"unexpected manifest field set in {path.name}")
+    return fields
+
+
 class NativeEvidenceUnavailable(ValueError):
     pass
 
@@ -116,10 +133,8 @@ def verify(path, loaded=False):
     ], "unexpected deployment event or generation chronology")
     first_stage, first_ready, second_stage, second_ready = deployment
     if loaded:
-        crash = dict(line.split("=", 1) for line in
-                     (path / "candidate-crash.manifest").read_text().splitlines())
-        retry = dict(line.split("=", 1) for line in
-                     (path / "candidate.manifest").read_text().splitlines())
+        crash = read_manifest(path / "candidate-crash.manifest")
+        retry = read_manifest(path / "candidate.manifest")
         check(first_stage["after_sequence"] == 20, "loaded run must stage after sample 20")
         check(crash == {**retry, "mode": "crash", "fault_after": str(rollback_sequence)} and
               retry["mode"] == "good" and retry["fault_after"] == "0" and rollback_sequence == 38,
