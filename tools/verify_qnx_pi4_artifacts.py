@@ -48,10 +48,23 @@ def check_manifest(path, data):
         if not separator or not key or not value or key in fields:
             raise ValueError(f"{path}: malformed or duplicate manifest field: {line!r}")
         fields[key] = value
-    for key, expected in (("format", "1"), ("architecture", "aarch64"), ("os", "qnx"),
-                          ("executable", "./shadow-candidate")):
+    expected_fields = {
+        "format": "1",
+        "artifact": "position-filter-v2",
+        "executable": "./shadow-candidate",
+        "protocol": "1",
+        "architecture": "aarch64",
+        "os": "qnx",
+        "contract": "position-m-velocity-mps-v1",
+        "replay_samples": "16",
+        "mode": "good",
+        "fault_after": "0",
+    }
+    for key, expected in expected_fields.items():
         if fields.get(key) != expected:
             raise ValueError(f"{path}: expected {key}={expected}")
+    if fields.keys() != expected_fields.keys():
+        raise ValueError(f"{path}: unexpected manifest fields: {sorted(fields.keys() - expected_fields.keys())}")
 
 
 def main():

@@ -75,29 +75,42 @@ startup banner and `uname`.
 
 Use the image's documented serial or SSH transfer route to copy
 `pi4-project.tar` to `/data` or another writable executable filesystem.
-Compare the board archive `cksum` and byte length with the host values,
-extract into a clean directory and verify all extracted files against
-`SHA256SUMS` using a provisioned SHA-256 utility. Alternatively return copies
-of the exact extracted files to the build host and check there. Use a
-filesystem supporting execution and FIFOs. The policy/staging suites and IPC
-fixture also need a writable `/tmp` or writable working directory as
-applicable. Provide `pidin` and the shell utilities used below.
+Verify the board archive checksum and byte length before extraction. Set
+`expected_archive` to the first two fields printed by the host's `cksum`
+for this exact bundle. Use a filesystem supporting execution and FIFOs.
+The policy/staging suites and IPC fixture need a writable temporary area.
+Provide `pidin` and the shell utilities used below.
 
 ```sh
 [ "$(uname -s)" = QNX ] || exit 2
 case "$(uname -p)" in aarch64|aarch64le|AARCH64) ;; *) uname -a; exit 2 ;; esac
-cd /data
+cd /data || exit 2
 [ ! -e pi4 ] || exit 2
-cksum pi4-project.tar
-# Compare with the host before proceeding.
-tar xf pi4-project.tar
-cd pi4
-bin=$(pwd -P)
-out="/data/shadow-pi4-$(date +%Y%m%d-%H%M%S)"
+[ -n "${expected_archive:-}" ] || exit 2
+actual_archive=$(cksum < pi4-project.tar) || exit 2
+[ "$actual_archive" = "$expected_archive" ] || exit 2
+tar xf pi4-project.tar || exit 2
+```
+
+The run setup verifies the extracted files when `sha256sum` is available.
+If the board lacks it, copy the exact extracted files to a fresh directory
+on the host and run `shasum -a 256 -c /absolute/path/to/host/SHA256SUMS`
+from that returned copy. Use the original host bundle's checksums.
+Set `verified_offline=yes` in the board shell only after all ten files pass.
+
+```sh
+cd /data/pi4 || exit 2
+if command -v sha256sum >/dev/null 2>&1; then
+    sha256sum -c SHA256SUMS || exit 2
+else
+    [ "${verified_offline:-}" = yes ] || exit 2
+fi
+bin=$(pwd -P) || exit 2
+out="/data/shadow-pi4-$(date +%Y%m%d-%H%M%S)" || exit 2
 mkdir "$out" || exit 2
-uname -a > "$out/uname.txt"
-pidin info > "$out/pidin-info.txt"
-pidin ar > "$out/initial.processes"
+uname -a > "$out/uname.txt" || exit 2
+pidin info > "$out/pidin-info.txt" || exit 2
+pidin ar > "$out/initial.processes" || exit 2
 ```
 
 ## Collect native functional and IPC evidence
@@ -155,29 +168,37 @@ mkdir "$out/ipc"
 pidin ar > "$out/final.processes"
 ```
 
+Run the verifier on the exported directory from the host:
+
+```bash
+python3 tools/verify_qnx_logs.py --pi4-functional /path/to/exported/shadow-pi4-run
+```
+
 Acceptance for the explicit functional runs:
 
 - Policy and staging suites exit 0. Each trace identifies
   `qnx-native-ipc` and has consecutive sequences and an intact summary.
-  In non-failing scenarios require exit 0, one authoritative on-time output
-  for each sample, and no loss. The three intentional stop scenarios
-  (`baseline-failure`, `no-fallback` and `post-commit-failure`) must exit 3,
-  publish nothing at the stop, and end in the failed phase.
-- Compare promotion, rejection and rollback events with the existing
-  scenario assertions in [the host trace verifier](../tools/verify_qnx_logs.py).
-  The verifier's `load(Path(...))` checks trace structure, sequence,
-  publication authority, baseline PID continuity, and summary counts for
-  a single trace. Its standalone CLI expects the historical QEMU archive
-  layout. Preserve the original baseline PID through staging, rejection,
-  cancellation and rollback while it remains the fallback. Verify its
-  retirement after commit using connection and process snapshots.
-- Require delayed live attachment, replay of at least 16 samples before live
-  qualification, and commit after live qualification and probation. Require
-  the live lifecycle checks to exit 0, compare broker descriptors after
-  cancellation and rejection to the baseline snapshot, and confirm no
-  owned candidate survives rejection, cancellation or broker exit. Capture
-  candidate termination and stale-output rejection in the native timeout
-  probe. A stopped receiver alone cannot establish SEND.
+  Each non-failing scenario must accept all 22 samples and produce 22
+  authoritative on-time outputs. Require exit 3 and output stopped at
+  sequence 2 for baseline disconnection, 8 for no valid fallback, and
+  13 for committed candidate disconnection, with output at every earlier
+  sequence. The verifier checks promotion and rollback boundaries and
+  each rejection reason against the existing scenario assertions.
+- Require all 100 on-time outputs for each of the three live runs.
+  Verify stage request after sequence 20 in the late-attachment run,
+  replay of at least 16 samples, live qualification and complete
+  probation before commit. Require the original baseline PID through the
+  commit sample or until the run stops, with retirement after commit.
+  Compare broker descriptors after cancellation and rejection to the
+  baseline snapshot, and confirm no owned child survives broker exit.
+- Both legacy timeout probes must reject the candidate at sequence 2 for
+  `deadline_exceeded`, with candidate latency in [112.5, 250) ms.
+  Require four samples, four on-time baseline outputs and no candidate
+  PID or observation after rejection. Require a delayed-reply snapshot
+  showing a broker worker in REPLY against the candidate PID. The verifier
+  exits 77 when the behavioral assertions pass and that state capture is
+  missing. This leaves delayed REPLY observation inconclusive. A stopped
+  receiver alone cannot establish SEND.
 - Use the [fixture guide](qnx-ipc-fixture.md) to judge each of the six
   SEND/REPLY cases at both IPC cutoffs. Both attempts for a case must pass
   before claiming coverage for that cutoff; retain every failed and

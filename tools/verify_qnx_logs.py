@@ -55,8 +55,7 @@ def event(rows, name):
     return found[0]
 
 
-def verify(root):
-    traces = {p.stem: load(p) for p in sorted(root.glob("*.jsonl"))}
+def verify_scenarios(traces, exits_path, board=False):
     expected = {
         "promote": ("committed", "candidate_committed", 0),
         "rollback": ("rolled_back", "candidate_rolled_back", 0),
@@ -68,9 +67,17 @@ def verify(root):
                "nan": "non_finite_output", "stale": "stale_or_mismatched_output",
                "protocol": "protocol_mismatch", "switch": "switch_discontinuity"}
     expected.update({"reject-" + name: ("rejected", "candidate_rejected", 0) for name in reasons})
-    exit_rows = [line.split() for line in (root / "functional-exits.txt").read_text().splitlines()]
-    check(len(exit_rows) == len(expected), "Incomplete or duplicate scenario exit records")
-    exits = {name: int(code) for name, code in exit_rows}
+    if board:
+        exits = {name: int((exits_path / f"functional-{name}.exit").read_text()) for name in expected}
+    else:
+        exit_rows = [line.split() for line in exits_path.read_text().splitlines()]
+        check(len(exit_rows) == len(expected), "Incomplete or duplicate scenario exit records")
+        exits = {name: int(code) for name, code in exit_rows}
+    expected_stops = {
+        "baseline-failure": (2, "baseline_worker_disconnected"),
+        "no-fallback": (8, "no_valid_fallback"),
+        "post-commit-failure": (13, "candidate_worker_disconnected"),
+    }
     for name, (phase, expected_event, code) in expected.items():
         rows, ticks = traces["functional-" + name]
         check((rows[0]["period_ms"], rows[0]["deadline_ms"]) == (100, 75), "Scenario budget changed")
@@ -80,6 +87,13 @@ def verify(root):
         decision = event(rows, expected_event)
         if code == 0:
             check(rows[-1]["samples"] == rows[-1]["outputs"] == 22, f"{name}: incomplete run")
+        elif board:
+            sequence, reason = expected_stops[name]
+            check(decision["sequence"] == rows[-1]["samples"] == sequence and
+                  decision["reason"] == reason and rows[-1]["outputs"] == sequence - 1,
+                  f"{name}: wrong stop boundary, stop reason or pre-stop outputs")
+        if board:
+            check_baseline_lifetime(rows, ticks, name)
         if name.startswith("reject-"):
             check(decision["reason"] == reasons[name[7:]], f"{name}: wrong rejection reason")
             check(all(t["source"] == "baseline" for t in ticks), f"{name}: rejected candidate selected")
@@ -90,19 +104,41 @@ def verify(root):
         if name == "post-commit-failure":
             check(event(rows, "candidate_committed")["sequence"] < decision["sequence"],
                   "Post-commit failure happened before commit")
-    for name, generation in (("default-live", 1), ("functional-live", 1),
-                             ("cancel-retry", 2), ("replay-retry", 7)):
+    return expected
+
+
+def check_baseline_lifetime(rows, ticks, name):
+    committed = next((r["sequence"] for r in ticks if r["event"] == "candidate_committed"), len(ticks))
+    baseline_pid = rows[0]["baseline_pid"]
+    check(baseline_pid > 0, f"{name}: missing initial baseline PID")
+    check(all(t["baseline_pid"] == (baseline_pid if t["sequence"] <= committed else -1) for t in ticks),
+          f"{name}: baseline PID or retirement boundary changed")
+
+
+def verify_live(traces, cases, board=False):
+    for name, generation in cases:
         rows, ticks = traces[name]
         check(rows[-1]["phase"] == "committed", f"{name}: not committed")
         check(rows[-1]["samples"] == rows[-1]["outputs"] == 100, f"{name}: missing output")
-        check(event(rows, "candidate_committed")["generation"] == generation, f"{name}: wrong generation")
-        for ready in (r for r in rows if r.get("event") == "replay_complete"):
+        commit = event(rows, "candidate_committed")
+        check(commit["generation"] == generation, f"{name}: wrong generation")
+        ready_events = [r for r in rows if r.get("event") == "replay_complete"]
+        if board:
+            check_baseline_lifetime(rows, ticks, name)
+            check(any(r["generation"] == generation for r in ready_events), f"{name}: missing replay")
+        for ready in ready_events:
             check(ready["replayed"] >= 16 and ready["through_sequence"] == ready["after_sequence"],
                   f"{name}: incomplete replay")
             promoted = next(r for r in rows if r.get("event") == "candidate_promoted"
                             and r["generation"] == ready["generation"])
             check(promoted["sequence"] == ready["after_sequence"] + rows[0]["qualification_samples"] + 1,
                   f"{name}: replay counted toward live qualification")
+            if board and ready["generation"] == generation:
+                check(commit["sequence"] == promoted["sequence"] + rows[0]["probation_samples"] - 1,
+                      f"{name}: wrong probation boundary")
+
+
+def verify_lifecycle(root, traces):
     event(traces["cancel-retry"][0], "candidate_cancelled")
     replay_rows, replay_ticks = traces["replay-retry"]
     failures = [r for r in replay_rows if r.get("event") == "preparation_failed"]
@@ -134,10 +170,11 @@ def verify(root):
             processes = (root / f"{name}-{stage}.processes").read_text()
             remaining = {int(pid) for pid in re.findall(r"^\s*(\d+)\s", processes, re.M)}
             check(not (pids & remaining), f"{name}: child remains after broker exit")
-    final_processes = (root / "final.processes").read_text()
-    check(not re.search(r"shadow-(?:demo|worker|candidate)", final_processes), "Final process leak")
+
+
+def verify_timeout(root, traces, kinds, board=False):
     timeout_exits = dict(line.split() for line in (root / "timeout-exits.txt").read_text().splitlines())
-    for kind in ("send", "reply", "stopped", "reply-observed"):
+    for kind in kinds:
         rows, ticks = traces["timeout-" + kind]
         check((rows[0]["period_ms"], rows[0]["deadline_ms"]) == (1000, 150), "Timeout probe budget changed")
         check(timeout_exits[kind] == "0" and rows[-1]["phase"] == "rejected", "Timeout probe failed")
@@ -146,11 +183,59 @@ def verify(root):
         check(rejected["sequence"] == 2 and rejected["reason"] == "deadline_exceeded", "Missing native timeout")
         check(112.5 <= rejected["candidate"]["latency_ms"] < 250, "Timeout did not precede the injected reply")
         check(all(t["candidate_pid"] == -1 and t["candidate"] is None for t in ticks[2:]), "Timed-out child reused")
+        if board:
+            check_baseline_lifetime(rows, ticks, kind)
+            check(all(t["source"] == "baseline" for t in ticks), f"{kind}: candidate gained authority")
+    observations = {}
     for kind in ("stopped", "reply-observed"):
         states = (root / f"timeout-{kind}.threads").read_text()
-        check(re.search(r"\sREPLY\s", states), f"{kind}: REPLY state was not captured")
+        if board:
+            candidate_pid = traces["timeout-" + kind][0][0]["candidate_pid"]
+            broker_pid = int((root / f"timeout-{kind}.broker-pid").read_text())
+            wait = re.compile(rf"^ *{broker_pid} +(\d+) +.* +REPLY +{candidate_pid}(?: +|$)", re.M)
+            observations[kind] = any(int(thread) > 1 for thread in wait.findall(states))
+        else:
+            check(re.search(r"\sREPLY\s", states), f"{kind}: REPLY state was not captured")
     check(not re.search(r"shadow-(?:demo|worker|candidate)", (root / "timeout-finished.processes").read_text()),
           "Timeout probe left a process")
+    return observations
+
+
+def verify_pi4(root):
+    traces = {p.stem: load(p) for p in sorted(root.glob("functional-*.jsonl"))}
+    lifecycle = root / "lifecycle"
+    traces.update({p.stem: load(p) for p in sorted(lifecycle.glob("*.jsonl"))})
+    expected = verify_scenarios(traces, root, board=True)
+    for name in ("policy", "staging", "functional-live", "lifecycle", "timeout"):
+        check(int((root / f"{name}.exit").read_text()) == 0, f"{name}: unexpected exit")
+    for name, qualify, probation in (("functional-live", 20, 40), ("cancel-retry", 3, 15),
+                                     ("replay-retry", 3, 15)):
+        meta = traces[name][0][0]
+        check((meta["period_ms"], meta["deadline_ms"], meta["qualification_samples"], meta["probation_samples"])
+              == (200, 150, qualify, probation), f"{name}: live run settings changed")
+    stage = event(traces["functional-live"][0], "stage_requested")
+    check(stage["after_sequence"] == 20, "Wrong late-attachment sequence")
+    verify_live(traces, (("functional-live", 1), ("cancel-retry", 2), ("replay-retry", 7)), board=True)
+    verify_lifecycle(lifecycle, traces)
+    final_processes = (root / "final.processes").read_text()
+    check(not re.search(r"shadow-(?:demo|worker|candidate)", final_processes), "Final process leak")
+    observations = verify_timeout(lifecycle, traces, ("stopped", "reply-observed"), board=True)
+    print(json.dumps({"functional_scenarios_passed": len(expected), "live_runs_passed": 3,
+                      "legacy_timeout_behavior_passed": 2,
+                      "delayed_reply_state": "observed" if observations["reply-observed"] else "inconclusive"},
+                     indent=2))
+    return 0 if observations["reply-observed"] else 77
+
+
+def verify(root):
+    traces = {p.stem: load(p) for p in sorted(root.glob("*.jsonl"))}
+    expected = verify_scenarios(traces, root / "functional-exits.txt")
+    verify_live(traces, (("default-live", 1), ("functional-live", 1),
+                         ("cancel-retry", 2), ("replay-retry", 7)))
+    verify_lifecycle(root, traces)
+    final_processes = (root / "final.processes").read_text()
+    check(not re.search(r"shadow-(?:demo|worker|candidate)", final_processes), "Final process leak")
+    verify_timeout(root, traces, ("send", "reply", "stopped", "reply-observed"))
     report = {"native_trace_count": len(traces), "functional_scenarios_passed": len(expected),
               "live_and_lifecycle_checks_passed": 4,
               "connection_cleanup_checks_passed": True,
@@ -162,4 +247,6 @@ def verify(root):
 
 
 if __name__ == "__main__":
+    if len(sys.argv) == 3 and sys.argv[1] == "--pi4-functional":
+        sys.exit(verify_pi4(Path(sys.argv[2])))
     verify(Path(sys.argv[1]))

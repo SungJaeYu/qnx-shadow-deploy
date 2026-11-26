@@ -19,6 +19,7 @@ for kind in stopped reply-observed; do
         > "$log" 2> "$out/timeout-$kind.stderr" &
     broker=$!
     trap 'kill -TERM "$broker" 2>/dev/null || :; wait "$broker" || :' EXIT
+    printf '%s\n' "$broker" > "$out/timeout-$kind.broker-pid"
     tries=0
     until grep -q '"sequence":1,' "$log"; do
         tries=$((tries + 1))
@@ -34,10 +35,12 @@ for kind in stopped reply-observed; do
     tries=0
     states="$out/timeout-$kind.threads"
     : > "$states"
-    until grep -Eq ' (SEND|REPLY) ' "$states"; do
+    while [ "$tries" -lt 100 ]; do
+        pidin -p "$broker" >> "$states" || break
+        if grep -Eq "^[[:space:]]*$broker[[:space:]]+.*[[:space:]]REPLY[[:space:]]+$candidate([[:space:]]|$)" "$states"; then
+            break
+        fi
         tries=$((tries + 1))
-        [ "$tries" -lt 100 ] || exit 1
-        pidin -p "$broker" >> "$states"
         sleep 0.01
     done
     if wait "$broker"; then code=0; else code=$?; fi
