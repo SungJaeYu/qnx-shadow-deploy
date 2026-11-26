@@ -1,6 +1,8 @@
 """Exercise observational verdicts with newly generated snapshot fragments."""
 
 from pathlib import Path
+import json
+import subprocess
 import sys
 import tempfile
 import unittest
@@ -67,6 +69,142 @@ class CancelOrderingEvidenceTests(unittest.TestCase):
         self.write("-cancelled.processes", "1 procnto\n43 broker\n46 baseline\n47 candidate\n")
         with self.assertRaisesRegex(TraceValidationError, "cancelled worker survived"):
             retirement(self.stem, 43, 46, 47, 48)
+
+
+class CancelOrderingTraceTests(unittest.TestCase):
+    def setUp(self):
+        directory = tempfile.TemporaryDirectory()
+        self.addCleanup(directory.cleanup)
+        self.root = Path(directory.name)
+
+    def fixture(self, case, *, peer_known=True, mutation=None):
+        live = case == "live"
+        staged, cancel = 16, 23 if live else 18
+        retry, ready = cancel + 3, cancel + 4
+        promote, commit = ready + 2, ready + 11
+
+        def event(name, generation, after, **fields):
+            return dict(type="deployment", generation=generation, event=name, after_sequence=after, **fields)
+
+        rows = [dict(type="meta", schema=2, backend="qnx-native-ipc", period_ms=500, deadline_ms=450,
+                     ipc_budget_ms=337.5, qualification_samples=1, probation_samples=10, baseline_pid=46)]
+        controls = {
+            staged: event("stage_requested", 1, staged),
+            cancel - 1: event("cancel_requested", 1, cancel - 1, reason="operator_cancelled"),
+            retry: event("stage_requested", 2, retry),
+            ready: event("replay_complete", 2, ready, replayed=17, through_sequence=ready, candidate_pid=48),
+        }
+        if live:
+            controls[17] = event("replay_complete", 1, 17, candidate_pid=47)
+        for sequence in range(1, 45):
+            generation = 0 if sequence <= staged else (1 if sequence <= retry else 2)
+            phase, source, name, peer = "baseline", "baseline", "", -1
+            if generation == 1:
+                phase = "warming"
+                if live and 18 <= sequence < cancel:
+                    phase, peer = "shadowing", 47
+                    if sequence >= 19:
+                        phase, source = "probation", "candidate"
+                        if sequence == 19:
+                            name = "candidate_promoted"
+                if sequence >= cancel:
+                    phase = "rolled_back" if live else "rejected"
+                    if sequence == cancel:
+                        name, peer = "candidate_cancelled", 47 if live else -1
+            if generation == 2:
+                if sequence <= ready:
+                    phase = "warming"
+                else:
+                    peer = 48
+                    phase = "shadowing" if sequence < promote else ("probation" if sequence < commit else "committed")
+                if sequence >= promote:
+                    source = "candidate"
+                if sequence in (promote, commit):
+                    name = "candidate_promoted" if sequence == promote else "candidate_committed"
+            current = dict(type="sample", sequence=sequence, time_s=sequence * 0.5, generation=generation,
+                           phase=phase, source=source, event=name, output=1.0, publication_miss=False,
+                           decision_latency_ms=1.0, baseline_check="ok", baseline={"position": 1.0},
+                           candidate_check="ok" if peer > 0 else "not_running",
+                           candidate={"position": 1.0} if peer > 0 else None,
+                           baseline_pid=46, candidate_pid=peer)
+            if sequence == cancel:
+                current["reason"] = "operator_cancelled"
+            if sequence == ready + 1 and mutation == "qualifying-phase":
+                current["phase"] = "warming"
+            if sequence == ready + 1 and mutation == "qualifying-owner":
+                current["candidate_pid"] = 47
+            control = controls.get(sequence)
+            if control and sequence == ready and mutation == "event-order":
+                rows.append(control)
+                control = None
+            rows.append(current)
+            if control:
+                rows.append(control)
+        rows.append(dict(type="summary", phase="committed", samples=44, outputs=44, missing_outputs=0,
+                         publication_misses=0, interrupted=False))
+
+        def write(suffix, data):
+            (self.root / f"{case}{suffix}").write_text(data)
+
+        write(".jsonl", "".join(json.dumps(row) + "\n" for row in rows))
+        write(".broker-pid", "43\n")
+        write(".exit", "0\n")
+        pid, tid = (47, 2) if peer_known else (0, 0)
+        watermark = cancel - 2 if live else cancel - 1
+        write(".ordering.txt", f"broker=43 peer={pid} before_tid={tid} after_tid={tid} "
+              f"before_observation={watermark} before_write={watermark} after_write={watermark} "
+              f"after_observation={watermark}\n")
+        if peer_known:
+            write("-before.threads", "43 2 REPLY 47\n")
+            write("-after.threads", "43 2 REPLY 47\n")
+            if not live:
+                write("-worker.processes", "47 /bin/shadow-candidate delay 0\n")
+        fds = " 0 1 input\n 1 1 output\n 2 1 errors\n 7s 46 worker\n"
+        write("-baseline.fds", fds)
+        write("-cancelled.fds", fds + (" 8s 47 leak\n" if mutation == "leak" else ""))
+        write("-cancelled.processes", "1 procnto\n43 broker\n46 baseline\n")
+        write("-finished.processes", "1 procnto\n")
+
+    def run_verifier(self):
+        verifier = Path(__file__).resolve().parents[1] / "tools" / "verify_qnx_cancel_ordering.py"
+        return subprocess.run([sys.executable, str(verifier), str(self.root)],
+                              text=True, capture_output=True, check=False)
+
+    def test_stock_replay_ordering_is_inconclusive_with_two_matching_snapshots(self):
+        self.fixture("live")
+        self.fixture("replay")
+        result = self.run_verifier()
+        self.assertEqual(result.returncode, 77, result.stderr)
+        self.assertIn("PASS live ordering", result.stdout)
+        self.assertIn("PASS replay behavior", result.stdout)
+        self.assertIn("PASS replay observation", result.stdout)
+        self.assertIn("PASS replay cleanup", result.stdout)
+        self.assertIn("INCONCLUSIVE replay ordering", result.stdout)
+
+    def test_unknown_peer_does_not_hide_connection_leak(self):
+        self.fixture("live")
+        self.fixture("replay", peer_known=False, mutation="leak")
+        result = self.run_verifier()
+        self.assertEqual(result.returncode, 1, result.stderr)
+        self.assertIn("PASS replay behavior", result.stdout)
+        self.assertIn("FAIL replay cleanup", result.stderr)
+
+    def test_unknown_peer_only_limits_child_retirement_verdict(self):
+        self.fixture("live")
+        self.fixture("replay", peer_known=False)
+        result = self.run_verifier()
+        self.assertEqual(result.returncode, 77, result.stderr)
+        self.assertIn("PASS replay cleanup", result.stdout)
+        self.assertIn("INCONCLUSIVE replay cleanup", result.stdout)
+
+    def test_retry_requires_sample_phase_current_candidate_and_order(self):
+        self.fixture("live")
+        for mutation in ("qualifying-phase", "qualifying-owner", "event-order"):
+            with self.subTest(mutation=mutation):
+                self.fixture("replay", mutation=mutation)
+                result = self.run_verifier()
+                self.assertEqual(result.returncode, 1, result.stderr)
+                self.assertRegex(result.stderr, r"FAIL replay behavior: retry (lacked fresh|deployment event)")
 
 
 if __name__ == "__main__":

@@ -30,7 +30,7 @@ def observe(stem, broker, expected_peer, outstanding):
     check(match, "malformed command-write observation")
     b, peer, before_tid, after_tid, *watermarks = map(int, match.groups())
     check(b == broker and watermarks == sorted(watermarks), "inconsistent observation chronology")
-    if expected_peer:
+    if expected_peer and peer:
         check(peer == expected_peer, "observation targets a different candidate")
     before = reply_tids(Path(f"{stem}-before.threads"), broker, peer)
     after = reply_tids(Path(f"{stem}-after.threads"), broker, peer)
@@ -69,8 +69,34 @@ def retirement(stem, broker, baseline, first, second):
     check((running - {broker, baseline}) & finished, "process snapshots lack common system processes")
 
 
-def verify(root, case):
-    stem = root / case
+def verify_retry(rows, ticks, retry, ready, promote, commit):
+    retry_after, ready_after = retry["after_sequence"], ready["after_sequence"]
+    promotion, committed = promote["sequence"], commit["sequence"]
+    qualification = rows[0]["qualification_samples"]
+    probation = rows[0]["probation_samples"]
+    second = ready["candidate_pid"]
+    check(0 < retry_after < ready_after < promotion < committed <= len(ticks)
+          and rows.index(ticks[retry_after - 1]) < rows.index(retry) < rows.index(ticks[retry_after])
+          and rows.index(ticks[ready_after - 1]) < rows.index(ready) < rows.index(ticks[ready_after])
+          and ready["replayed"] >= 16 and ready["through_sequence"] == ready_after
+          and promotion == ready_after + qualification + 1
+          and committed == promotion + probation - 1, "retry deployment event order or replay bounds")
+    warming = ticks[retry_after:ready_after]
+    qualifying = ticks[ready_after:promotion - 1]
+    authoritative = ticks[promotion - 1:]
+    check(all(t["generation"] == 2 and t["phase"] == "warming" and t["source"] == "baseline"
+              and t["candidate_pid"] == -1 for t in warming), "retry warming gained authority")
+    check(second > 1 and all(t["generation"] == 2 and t["phase"] == "shadowing"
+                             and t["source"] == "baseline" and t["candidate_pid"] == second
+                             and t["candidate_check"] == "ok" and t["candidate"]["position"] is not None
+                             for t in qualifying), "retry lacked fresh qualifying samples")
+    check(all(t["generation"] == 2 and t["candidate_pid"] == second and t["source"] == "candidate"
+              and t["phase"] == ("probation" if t["sequence"] < committed else "committed")
+              for t in authoritative), "retry probation or authority was invalid")
+    return second
+
+
+def verify_behavior(stem, case):
     rows, ticks = load(stem.with_suffix(".jsonl"))
     meta, summary = rows[0], rows[-1]
     broker = int(stem.with_suffix(".broker-pid").read_text())
@@ -89,20 +115,18 @@ def verify(root, case):
     promote = one(ticks, "candidate_promoted", 2)
     commit = one(ticks, "candidate_committed", 2)
     sequence = cancel["sequence"]
+    check(sequence > 1, "cancellation has no preceding sample")
     prior = ticks[sequence - 2]
     check(stage["after_sequence"] < request["after_sequence"] == sequence - 1
-          and rows.index(prior) < rows.index(request) < rows.index(cancel) < rows.index(retry),
+          and rows.index(stage) < rows.index(prior) < rows.index(request) < rows.index(cancel) < rows.index(retry),
           "cancel wasn't processed between consecutive samples")
     check(request["reason"] == cancel["reason"] == "operator_cancelled" and cancel["source"] == "baseline",
           "cancel did not retain baseline authority")
-    check(retry["after_sequence"] >= sequence + 2 and all(t["generation"] == 1 and t["candidate_pid"] == -1 and t["source"] == "baseline"
-              for t in ticks[sequence:retry["after_sequence"]]), "cancelled worker was reused")
-    second = ready["candidate_pid"]
-    check(ready["replayed"] >= 16 and ready["through_sequence"] == ready["after_sequence"]
-          and promote["sequence"] == ready["after_sequence"] + meta["qualification_samples"] + 1
-          and commit["sequence"] == promote["sequence"] + meta["probation_samples"] - 1
-          and all(t["candidate_pid"] == second and t["source"] == "candidate"
-                  for t in ticks[promote["sequence"] - 1:]), "retry failed fresh replay, qualification or authority")
+    check(sequence + 2 <= retry["after_sequence"] < len(ticks)
+          and all(t["generation"] == 1 and t["candidate_pid"] == -1 and t["source"] == "baseline"
+                  for t in ticks[sequence:retry["after_sequence"]]),
+          "cancelled worker was reused after the cancellation decision")
+    second = verify_retry(rows, ticks, retry, ready, promote, commit)
     check(not any(r.get("event") in {"command_rejected", "preparation_failed"} for r in rows),
           "unexpected command or preparation failure")
 
@@ -110,29 +134,40 @@ def verify(root, case):
         first_ready = one(rows, "replay_complete", 1)
         first_promotion = one(ticks, "candidate_promoted", 1)
         outstanding = prior["sequence"]
-        first, observed = observe(stem, broker, first_ready["candidate_pid"], outstanding)
-        check(first_promotion["sequence"] <= outstanding and prior["source"] == "candidate"
+        first = first_ready["candidate_pid"]
+        check(first > 1 and first_promotion["sequence"] <= outstanding and prior["source"] == "candidate"
               and prior["phase"] == "probation" and prior["candidate_check"] == "ok"
               and prior["candidate_pid"] == cancel["candidate_pid"] == first
               and cancel["phase"] == "rolled_back", "live cancellation missed the probation worker")
     else:
-        first, observed = observe(stem, broker, None, None)
+        first, outstanding = 0, None
         check(prior["phase"] == "warming" and cancel["phase"] == "rejected"
               and all(t["candidate_pid"] == -1 and t["source"] == "baseline"
                       for t in ticks if t["generation"] == 1)
               and not any(r.get("event") == "replay_complete" and r["generation"] == 1 for r in rows),
               "replay worker graduated or gained authority before cancellation")
-        if first:
-            workers = Path(f"{stem}-worker.processes").read_text()
-            check(re.search(rf"^\s*{first}[ \t]+(?:\S*/)?shadow-candidate[ \t]+delay[ \t]+0[ \t]*$",
-                            workers, re.M), "REPLY peer wasn't the staged delay worker")
+    check(min(broker, baseline, second) > 1 and len({broker, baseline, second}) == 3,
+          "process identity was invalid or reused")
+    return broker, baseline, first, second, outstanding, sequence, commit["sequence"], ticks
+
+
+def verify_observation(stem, broker, first, outstanding):
+    peer, bracket = observe(stem, broker, first, outstanding)
+    if not first and peer:
+        workers = Path(f"{stem}-worker.processes").read_text()
+        check(re.search(rf"^\s*{peer}[ \t]+(?:\S*/)?shadow-candidate[ \t]+delay[ \t]+0[ \t]*$",
+                        workers, re.M), "REPLY peer wasn't the staged delay worker")
+    return peer, bracket
+
+
+def verify_cleanup(stem, broker, baseline, first, second, ticks, sequence):
     if first:
-        check(min(broker, baseline, first, second) > 1 and len({broker, baseline, first, second}) == 4,
-              "process identity was invalid or reused")
+        check(first > 1 and first not in {broker, baseline, second},
+              "cancelled worker process identity was invalid or reused")
         check(all(t["candidate_pid"] != first for t in ticks[sequence:]),
-              "cancelled candidate PID appeared in a subsequent sample")
-        retirement(stem, broker, baseline, first, second)
-    return observed, sequence, commit["sequence"]
+              "cancelled candidate PID appeared after the cancellation decision")
+    retirement(stem, broker, baseline, first, second)
+
 
 
 def main():
@@ -140,18 +175,40 @@ def main():
         print("usage: verify_qnx_cancel_ordering.py FRESH_TRACE_DIR", file=sys.stderr)
         return 2
     verdict = 0
+    malformed = (OSError, ValueError, KeyError, IndexError, TypeError)
     for case in ("live", "replay"):
+        stem = Path(sys.argv[1]) / case
         try:
-            observed, cancelled, committed = verify(Path(sys.argv[1]), case)
-        except (OSError, ValueError, KeyError, IndexError) as error:
-            print(f"FAIL {case}: {error}", file=sys.stderr)
+            broker, baseline, first, second, outstanding, cancelled, committed, ticks = verify_behavior(stem, case)
+        except malformed as error:
+            print(f"FAIL {case} behavior: {error}", file=sys.stderr)
             verdict = 1
             continue
-        if not observed and verdict == 0:
+        print(f"PASS {case} behavior: cancelled_sample={cancelled} retry_committed_sample={committed}")
+        bracket = False
+        try:
+            peer, bracket = verify_observation(stem, broker, first, outstanding)
+            first = first or peer
+            if case == "replay":
+                print(f"{'PASS' if bracket else 'INCONCLUSIVE'} replay observation: matching REPLY sender and peer")
+            else:
+                print(f"{'PASS' if bracket else 'INCONCLUSIVE'} live ordering: same exchange across the write")
+        except malformed as error:
+            print(f"FAIL {case} observation: {error}", file=sys.stderr)
+            verdict = 1
+        if case == "replay":
+            print("INCONCLUSIVE replay ordering: no witness identifies the same replay request across the write")
+        try:
+            verify_cleanup(stem, broker, baseline, first, second, ticks, cancelled)
+        except malformed as error:
+            print(f"FAIL {case} cleanup: {error}", file=sys.stderr)
+            verdict = 1
+        else:
+            print(f"PASS {case} cleanup: descriptors restored and known children retired")
+            if not first:
+                print(f"INCONCLUSIVE {case} cleanup: cancelled worker PID was unobserved")
+        if (case == "replay" or not bracket or not first) and verdict == 0:
             verdict = 77
-        scope = "same live exchange" if case == "live" else "warming worker; individual replay request unspecified"
-        print(f"{'PASS' if observed else 'INCONCLUSIVE'} {case}: REPLY evidence ({scope}), "
-              f"cancelled_sample={cancelled} retry_committed_sample={committed}")
     return verdict
 
 
