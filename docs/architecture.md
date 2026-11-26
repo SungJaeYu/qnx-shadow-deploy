@@ -178,6 +178,15 @@ JSONL schema 2 adds `deployment` records for commands, generation IDs, replay co
 
 Once live qualification starts, the current broker still waits for both bounded exchanges before selecting output. A slow candidate can therefore delay the decision up to that cutoff. Background preparation does not resolve this remaining active-path coupling. CPU scheduling and memory contention remain shared. Two processes do not automatically provide deadline isolation. Target priorities, admission control, load testing and resource policy are explicit remaining gates.
 
+### Owner decisions for deadline isolation
+
+The owner approved opt-in dedicated output delivery with `--output-fd`. In that mode a delivery error stops further output. The following changes remain proposals for [issue #1](https://github.com/SungJaeYu/qnx-shadow-deploy/issues/1) and [issue #4](https://github.com/SungJaeYu/qnx-shadow-deploy/issues/4).
+
+- **Candidate wait.** While the baseline owns output, may the broker publish a valid baseline result while the candidate reply is pending? The proposed policy gives a pending reply no qualification credit, keeps at most one exchange outstanding and prevents late replies from influencing later samples. Approval must also specify what interrupts a qualifying streak and preserve the current-sample checks at promotion and rollback.
+- **Admission and retirement.** The owner must identify the target and supported load, the CPU and memory budgets, and what happens when either budget is unavailable or exceeded. Charge preparation and pending cleanup to the budget. Moving retirement off the broker also requires approval of the ownership transfer and shutdown behavior described above.
+
+The baseline-only QNX guest missed the first input deadline under load with phase tracing enabled and disabled. No candidate exchange or per-sample retirement preceded that miss. First verify baseline delivery on the target at the agreed period, budget and load. Then repeat under the same conditions with candidate preparation, qualification, probation and retirement. Compare skipped releases, deadline misses and accepted output records, and check peak resource use and child cleanup against the agreed limits.
+
 ## Technical references
 
 - [QNX MsgSend](https://qnx.com/developers/docs/8.0/com.qnx.doc.neutrino.lib_ref/topic/m/msgsend.html)
