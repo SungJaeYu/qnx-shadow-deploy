@@ -2,8 +2,12 @@
 # Run against the existing image; capture native connections and original JSONL.
 set -eu
 [ "$(uname -s)" = QNX ] || { echo 'This check requires a QNX guest.' >&2; exit 2; }
-cd /system/bin/shadowdeploy
-out=/data/shadow-validation
+cd "${SHADOW_QNX_TARGET_DIR:-/system/bin/shadowdeploy}"
+out=${SHADOW_QNX_TRACE_DIR:-/data/shadow-validation}
+case "$out" in
+    /*) ;;
+    *) echo 'SHADOW_QNX_TRACE_DIR must be absolute.' >&2; exit 2 ;;
+esac
 mkdir -p "$out"
 broker=
 cleanup() {
@@ -56,8 +60,10 @@ finish() {
     [ "$code" -eq 0 ] || return 1
 }
 
-sed 's|executable=./shadow-candidate|executable=/system/bin/shadowdeploy/shadow-candidate|' \
-    candidate.manifest > "$out/good.manifest"
+SHADOW_CANDIDATE="$(pwd -P)/shadow-candidate" awk '
+    /^executable=/ {print "executable=" ENVIRON["SHADOW_CANDIDATE"]; next}
+    {print}
+' candidate.manifest > "$out/good.manifest"
 sed 's/mode=good/mode=delay/' "$out/good.manifest" > "$out/delay.manifest"
 sed 's/mode=good/mode=stale/' "$out/good.manifest" > "$out/stale.manifest"
 

@@ -1,5 +1,7 @@
 # QNX setup and target validation
 
+For the physical AArch64 target, see the [Raspberry Pi 4B qualification plan](qnx-pi4-qualification.md).
+
 ## Target configuration
 
 | Item | Intended configuration |

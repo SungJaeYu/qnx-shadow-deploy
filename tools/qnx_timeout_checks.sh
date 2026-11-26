@@ -2,8 +2,13 @@
 # Observe native waits for a stopped receiver and a 250 ms delayed reply.
 set -eu
 [ "$(uname -s)" = QNX ] || exit 2
-cd /system/bin/shadowdeploy
-out=/data/shadow-validation
+cd "${SHADOW_QNX_TARGET_DIR:-/system/bin/shadowdeploy}"
+out=${SHADOW_QNX_TRACE_DIR:-/data/shadow-validation}
+case "$out" in
+    /*) ;;
+    *) echo 'SHADOW_QNX_TRACE_DIR must be absolute.' >&2; exit 2 ;;
+esac
+mkdir -p "$out"
 for kind in stopped reply-observed; do
     log="$out/timeout-$kind.jsonl"
     [ ! -e "$log" ] || { echo "Refusing to overwrite $log" >&2; exit 2; }

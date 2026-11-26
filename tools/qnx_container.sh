@@ -4,10 +4,11 @@ set -euo pipefail
 
 usage() {
     cat <<'EOF'
-Usage: bash tools/qnx_container.sh image|build|vm-image|shell
+Usage: bash tools/qnx_container.sh image|build|board-build|vm-image|shell
 
   image  Build an Ubuntu 24.04 linux/amd64 tool image (no QNX SDK included).
   build  Cross-compile ShadowDeploy using an installed and activated QNX SDK.
+  board-build  Cross-compile and check QNX AArch64 project artifacts for the Pi 4.
   vm-image  Package the cross-built targets into a local QNX QEMU disk image.
   shell  Open the same environment for diagnostics or image preparation.
 
@@ -26,7 +27,7 @@ EOF
 action=${1:-help}
 case "$action" in
     help|-h|--help) usage; exit 0 ;;
-    image|build|vm-image|shell) ;;
+    image|build|board-build|vm-image|shell) ;;
     *) usage >&2; exit 2 ;;
 esac
 if [ "$#" -ne 1 ]; then usage >&2; exit 2; fi
@@ -95,6 +96,13 @@ exec "$docker_cli" "${args[@]}" "$image_tag" /bin/bash -c '
     sh tools/check_qnx_env.sh
     if [ "$1" = vm-image ]; then exec bash tools/make_qnx_image.sh; fi
     q++ -V
+    if [ "$1" = board-build ]; then
+        cmake -S . -B build-qnx-pi4 -G Ninja \
+            -DCMAKE_TOOLCHAIN_FILE=cmake/qnx8-aarch64.cmake \
+            -DCMAKE_BUILD_TYPE=Debug -DBUILD_TESTING=ON
+        cmake --build build-qnx-pi4 --parallel 2
+        exec python3 tools/verify_qnx_pi4_artifacts.py build-qnx-pi4
+    fi
     cmake -S . -B build-qnx-container -G Ninja \
         -DCMAKE_TOOLCHAIN_FILE=cmake/qnx8-x86_64.cmake \
         -DCMAKE_BUILD_TYPE=Debug
