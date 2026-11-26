@@ -123,6 +123,16 @@ For the recorded functional suite, each scenario used `--samples 22 --qualify 3 
 
 The repository also provides `tools/qnx_lifecycle_checks.sh` and `tools/qnx_timeout_checks.sh`. Transfer these text scripts to the guest and invoke them with `sh`; image regeneration is unnecessary. They write to `/data/shadow-validation`, refuse existing trace names, and capture native connection/thread snapshots. The timeout probe uses a 1000 ms period, 150 ms decision budget and 112.5 ms IPC cutoff to observe a stopped receiver and a delayed reply. Do not infer SEND blocking merely from stopping a receiver: it may already be waiting in `MsgReceive`.
 
+The single-broker crash and retry check uses the same driver on the host and on QNX. On the guest, transfer `tools/lifecycle_checks.sh` alongside the three matching project executables and generated manifest. Use a new absolute output directory:
+
+```sh
+sh /data/shadowdeploy/lifecycle_checks.sh /data/shadowdeploy /data/lifecycle-new
+```
+
+Export that directory and run `python3 tools/verify_lifecycle.py PATH_TO_EXPORTED_DIRECTORY` on the host. It checks the live qualification counts, current-sample rollback, worker IDs, broker connections and process retirement. Its standalone timing gate checks the declared 200/150 ms run for skipped slots and decision misses. Retain the run directory and stderr even if the driver or verifier exits unsuccessfully. The host `live-deployment` CTest uses the same driver and reports nominal-grid timing alongside its functional verdict.
+
+For protocol v2 kernel conformance, build and transfer the QNX-only `qnx-reply-conformance` executable and run it on the guest. It uses an owned loopback channel to check the status, copied bytes, untouched suffix and production decoder verdict for each test reply.
+
 Capture the serial session on the Mac, for example with `script -q serial-original.log bash tools/run_qnx_vm.sh`. Export only the project log directory before quitting. The recorded run created a tar archive, printed its `cksum`, sent it as base64 over serial, and verified the decoded host archive's checksum and length. Preserve JSONL bytes and stderr separately; do not scrape only successful summaries. After extraction, run `python3 tools/verify_qnx_logs.py PATH_TO_EXPORTED_LOG_DIRECTORY`. The [evidence README](evidence/qnx-validation-2026-11-23/README.md) records the exact export checksums and limitations.
 
 ## Required evidence before declaring QNX support verified

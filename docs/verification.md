@@ -161,6 +161,10 @@ The [workbench screenshot](workbench.jpg) and [host-live-deployment.jsonl](evide
 
 The baseline process continued unchanged through preparation, qualification and probation, then retired at commit. This one successful host run does not erase the failed runs above or establish the default 10 ms budget as reliable.
 
+## Workbench process timeout
+
+The local workbench server allows the configured sample count times the configured period plus 15 seconds for broker startup, staging and output overhead. The watchdog terminates the owned process group when that duration expires. This wall-clock watchdog is separate from the broker's per-sample decision and IPC budgets. The HTTP integration check verifies that the configured run reaches the client with its declared decision budget. [Issue #11](https://github.com/SungJaeYu/qnx-shadow-deploy/issues/11)
+
 ## Reproduce verification
 
 ```sh

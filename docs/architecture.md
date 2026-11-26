@@ -73,7 +73,13 @@ Candidate errors after commit stop output because the baseline has been retired.
 
 `WorkerProcess` owns its child PID, IPC resources and one persistent dispatch thread. The input slot allows at most one outstanding sample. Both workers receive a sample before the broker waits for either result. A timed-out or malformed transport is marked unusable, preventing late or partial replies from being reused.
 
-Children are created with `posix_spawn`. Pipe descriptors are close-on-exec. A startup handshake has a three-second bound. Retiring a child closes its descriptors, terminates that owned child, and reaps it. The sample worker must not spawn descendants; production process-group isolation is not implemented in the C++ runtime.
+Children are created with `posix_spawn`. Pipe descriptors are close-on-exec. The handshake read has a three-second budget from the point the parent starts reading, after spawn. The sample worker has no descendants. Production process-group isolation remains outside the C++ runtime.
+
+The broker retires a live candidate synchronously after publishing a rejection, rollback or stop decision. It retires the baseline the same way after the commit or stop decision. At exit it destroys any remaining workers and cancels and joins an outstanding stager. A prepared worker still owned by the stager is retired on that background thread before staging reports completion. Retirement signals the dispatch thread and joins it, detaches the native connection, closes pipe descriptors, then sends SIGKILL to the owned child and calls blocking `waitpid`, retrying on EINTR. The dispatch thread refers directly to its implementation, whose members stay alive until the join completes.
+
+For per-sample retirement, the broker has already collected both futures. Its decision latency ends at selection, before synchronous JSONL emission and retirement. Join, teardown and reaping elapsed time can therefore increase the next acquisition interval or skip nominal slots without appearing in that decision's latency. Exit cleanup may continue after the summary and before process exit. The IPC cutoff covers an exchange. Scheduling, join, detach and reap have no measured end-to-end retirement bound.
+
+One design for [issue #4](https://github.com/SungJaeYu/qnx-shadow-deploy/issues/4) is a preallocated retirement slot and an independently scheduled reaper. First revoke authority at a sample boundary, then transfer the owned worker to the slot without waiting for cleanup. Keep its resources charged to the deployment budget until reaping completes and refuse a retry while the slot is occupied. Reserve sufficient capacity for each worker that a decision can retire, including stop when both can retire together. Track time from authority removal to reaper receipt, dispatch exit, detach and reap. A cleanup watchdog would expose overdue work and block new admission while retaining ownership. Validate bounded broker enqueue, reaper scheduling, pending-resource limits and shutdown behavior under contention before changing production cleanup. This design requires review.
 
 | Build | Data path | Timeout |
 | --- | --- | --- |
@@ -82,7 +88,7 @@ Children are created with `posix_spawn`. Pipe descriptors are close-on-exec. A s
 
 QNX uses a side-channel connection to avoid descriptor collisions. The worker intentionally does **not** enable `_NTO_CHF_UNBLOCK`, because that flag would require the server to handle unblock pulses before a timed-out sender can return. Startup still uses a pipe to exchange the channel identifier.
 
-Native QNX code has been checked against official API documentation but has not been compiled against proprietary headers or exercised on a QNX kernel. Review/build is not runtime evidence.
+Native IPC has run on an x86-64 QNX guest. See [verification](verification.md) for compiler, guest and timing evidence. The [AArch64 Pi 4B qualification procedure](qnx-pi4-qualification.md) covers separate project artifacts, the board-specific BSP and provisioned runtime. The generated manifest must identify the target OS, architecture and protocol of the same build as the candidate binary. A project cross-build provides executable and manifest artifacts. Board bootability and timing need evidence from the provisioned system.
 
 ## Timing and state preparation
 
