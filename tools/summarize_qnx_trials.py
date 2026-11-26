@@ -147,7 +147,7 @@ def verify_baseline_only(meta, summary, ticks, row_count):
     checks = {
         "ok", "unavailable", "deadline_exceeded", "worker_disconnected", "protocol_mismatch",
         "stale_or_mismatched_output", "non_finite_output", "position_out_of_range",
-        "velocity_out_of_range", "position_step_exceeded",
+        "velocity_out_of_range", "position_step_exceeded", "measurement_residual_exceeded",
     }
     for index, row in enumerate(ticks):
         check(row["candidate"] is None and row["candidate_pid"] == -1
@@ -229,6 +229,8 @@ def trial(root, name, condition, count, period, deadline, loops, legacy, exits):
     try:
         stop_marker = root / f"{name}.operator-stop"
         result["operator_stop_requested"] = not legacy and stop_marker.is_file()
+        watchdog = root / f"{name}.watchdog"
+        result["watchdog_expired"] = not legacy and watchdog.is_file()
         if not path.is_file():
             return result
         # Inspect framing before the strict verifier rejects incomplete/interrupted files.
@@ -259,6 +261,8 @@ def trial(root, name, condition, count, period, deadline, loops, legacy, exits):
                                                     "candidate_pid")), "invalid numeric metadata")
         check((meta["period_ms"], meta["deadline_ms"]) == (period, deadline), "timing plan mismatch")
         check((ticks or interrupted) and len(ticks) <= count, "sample plan mismatch")
+        check(interrupted or summary["phase"] == "failed" or len(ticks) == count,
+              "complete trial did not reach requested sample count")
         check(not ticks or summary["phase"] == ticks[-1]["phase"], "inconsistent terminal phase")
         if legacy:
             check(meta["scenario"] == "rollback" and meta["candidate_pid"] > 0, "not a legacy rollback trace")
@@ -275,18 +279,28 @@ def trial(root, name, condition, count, period, deadline, loops, legacy, exits):
         else:
             check(all(row["event"] != "output_stopped" for row in ticks), "unreported output stop")
 
+        exit_path = root / f"{name}.exit"
+        if legacy:
+            result["exit_code"] = exits.get(name)
+        elif exit_path.exists():
+            status = exit_path.read_text().strip()
+            check(re.fullmatch(r"(?:0|[1-9][0-9]{0,2})", status) and int(status) <= 255,
+                  "invalid broker exit record")
+            result["exit_code"] = int(status)
+        expected_exit = 130 if interrupted else (3 if summary["phase"] == "failed" else 0)
+        check(result["exit_code"] is None or result["exit_code"] == expected_exit,
+              "broker exit conflicts with trace termination")
         result.update(measure(ticks, meta))
         result.update(observed_samples=len(ticks), observed_outputs=summary["outputs"],
                       missing_outputs_vs_requested=count - summary["outputs"],
                       observed_samples_without_output=summary["missing_outputs"],
                       unobserved_requested_samples=count - len(ticks), stop_reason=reason)
-        if legacy:
-            result["exit_code"] = exits.get(name)
-        else:
-            status = (root / f"{name}.exit").read_text().strip()
-            check(re.fullmatch(r"(?:0|[1-9][0-9]{0,2})", status) and int(status) <= 255,
-                  "invalid broker exit record")
-            result["exit_code"] = int(status)
+        if not legacy:
+            if result["watchdog_expired"]:
+                expected_limit = (count * period + 999) // 1000 + 10
+                check(watchdog.read_text().strip() == str(expected_limit), "invalid watchdog marker")
+                result["status"] = "watchdog_expired"
+                return result
             check((root / f"{name}.stderr").is_file(), "missing broker stderr")
             if result["operator_stop_requested"]:
                 check(stop_marker.read_text().strip() == "requested", "invalid operator stop marker")
@@ -301,11 +315,11 @@ def trial(root, name, condition, count, period, deadline, loops, legacy, exits):
             owned_processes(root, name, meta["baseline_pid"], loops)
             result["process_cleanup_checked"] = True
 
-        check(result["exit_code"] is None or (result["exit_code"] == 130) == interrupted,
-              "broker exit and interruption disagree")
-        if interrupted:
+        if result["exit_code"] is None:
+            result["status"] = "partial"
+        elif interrupted:
             result["status"] = "operator_stopped" if result["operator_stop_requested"] else "interrupted"
-        elif result["exit_code"] is None or result["operator_stop_requested"]:
+        elif result["operator_stop_requested"]:
             result["status"] = "partial"
         elif summary["phase"] == "failed" and result["exit_code"] == 3:
             result["status"] = "unexpected_stop"

@@ -224,7 +224,11 @@ the next attempt. Store all attempts, including nonzero exits, as a single
 collection. The collector allows three seconds for its direct children to
 exit after TERM. It stops the matrix if cleanup cannot be verified and
 preserves any remaining PIDs for diagnosis. Worker PIDs from the trace
-are checked against the post-trial snapshot.
+are checked against the post-trial snapshot. The collector polls broker
+completion once per second and aborts an attempt at the requested nominal
+duration rounded up to whole seconds plus ten seconds. The watchdog
+records this wall-duration limit independently of the broker's decision
+deadline.
 
 Prepare `environment.txt` before the run, with one `key=value` field per
 line and optional `#` comments. Set `target` to `qemu` or `pi4` and

@@ -14,6 +14,8 @@ for number in "$trials" "$samples" "$period" "$deadline" "$loops"; do
     [ "$number" -le 100000 ] || exit 2
 done
 [ "$deadline" -lt "$period" ] && [ "$period" -le 1000 ] && [ "$loops" -le 64 ] || exit 2
+# Bound each run by the rounded-up nominal duration plus ten seconds.
+wall_limit=$(((samples * period + 999) / 1000 + 10))
 [ -x "$bin/shadow-demo" ] && [ -x "$bin/shadow-worker" ] && [ -s "$environment" ] || exit 2
 for command in pidin cksum cmp date awk sed tail grep tr sleep; do command -v "$command" >/dev/null || exit 2; done
 
@@ -139,9 +141,20 @@ while [ "$i" -le "$trials" ]; do
             < /dev/null > "$stem.jsonl" 2> "$stem.stderr" &
         broker=$!
         printf '%s\n' "$broker" > "$stem.broker-pid"
-        if wait "$broker"; then status=0; else status=$?; fi
-        broker=
-        printf '%s\n' "$status" > "$stem.exit"
+        remaining_seconds=$wall_limit
+        while [ "$remaining_seconds" -gt 0 ] && kill -0 "$broker" 2>/dev/null; do
+            sleep 1
+            remaining_seconds=$((remaining_seconds - 1))
+        done
+        timed_out=no
+        if kill -0 "$broker" 2>/dev/null; then
+            timed_out=yes
+            printf '%s\n' "$wall_limit" > "$stem.watchdog"
+        else
+            if wait "$broker"; then status=0; else status=$?; fi
+            broker=
+            printf '%s\n' "$status" > "$stem.exit"
+        fi
         load_complete=yes
         for pid in $load_pids; do kill -0 "$pid" 2>/dev/null || load_complete=no; done
         printf '%s\n' "$load_complete" > "$stem.load-complete"
@@ -149,6 +162,10 @@ while [ "$i" -le "$trials" ]; do
         shutdown || stopped=no
         finish || stopped=no
         [ "$stopped" = yes ] || abort_cleanup
+        if [ "$timed_out" = yes ]; then
+            cleanup_detail=broker_watchdog_expired
+            abort_cleanup
+        fi
         case "$status" in 0|3) ;; *) cleanup_detail=unexpected_broker_exit; abort_cleanup ;; esac
         printf 'verified\n' > "$stem.cleanup"
         stem=
