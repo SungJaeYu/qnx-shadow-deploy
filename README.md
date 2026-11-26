@@ -47,6 +47,30 @@ After 16 inputs, enter `stage ./build/candidate.manifest` on stdin. Enter `cance
 
 </details>
 
+<details>
+<summary>Dedicated authoritative output</summary>
+
+This example sends authoritative positions to a dedicated FIFO and disables
+stdout telemetry. Start and keep a consumer running for the duration of the
+demo.
+
+```sh
+output_dir=$(mktemp -d)
+mkfifo "$output_dir/authority"
+cat "$output_dir/authority" > authority.jsonl &
+reader_pid=$!
+./build/shadow-demo --worker ./build/shadow-worker --output-fd 3 \
+  --no-telemetry 3>"$output_dir/authority"
+demo_status=$?
+wait "$reader_pid"
+```
+
+An output delivery failure returns status 4 and stops subsequent output.
+The file records pipe deliveries. See the [output contract](docs/architecture.md#dedicated-authoritative-output)
+for record expiry, best-effort telemetry and consumer responsibilities.
+
+</details>
+
 [Architecture](docs/architecture.md) · [QNX setup](docs/qnx-setup.md) · [Sensor replay and telemetry](docs/preboard-pipeline.md) · [Demo script](docs/demo.md) · [Roadmap](docs/roadmap.md)
 
 Development was assisted by OpenAI Codex. The project makes no certification claim and is independent of QNX. QNX is a trademark of its respective owner. SDK use is subject to QNX's terms. [MIT license](LICENSE)

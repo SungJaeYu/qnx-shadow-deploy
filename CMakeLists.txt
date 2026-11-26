@@ -80,6 +80,10 @@ if(BUILD_TESTING)
       ${CMAKE_CURRENT_SOURCE_DIR}/tests/integration.py $<TARGET_FILE:shadow-demo>
       $<TARGET_FILE:shadow-worker>)
     set_tests_properties(process-integration PROPERTIES TIMEOUT 60)
+    add_test(NAME output-delivery COMMAND ${Python3_EXECUTABLE}
+      ${CMAKE_CURRENT_SOURCE_DIR}/tests/output_delivery.py $<TARGET_FILE:shadow-demo>
+      $<TARGET_FILE:shadow-worker>)
+    set_tests_properties(output-delivery PROPERTIES TIMEOUT 30)
     add_test(NAME live-deployment COMMAND ${Python3_EXECUTABLE}
       ${CMAKE_CURRENT_SOURCE_DIR}/tests/deployment.py $<TARGET_FILE_DIR:shadow-demo>)
     set_tests_properties(live-deployment PROPERTIES TIMEOUT 90)

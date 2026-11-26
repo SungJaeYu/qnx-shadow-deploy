@@ -5,6 +5,7 @@
 #include "shadow/schedule.hpp"
 #include "shadow/staging.hpp"
 #include <algorithm>
+#include <cerrno>
 #include <charconv>
 #include <chrono>
 #include <cmath>
@@ -17,6 +18,7 @@
 #include <memory>
 #include <optional>
 #include <poll.h>
+#include <sstream>
 #include <stdexcept>
 #include <string>
 #include <sys/stat.h>
@@ -74,13 +76,72 @@ std::vector<double> load_sensor_trace(const std::string& path, unsigned samples)
         throw std::invalid_argument("sensor trace read failed or contains more than --samples rows");
     return positions;
 }
-void value(double x) {
-    if (std::isfinite(x)) std::cout << x;
-    else std::cout << "null";
+bool same_pipe(int first, int second) {
+    struct stat a{}, b{};
+    return ::fstat(first, &a) == 0 && S_ISFIFO(a.st_mode) &&
+           ::fstat(second, &b) == 0 && S_ISFIFO(b.st_mode) &&
+           a.st_dev == b.st_dev && a.st_ino == b.st_ino;
 }
-void milliseconds(std::optional<std::uint64_t> ns) {
-    if (ns) std::cout << static_cast<double>(*ns) / 1e6;
-    else std::cout << "null";
+
+struct AtomicPipe {
+    int fd;
+    std::size_t record_limit;
+
+    static AtomicPipe prepare(int fd) {
+        struct stat info{};
+        const int flags = ::fcntl(fd, F_GETFL);
+        if (flags == -1 || (flags & O_ACCMODE) != O_WRONLY ||
+            ::fstat(fd, &info) == -1 || !S_ISFIFO(info.st_mode))
+            return {fd, 0};
+        const auto limit = ::fpathconf(fd, _PC_PIPE_BUF);
+        if (limit <= 0 || ::fcntl(fd, F_SETFL, flags | O_NONBLOCK) == -1) return {fd, 0};
+        return {fd, static_cast<std::size_t>(limit)};
+    }
+
+    const char* write_record(const std::string& record) const {
+        if (record.size() > record_limit) return "output_record_too_large";
+        const auto count = ::write(fd, record.data(), record.size());
+        if (count == static_cast<ssize_t>(record.size())) return nullptr;
+        if (count < 0 && (errno == EAGAIN || errno == EWOULDBLOCK)) return "output_pipe_full";
+        if (count < 0 && errno == EPIPE) return "output_reader_disconnected";
+        if (count < 0 && errno == EINTR) return "output_write_interrupted";
+        return "output_write_failed";
+    }
+};
+
+class Telemetry {
+public:
+    Telemetry(bool split, bool disabled, AtomicPipe pipe)
+        : stream(split ? static_cast<std::ostream&>(record_) : std::cout),
+          split_(split), disabled_(disabled), pipe_(pipe) {}
+
+    void emit() {
+        if (split_) {
+            if (!disabled_ && pipe_.write_record(record_.str())) ++dropped;
+            record_.str({});
+        } else {
+            stream.flush();
+        }
+    }
+
+private:
+    std::ostringstream record_;
+public:
+    std::ostream& stream;
+    unsigned dropped = 0;
+private:
+    bool split_;
+    bool disabled_;
+    AtomicPipe pipe_;
+};
+
+void value(std::ostream& out, double x) {
+    if (std::isfinite(x)) out << x;
+    else out << "null";
+}
+void milliseconds(std::ostream& out, std::optional<std::uint64_t> ns) {
+    if (ns) out << static_cast<double>(*ns) / 1e6;
+    else out << "null";
 }
 constexpr unsigned phase_timing_capacity = 4096;
 struct WorkerPhaseTiming {
@@ -143,33 +204,35 @@ void retire(std::unique_ptr<shadow::WorkerProcess>& worker, WorkerPhaseTiming* t
     worker.reset();
     if (timing) timing->retirement_end_ns = shadow::monotonic_ns();
 }
-void observation(const shadow::Observation& o, const shadow::Sample& sample) {
-    if (o.status == shadow::TransportStatus::unavailable) { std::cout << "null"; return; }
-    std::cout << "{\"position\":";
-    if (o.status == shadow::TransportStatus::ok) value(o.estimate.position_m);
-    else std::cout << "null";
-    std::cout << ",\"latency_ms\":";
-    value(o.completed_ns >= sample.acquired_ns ? static_cast<double>(o.completed_ns - sample.acquired_ns) / 1e6 : 0);
-    std::cout << "}";
+void observation(std::ostream& out, const shadow::Observation& o, const shadow::Sample& sample) {
+    if (o.status == shadow::TransportStatus::unavailable) { out << "null"; return; }
+    out << "{\"position\":";
+    if (o.status == shadow::TransportStatus::ok) value(out, o.estimate.position_m);
+    else out << "null";
+    out << ",\"latency_ms\":";
+    value(out, o.completed_ns >= sample.acquired_ns ? static_cast<double>(o.completed_ns - sample.acquired_ns) / 1e6 : 0);
+    out << "}";
 }
-void json_string(const std::string& text) {
-    std::cout << '"';
+void json_string(std::ostream& out, const std::string& text) {
+    out << '"';
     for (unsigned char ch : text) {
-        if (ch == '"' || ch == '\\') std::cout << '\\' << ch;
-        else if (ch < 32) std::cout << "\\u00" << std::hex << std::setw(2) << std::setfill('0')
+        if (ch == '"' || ch == '\\') out << '\\' << ch;
+        else if (ch < 32) out << "\\u00" << std::hex << std::setw(2) << std::setfill('0')
                                  << static_cast<unsigned>(ch) << std::dec << std::setfill(' ');
-        else std::cout << ch;
+        else out << ch;
     }
-    std::cout << '"';
+    out << '"';
 }
-void control_event(unsigned generation, std::uint64_t after, const std::string& event,
+void control_event(Telemetry& telemetry, unsigned generation, std::uint64_t after, const std::string& event,
                    const std::string& reason, const shadow::StagingStatus& status = {}) {
-    std::cout << "{\"type\":\"deployment\",\"generation\":" << generation << ",\"after_sequence\":" << after
-              << ",\"event\":"; json_string(event);
-    std::cout << ",\"reason\":"; json_string(reason);
-    std::cout << ",\"artifact\":"; json_string(status.artifact);
-    std::cout << ",\"candidate_pid\":" << status.pid << ",\"replayed\":" << status.replayed
-              << ",\"through_sequence\":" << status.through_sequence << "}" << std::endl;
+    auto& out = telemetry.stream;
+    out << "{\"type\":\"deployment\",\"generation\":" << generation << ",\"after_sequence\":" << after
+              << ",\"event\":"; json_string(out, event);
+    out << ",\"reason\":"; json_string(out, reason);
+    out << ",\"artifact\":"; json_string(out, status.artifact);
+    out << ",\"candidate_pid\":" << status.pid << ",\"replayed\":" << status.replayed
+              << ",\"through_sequence\":" << status.through_sequence << "}\n";
+    telemetry.emit();
 }
 class Commands {
 public:
@@ -200,6 +263,8 @@ int main(int argc, char** argv) {
         std::string worker = "./build/shadow-worker", scenario = "rollback";
         std::string manifest, trace_path;
         bool control_stdin = false, scenario_set = false, phase_timing = false;
+        bool no_telemetry = false;
+        int output_fd = -1;
         unsigned stage_at = 20;
         unsigned samples = 180, period_ms = 20, deadline_ms = 10, qualify = 20, probation = 40;
         for (int i = 1; i < argc; ++i) {
@@ -208,6 +273,7 @@ int main(int argc, char** argv) {
                 std::cout << "Usage: shadow-demo [--worker PATH] [--scenario NAME] [--samples N]\n"
                              "  [--period-ms N] [--deadline-ms N] [--qualify N] [--probation N]\n"
                              "  [--candidate-manifest PATH --stage-at N] [--control-stdin]\n"
+                             "  [--output-fd FD [--no-telemetry]] (dedicated pipe writer)\n"
                              "  [--phase-timing] (up to 4096 samples on stderr after the run)\n"
                              "  [--sensor-trace PATH] (one integer millimetre value per sample)\n"
                              "Live mode starts baseline only. Stage after N completed inputs or send\n"
@@ -218,6 +284,7 @@ int main(int argc, char** argv) {
                              "JSON Lines are written to stdout; diagnostics go to stderr.\n";
                 return 0;
             }
+            if (option == "--no-telemetry") { no_telemetry = true; continue; }
             if (option == "--phase-timing") { phase_timing = true; continue; }
             if (option == "--control-stdin") { control_stdin = true; continue; }
             if (i + 1 >= argc) throw std::invalid_argument("Missing option value");
@@ -235,6 +302,13 @@ int main(int argc, char** argv) {
             else if (option == "--qualify") qualify = number(argument);
             else if (option == "--probation") probation = number(argument);
             else throw std::invalid_argument("Unknown option: " + option);
+        }
+        const bool split_output = output_fd != -1;
+        if (split_output) {
+            // Do not write even an error message to a pipe designated for authority.
+            if (output_fd == STDERR_FILENO || same_pipe(output_fd, STDERR_FILENO)) return 2;
+            std::signal(SIGPIPE, SIG_IGN);
+            AtomicPipe::prepare(STDERR_FILENO);
         }
         if (!samples || !period_ms || !deadline_ms || deadline_ms >= period_ms || period_ms > 1000)
             throw std::invalid_argument("Require samples > 0 and 0 < deadline-ms < period-ms <= 1000");
@@ -267,6 +341,29 @@ int main(int argc, char** argv) {
         } else if (scenario == "baseline-failure") baseline_mode = "crash";
         else if (scenario == "post-commit-failure") { candidate_mode = "crash"; fault_after = qualify + probation + 2; }
         else throw std::invalid_argument("Unknown scenario");
+        if (no_telemetry && output_fd == -1)
+            throw std::invalid_argument("--no-telemetry requires --output-fd");
+        AtomicPipe authority{output_fd, 0};
+        AtomicPipe telemetry_pipe{STDOUT_FILENO, 0};
+        if (split_output) {
+            if (output_fd <= STDERR_FILENO || same_pipe(output_fd, STDIN_FILENO) ||
+                same_pipe(output_fd, STDOUT_FILENO))
+                throw std::invalid_argument("--output-fd requires a dedicated descriptor above 2");
+            authority = AtomicPipe::prepare(output_fd);
+            const int fd_flags = ::fcntl(output_fd, F_GETFD);
+            if (!authority.record_limit || fd_flags == -1 ||
+                ::fcntl(output_fd, F_SETFD, fd_flags | FD_CLOEXEC) == -1)
+                throw std::invalid_argument("--output-fd must be a writable pipe or FIFO");
+            if (!no_telemetry) {
+                if (same_pipe(STDOUT_FILENO, STDERR_FILENO))
+                    throw std::invalid_argument("split output requires separate stdout and stderr, or --no-telemetry");
+                telemetry_pipe = AtomicPipe::prepare(STDOUT_FILENO);
+                if (!telemetry_pipe.record_limit)
+                    throw std::invalid_argument("split output requires a writable stdout pipe or --no-telemetry");
+            }
+        }
+        Telemetry telemetry(split_output, no_telemetry, telemetry_pipe);
+        auto& out = telemetry.stream;
         const auto trace = trace_path.empty() ? std::vector<double>{} : load_sensor_trace(trace_path, samples);
         std::signal(SIGPIPE, SIG_IGN);
         std::signal(SIGINT, stop); std::signal(SIGTERM, stop);
@@ -280,18 +377,23 @@ int main(int argc, char** argv) {
         Commands commands;
         unsigned generation = 0;
         StagingStatus staging_status;
-        const auto run_stamp_ns = monotonic_ns();
-        std::cout << std::setprecision(10);
-        std::cout << "{\"type\":\"meta\",\"schema\":" << (live ? 2 : 1) << ",\"backend\":\"" << WorkerProcess::backend()
+        const auto producer_run_id = std::to_string(baseline->pid()) + "-" + std::to_string(monotonic_ns());
+        const char* delivery_error = nullptr;
+        unsigned delivered_outputs = 0;
+        unsigned last_selected_sequence = 0;
+        unsigned last_delivered_sequence = 0;
+        out << std::setprecision(10);
+        out << "{\"type\":\"meta\",\"schema\":" << (live ? 2 : 1) << ",\"backend\":\"" << WorkerProcess::backend()
                   << "\",\"scenario\":\"" << scenario << "\",\"baseline_pid\":" << baseline->pid()
                   << ",\"candidate_pid\":" << (candidate ? candidate->pid() : -1) << ",\"period_ms\":" << period_ms
                   << ",\"deadline_ms\":" << deadline_ms << ",\"ipc_budget_ms\":" << deadline_ms * 0.75
                   << ",\"qualification_samples\":" << qualify
                   << ",\"probation_samples\":" << probation << ",\"position_unit\":\"m\"";
-        std::cout << ",\"producer_run_id\":\"" << baseline->pid() << "-" << run_stamp_ns << "\"";
-        std::cout << ",\"requested_inputs\":" << samples;
-        if (!trace.empty()) std::cout << ",\"input_source\":\"sensor-trace-mm\"";
-        std::cout << "}" << std::endl;
+        out << ",\"producer_run_id\":\"" << producer_run_id << "\"";
+        out << ",\"requested_inputs\":" << samples;
+        if (!trace.empty()) out << ",\"input_source\":\"sensor-trace-mm\"";
+        out << "}\n";
+        telemetry.emit();
         const auto start = monotonic_ns();
         auto next_release = start;
         ServiceContinuity continuity(start, contract.period_ns);
@@ -307,7 +409,7 @@ int main(int argc, char** argv) {
                 if (supervisor.phase() == Phase::warming) {
                     if (!staging_status.error.empty()) {
                         supervisor.reject_staging(staging_status.error);
-                        control_event(generation, i - 1, "preparation_failed", staging_status.error, staging_status);
+                        control_event(telemetry, generation, i - 1, "preparation_failed", staging_status.error, staging_status);
                         stager->cancel();
                     } else {
                         auto prepared = stager->take_if_ready(i - 1);
@@ -315,7 +417,7 @@ int main(int argc, char** argv) {
                             staging_status = stager->status();
                             candidate = std::move(prepared.worker);
                             supervisor.begin_shadowing(prepared.last_replayed);
-                            control_event(generation, i - 1, "replay_complete", "live_qualification_required", staging_status);
+                            control_event(telemetry, generation, i - 1, "replay_complete", "live_qualification_required", staging_status);
                         }
                     }
                 }
@@ -327,17 +429,17 @@ int main(int argc, char** argv) {
             if (command) {
                 if (command->rfind("stage ", 0) == 0 && command->size() > 6) {
                     if (stager || candidate || !supervisor.begin_staging()) {
-                        control_event(generation, i - 1, "command_rejected", "deployment_busy_or_committed");
+                        control_event(telemetry, generation, i - 1, "command_rejected", "deployment_busy_or_committed");
                     } else {
                         ++generation; staging_status = {};
                         stager = std::make_unique<CandidateStager>(command->substr(6),
                             std::vector<Sample>(history.begin(), history.end()), contract);
-                        control_event(generation, i - 1, "stage_requested", "manifest_validation_pending");
+                        control_event(telemetry, generation, i - 1, "stage_requested", "manifest_validation_pending");
                     }
                 } else if (*command == "cancel" && supervisor.request_cancel()) {
                     if (stager) stager->cancel();
-                    control_event(generation, i - 1, "cancel_requested", "operator_cancelled");
-                } else control_event(generation, i - 1, "command_rejected", "invalid_command_or_phase");
+                    control_event(telemetry, generation, i - 1, "cancel_requested", "operator_cancelled");
+                } else control_event(telemetry, generation, i - 1, "command_rejected", "invalid_command_or_phase");
             }
             Sample sample{};
             sample.sequence = i; sample.acquired_ns = monotonic_ns();
@@ -379,19 +481,42 @@ int main(int argc, char** argv) {
                 decision = std::move(stopped);
             }
             continuity.decide(selected_ns, decision.output.has_value(), publication_miss);
-            std::cout << "{\"type\":\"sample\",\"sequence\":" << i << ",\"time_s\":" << seconds
+            bool output_delivered = false;
+            if (split_output && decision.output) {
+                last_selected_sequence = i;
+                std::ostringstream record;
+                record << std::setprecision(10)
+                       << "{\"type\":\"authoritative_output\",\"schema\":1,\"producer_run_id\":\"" << producer_run_id
+                       << "\",\"sequence\":" << i << ",\"source\":\"" << name(decision.source)
+                       << "\",\"position_m\":" << decision.output->position_m
+                       << ",\"deadline_ns\":" << deadline << "}\n";
+                const auto bytes = record.str();
+                if (monotonic_ns() > deadline) {
+                    delivery_error = "output_write_deadline_exceeded";
+                } else {
+                    delivery_error = authority.write_record(bytes);
+                    if (!delivery_error) {
+                        output_delivered = true;
+                        last_delivered_sequence = i;
+                        ++delivered_outputs;
+                        if (monotonic_ns() > deadline) delivery_error = "output_write_returned_after_deadline";
+                    }
+                }
+                if (delivery_error) supervisor.stop_output(delivery_error);
+            }
+            out << "{\"type\":\"sample\",\"sequence\":" << i << ",\"time_s\":" << seconds
                       << ",\"truth\":";
-            if (trace.empty()) value(truth); else std::cout << "null";
-            std::cout << ",\"input\":" << sample.position_m << ",\"baseline\":";
-            observation(b, sample); std::cout << ",\"candidate\":"; observation(c, sample);
-            std::cout << ",\"phase\":\"" << name(decision.phase) << "\",\"source\":\"" << name(decision.source)
+            if (trace.empty()) value(out, truth); else out << "null";
+            out << ",\"input\":" << sample.position_m << ",\"baseline\":";
+            observation(out, b, sample); out << ",\"candidate\":"; observation(out, c, sample);
+            out << ",\"phase\":\"" << name(supervisor.phase()) << "\",\"source\":\"" << name(decision.source)
                       << "\",\"output\":";
-            if (decision.output) value(decision.output->position_m); else std::cout << "null";
-            std::cout << ",\"generation\":" << generation << ",\"baseline_pid\":" << (baseline ? baseline->pid() : -1)
+            if (decision.output) value(out, decision.output->position_m); else out << "null";
+            out << ",\"generation\":" << generation << ",\"baseline_pid\":" << (baseline ? baseline->pid() : -1)
                       << ",\"candidate_pid\":" << (candidate ? candidate->pid() : -1)
-                      << ",\"event\":"; json_string(decision.event);
-            std::cout << ",\"reason\":"; json_string(decision.reason);
-            std::cout << ",\"baseline_check\":\"" << decision.baseline_check
+                      << ",\"event\":"; json_string(out, decision.event);
+            out << ",\"reason\":"; json_string(out, decision.reason);
+            out << ",\"baseline_check\":\"" << decision.baseline_check
                       << "\",\"candidate_check\":\"" << decision.candidate_check
                       << "\",\"decision_latency_ms\":" << static_cast<double>(selected_ns - sample.acquired_ns) / 1e6
                       << ",\"publication_miss\":" << (publication_miss ? "true" : "false")
@@ -401,15 +526,22 @@ int main(int argc, char** argv) {
                       << ",\"scheduled_release_offset_ns\":" << next_release - start
                       << ",\"decision_offset_ns\":" << selected_ns - start
                       << ",\"release_lateness_ms\":";
-            milliseconds(timing.scheduling_lateness_ns);
-            std::cout << ",\"nominal_slot_lateness_ms\":";
-            milliseconds(timing.nominal_lateness_ns);
-            std::cout << ",\"nominal_grid_lateness_ms\":";
-            milliseconds(timing.nominal_grid_lateness_ns);
-            std::cout << ",\"acquisition_interval_ms\":";
-            milliseconds(timing.acquisition_interval_ns);
+            milliseconds(out, timing.scheduling_lateness_ns);
+            out << ",\"nominal_slot_lateness_ms\":";
+            milliseconds(out, timing.nominal_lateness_ns);
+            out << ",\"nominal_grid_lateness_ms\":";
+            milliseconds(out, timing.nominal_grid_lateness_ns);
+            out << ",\"acquisition_interval_ms\":";
+            milliseconds(out, timing.acquisition_interval_ns);
+            if (split_output) {
+                out << ",\"output_delivered\":" << (output_delivered ? "true" : "false")
+                    << ",\"output_delivery_error\":";
+                if (delivery_error) json_string(out, delivery_error);
+                else out << "null";
+            }
             if (phase) phase->flush_start_ns = monotonic_ns();
-            std::cout << "}" << std::endl;
+            out << "}\n";
+            telemetry.emit();
             if (phase) phase->flush_end_ns = monotonic_ns();
             // Retire children after the decision. They cannot publish directly.
             const bool retire_candidate = candidate && !supervisor.needs_candidate();
@@ -422,12 +554,13 @@ int main(int argc, char** argv) {
                 ++worker_retirement_samples;
                 max_worker_retirement_ns = std::max(max_worker_retirement_ns, retirement_ns);
             }
-            if (decision.phase == Phase::failed) break;
+            if (supervisor.phase() == Phase::failed) break;
             // Rebase on actual acquisition, not the old nominal release grid.
             next_release = next_release_ns(sample.acquired_ns, monotonic_ns(), contract.period_ns);
         }
+        if (split_output) ::close(output_fd);
         const auto missing = continuity.acquired - continuity.selected;
-        std::cout << "{\"type\":\"summary\",\"phase\":\"" << name(supervisor.phase())
+        out << "{\"type\":\"summary\",\"phase\":\"" << name(supervisor.phase())
                   << "\",\"samples\":" << continuity.acquired << ",\"outputs\":" << continuity.selected
                   << ",\"missing_outputs\":" << missing
                   << ",\"publication_misses\":" << continuity.decision_deadline_misses
@@ -441,30 +574,50 @@ int main(int argc, char** argv) {
                   << ",\"initial_unoccupied_slots\":" << continuity.initial_unoccupied_slots
                   << ",\"skipped_nominal_slots\":" << continuity.skipped_slots
                   << ",\"last_nominal_slot\":";
-        if (continuity.last_nominal_slot) std::cout << *continuity.last_nominal_slot;
-        else std::cout << "null";
-        std::cout << ",\"max_scheduling_lateness_ms\":";
-        milliseconds(continuity.max_scheduling_lateness_ns);
-        std::cout << ",\"max_nominal_slot_lateness_ms\":";
-        milliseconds(continuity.max_nominal_slot_lateness_ns);
-        std::cout << ",\"max_nominal_grid_lateness_ms\":";
-        milliseconds(continuity.max_nominal_grid_lateness_ns);
-        std::cout << ",\"max_acquisition_interval_ms\":";
-        milliseconds(continuity.max_acquisition_interval_ns);
-        std::cout << ",\"max_selected_interval_ms\":";
-        milliseconds(continuity.max_selected_interval_ns);
-        std::cout << ",\"effective_selected_rate_hz\":";
+        if (continuity.last_nominal_slot) out << *continuity.last_nominal_slot;
+        else out << "null";
+        out << ",\"max_scheduling_lateness_ms\":";
+        milliseconds(out, continuity.max_scheduling_lateness_ns);
+        out << ",\"max_nominal_slot_lateness_ms\":";
+        milliseconds(out, continuity.max_nominal_slot_lateness_ns);
+        out << ",\"max_nominal_grid_lateness_ms\":";
+        milliseconds(out, continuity.max_nominal_grid_lateness_ns);
+        out << ",\"max_acquisition_interval_ms\":";
+        milliseconds(out, continuity.max_acquisition_interval_ns);
+        out << ",\"max_selected_interval_ms\":";
+        milliseconds(out, continuity.max_selected_interval_ns);
+        out << ",\"effective_selected_rate_hz\":";
         if (continuity.selected_span_ns)
-            std::cout << (continuity.selected - 1) * 1e9 / static_cast<double>(continuity.selected_span_ns);
-        else std::cout << "null";
-        std::cout << ",\"worker_retirement_samples\":" << worker_retirement_samples
+            out << (continuity.selected - 1) * 1e9 / static_cast<double>(continuity.selected_span_ns);
+        else out << "null";
+        out << ",\"worker_retirement_samples\":" << worker_retirement_samples
                   << ",\"max_worker_retirement_ns\":";
-        if (worker_retirement_samples) std::cout << max_worker_retirement_ns;
-        else std::cout << "null";
-        std::cout << ",\"external_delivery\":\"unmeasured\"}" << std::endl;
+        if (worker_retirement_samples) out << max_worker_retirement_ns;
+        else out << "null";
+        if (split_output) {
+            out << ",\"delivered_outputs\":" << delivered_outputs
+                << ",\"last_selected_sequence\":" << last_selected_sequence
+                << ",\"last_delivered_sequence\":" << last_delivered_sequence
+                << ",\"telemetry_records_dropped\":" << telemetry.dropped
+                << ",\"output_delivery_error\":";
+            if (delivery_error) json_string(out, delivery_error);
+            else out << "null";
+        }
+        out << ",\"external_delivery\":\"unmeasured\"}\n";
+        telemetry.emit();
+        if (delivery_error) {
+            std::ostringstream error;
+            error << "shadow-demo: " << delivery_error
+                  << " last_selected_sequence=" << last_selected_sequence
+                  << " last_delivered_sequence=" << last_delivered_sequence << '\n';
+            std::cerr << error.str();
+        }
+        if (telemetry.dropped) std::cerr << "shadow-demo: telemetry_records_dropped=" +
+                                            std::to_string(telemetry.dropped) + "\n";
         for (unsigned i = 0; i < phase_records.size() && i < continuity.acquired; ++i)
             emit_phase_timing(phase_records[i], i + 1);
         if (phase_timing) std::clog.flush();
+        if (delivery_error) return 4;
         return interrupted ? 130 : (supervisor.phase() == Phase::failed ? 3 : 0);
     } catch (const std::exception& error) {
         std::cerr << "shadow-demo: " << error.what() << '\n'; return 2;

@@ -94,7 +94,50 @@ Native IPC has run on an x86-64 QNX guest. See [verification](verification.md) f
 
 ## Timing and state preparation
 
-The synthetic source follows a wall-clock schedule and skips missed releases instead of bursting delayed samples. Acquisition, IPC receipt, and decision latency are separate concepts. If selection itself misses the decision budget, the broker stops output. JSON rendering, pipe consumption and browser display happen afterward and are **not** included in that decision latency. A slow stdout consumer can delay future releases; this telemetry path is not suitable for a production hard real-time output channel.
+The synthetic source follows a wall-clock schedule and skips missed releases instead of bursting delayed samples. Acquisition, IPC receipt, and decision latency are separate concepts. If selection itself misses the decision budget, the broker stops output. JSON rendering, pipe consumption and browser display happen afterward and are **not** included in that decision latency. In the default mode, a slow stdout consumer can delay future releases.
+
+### Dedicated authoritative output
+
+Set `--output-fd FD` to pass the broker a dedicated pipe or FIFO write end above
+descriptor 2. The launcher must provide a single write-only descriptor with no
+aliases in the broker and keep the reader open and draining during the run.
+The broker rejects a sink shared with stdin, stdout or stderr, sets
+`O_NONBLOCK`, and marks the authority descriptor close-on-exec before any
+worker starts. `O_NONBLOCK` applies to the open file description, so the
+launcher should close its copy of the writer and avoid sharing it with other
+processes.
+
+Each selected result gets one authoritative JSONL record with
+`type: "authoritative_output"`, `schema: 1`, `producer_run_id`, `sequence`,
+`source`, `position_m`, and `deadline_ns`. The deadline uses
+`CLOCK_MONOTONIC` on the broker host. The broker checks this deadline before
+an atomic write of at most the pipe's `_PC_PIPE_BUF`. It does not retry. A
+full pipe, a disconnected reader, a write error or an expired write budget
+stops the run with exit status 4. The broker also stops if it observes a
+successful write return after the deadline. The resulting record is already
+in the pipe and still carries its expiry. Consumers must reject expired
+records and implement their own timeout and safe state if output ceases.
+
+In this mode, run stdout through a separate writable pipe for best-effort
+telemetry or use `--no-telemetry` when stdout goes to a terminal or file.
+Keep stderr separate when stdout telemetry is enabled. The broker sets
+`O_NONBLOCK` on diagnostic and telemetry pipe writers. It writes one
+complete telemetry row at a time and drops the row when the pipe cannot
+take it, including when a row exceeds the atomic write limit. A summary
+that reaches stdout reports `telemetry_records_dropped` up to that row.
+Stderr also reports the final drop count when nonzero and reports delivery
+errors with the last selected and last delivered sequence. Stderr pipe
+reports are best-effort under backpressure. Exit status 4 remains the
+delivery failure signal when diagnostics cannot be read.
+
+Opt-in sample telemetry adds `output_delivered` and `output_delivery_error`.
+The summary adds `delivered_outputs`, the last selected and delivered
+sequences (zero before the first such result), and the delivery error.
+A delivered output means the kernel accepted the complete record into the
+pipe. `external_delivery` remains `"unmeasured"`. Both writes still run on the
+broker thread and share scheduling and CPU resources with the rest of the
+process. Pipe buffering provides no receiver acknowledgement, hardware
+actuation evidence, or real-time scheduling guarantee.
 
 ### Late attachment and bounded replay
 
@@ -127,7 +170,7 @@ The worker entrypoint receives `MODE FAULT_AFTER` and must implement the local H
 
 JSONL schema 2 adds `deployment` records for commands, generation IDs, replay counts, last replayed sequence and candidate PID. Sample records retain baseline/candidate PIDs and the deployment generation. Schema 1 fault recordings remain readable in the workbench.
 
-Once live qualification starts, the current broker still waits for both bounded exchanges before selecting output. A slow candidate can therefore delay the decision up to that cutoff. Background preparation does not resolve this remaining active-path coupling. CPU scheduling and memory contention remain shared. Two processes do not automatically provide deadline isolation. Target priorities, admission control, load testing, resource policy and an independent telemetry path are explicit remaining gates.
+Once live qualification starts, the current broker still waits for both bounded exchanges before selecting output. A slow candidate can therefore delay the decision up to that cutoff. Background preparation does not resolve this remaining active-path coupling. CPU scheduling and memory contention remain shared. Two processes do not automatically provide deadline isolation. Target priorities, admission control, load testing and resource policy are explicit remaining gates.
 
 ## Technical references
 
