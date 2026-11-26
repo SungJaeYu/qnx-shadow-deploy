@@ -4,12 +4,17 @@
 #include <cerrno>
 #include <chrono>
 #include <cstdlib>
+#include <devctl.h>
 #include <fstream>
 #include <iostream>
+#include <pthread.h>
 #include <sstream>
+#include <sched.h>
 #include <spawn.h>
 #include <signal.h>
 #include <sys/neutrino.h>
+#include <sys/procfs.h>
+#include <sys/states.h>
 #include <sys/stat.h>
 #include <sys/utsname.h>
 #include <sys/wait.h>
@@ -26,6 +31,7 @@ constexpr int attempts = 2;
 constexpr int attempt_watchdog_seconds = 12;
 
 enum class Action { release, exit_receiver, timeout };
+enum class Observer { procfs, pidin };
 struct Case {
     const char* name;
     const char* state;
@@ -156,7 +162,70 @@ void pidin(const std::string& dir, const std::string& file, char* format) {
     require(WIFEXITED(status) && WEXITSTATUS(status) == 0, "pidin failed");
 }
 
-bool observe(const std::string& dir, const Case& test, int receiver, std::uint64_t deadline) {
+struct Peer {
+    int pid;
+    int channel;
+    int coid;
+};
+
+class ThreadStatus {
+public:
+    ThreadStatus() : ctl_("/proc/" + std::to_string(getpid()) + "/ctl", O_RDONLY) {
+        procfs_status status{};
+        require(query(1, status) == EOK && status.pid == getpid() && status.tid == pthread_self(),
+                "fixture main thread could not be identified");
+        require(query(status.tid + 1, status) == EOK && status.pid == getpid() && status.tid > pthread_self(),
+                "fixture dispatch thread could not be identified");
+        tid_ = status.tid;
+        // The attempt process owns one WorkerProcess and has no other helper threads.
+        require(query(tid_ + 1, status) == ESRCH, "unexpected extra fixture thread");
+    }
+
+    pthread_t tid() const { return tid_; }
+
+    bool observe(const Case& test, const Peer& peer, std::uint64_t deadline) const {
+        const auto state = test.receive_first ? STATE_REPLY : STATE_SEND;
+        const auto pid = getpid();
+        auto start = shadow::monotonic_ns();
+        unsigned queries = 0;
+        while (start < deadline) {
+            procfs_status status{};
+            const int result = query(tid_, status);
+            const auto accepted = shadow::monotonic_ns();
+            ++queries;
+            if (result == ESRCH) break;
+            require(result == EOK, "cannot query fixture dispatch thread");
+            if (accepted >= deadline || status.pid != pid || status.tid != tid_) break;
+            if (status.state == state && status.blocked.connect.pid == peer.pid &&
+                status.blocked.connect.chid == peer.channel && status.blocked.connect.coid == peer.coid) {
+                std::cout << "state_observed sender_pid=" << pid << " sender_tid=" << tid_
+                          << " receiver_pid=" << peer.pid << " state=" << test.state
+                          << " accepted_ns=" << accepted << " observer=procfs"
+                          << " channel=" << peer.channel << " coid=" << peer.coid
+                          << " snapshot_started_ns=" << start << " queries=" << queries << std::endl;
+                return true;
+            }
+            sched_yield();
+            start = shadow::monotonic_ns();
+        }
+        std::cout << "state_unobserved expected=" << test.state << " receiver_pid=" << peer.pid
+                  << " observer=procfs sender_tid=" << tid_ << " queries=" << queries << std::endl;
+        return false;
+    }
+
+private:
+    int query(pthread_t tid, procfs_status& status) const {
+        status = {};
+        status.tid = tid;
+        return devctl(ctl_.get(), DCMD_PROC_TIDSTATUS, &status, sizeof(status), nullptr);
+    }
+
+    Fd ctl_;
+    pthread_t tid_{};
+};
+
+bool observe_pidin(const std::string& dir, const Case& test, const Peer& peer,
+                   pthread_t dispatch_tid, std::uint64_t deadline) {
     char format[] = "abJB";
     for (unsigned i = 0; i < 32 && shadow::monotonic_ns() < deadline; ++i) {
         const auto file = "state-" + std::to_string(i) + ".txt";
@@ -165,22 +234,24 @@ bool observe(const std::string& dir, const Case& test, int receiver, std::uint64
         require(snapshot.good(), "cannot read pidin snapshot");
         std::string line;
         while (std::getline(snapshot, line)) {
-            int pid, tid, blocked;
+            int pid, blocked;
+            pthread_t tid;
             std::string state;
             std::istringstream row(line);
             if (!(row >> pid >> tid >> state >> blocked)) continue;
             row >> std::ws;
             const auto accepted = shadow::monotonic_ns();
-            if (row.eof() && pid == getpid() && tid > 1 && blocked == receiver &&
+            if (row.eof() && pid == getpid() && tid == dispatch_tid && blocked == peer.pid &&
                 state == test.state && accepted < deadline) {
                 std::cout << "state_observed sender_pid=" << pid << " sender_tid=" << tid
                           << " receiver_pid=" << blocked << " state=" << state
-                          << " accepted_ns=" << accepted << std::endl;
+                          << " accepted_ns=" << accepted << " observer=pidin" << std::endl;
                 return true;
             }
         }
     }
-    std::cout << "state_unobserved expected=" << test.state << " receiver_pid=" << receiver << std::endl;
+    std::cout << "state_unobserved expected=" << test.state << " receiver_pid=" << peer.pid
+              << " observer=pidin sender_tid=" << dispatch_tid << std::endl;
     return false;
 }
 
@@ -241,11 +312,14 @@ struct Exchange {
 };
 
 bool run_exchange(const std::string& dir, const Case& test, Control& control,
-                  shadow::WorkerProcess& worker, std::uint64_t budget_ns) {
+                  shadow::WorkerProcess& worker, const Peer& peer, std::uint64_t budget_ns, Observer observer) {
+    const ThreadStatus thread;
     const bool wait_for_timeout = test.action == Action::timeout;
     if (test.receive_first) control.gate('R');
     Exchange exchange(worker, 1, budget_ns);
-    const bool observed = observe(dir, test, worker.pid(), exchange.deadline);
+    const bool observed = observer == Observer::procfs
+        ? thread.observe(test, peer, exchange.deadline)
+        : observe_pidin(dir, test, peer, thread.tid(), exchange.deadline);
     bool sample_received = observed && test.receive_first;
     if (sample_received) exchange.check_sample(control.event(EventKind::sample));
 
@@ -350,7 +424,7 @@ bool use_worker(const std::string& receiver, const std::string& dir, Operation o
                 for (int coid : before.side_channels)
                     require(coid != receiver_coid, "receiver coid already existed before setup");
                 pidin(dir, "fds-attached.txt", fds);
-                verdict = operation(control, worker);
+                verdict = operation(control, worker, Peer{child, channel, receiver_coid});
             } catch (...) {
                 failure = std::current_exception();
             }
@@ -375,14 +449,14 @@ bool use_worker(const std::string& receiver, const std::string& dir, Operation o
     return verdict;
 }
 
-int attempt(const std::string& receiver, const std::string& dir, const Case& test, std::uint64_t budget_ns) {
+int attempt(const std::string& receiver, const std::string& dir, const Case& test, std::uint64_t budget_ns, Observer observer) {
     try {
-        const bool verdict = use_worker(receiver, dir, [&](Control& control, shadow::WorkerProcess& worker) {
-            return run_exchange(dir, test, control, worker, budget_ns);
+        const bool verdict = use_worker(receiver, dir, [&](Control& control, shadow::WorkerProcess& worker, const Peer& peer) {
+            return run_exchange(dir, test, control, worker, peer, budget_ns, observer);
         });
         const auto recovery = dir + "/recovery";
         require(mkdir(recovery.c_str(), 0700) == 0, "create recovery directory failed");
-        use_worker(receiver, recovery, [](Control& control, shadow::WorkerProcess& worker) {
+        use_worker(receiver, recovery, [](Control& control, shadow::WorkerProcess& worker, const Peer&) {
             run_recovery(control, worker);
             return true;
         });
@@ -420,7 +494,7 @@ int reap_attempt(pid_t child) {
     throw std::runtime_error("watchdog could not reap attempt within cleanup bound");
 }
 
-int supervise(const std::string& receiver, const std::string& dir, const Case& test, std::uint64_t budget_ns) {
+int supervise(const std::string& receiver, const std::string& dir, const Case& test, std::uint64_t budget_ns, Observer observer) {
     require(mkdir(dir.c_str(), 0700) == 0, "create attempt directory failed");
     Fd output(dir + "/stdout.txt", O_WRONLY | O_CREAT | O_EXCL);
     Fd errors(dir + "/stderr.txt", O_WRONLY | O_CREAT | O_EXCL);
@@ -431,7 +505,7 @@ int supervise(const std::string& receiver, const std::string& dir, const Case& t
             dup2(errors.get(), STDERR_FILENO) < 0) _exit(1);
         close(output.get());
         close(errors.get());
-        _exit(attempt(receiver, dir, test, budget_ns));
+        _exit(attempt(receiver, dir, test, budget_ns, observer));
     }
     // Establish the group on both sides of fork to cover child startup races.
     if (setpgid(child, child) < 0 && errno != ESRCH && getpgid(child) != child) {
@@ -470,7 +544,11 @@ int supervise(const std::string& receiver, const std::string& dir, const Case& t
 
 int main(int argc, char** argv) {
     try {
-        require(argc == 3, "usage: qnx-ipc-tests RECEIVER 7500000|112500000");
+        require(argc == 3 || argc == 4,
+                "usage: qnx-ipc-tests RECEIVER 7500000|112500000 [procfs|pidin]");
+        const std::string observer_name = argc == 4 ? argv[3] : "procfs";
+        require(observer_name == "procfs" || observer_name == "pidin", "unsupported state observer");
+        const auto observer = observer_name == "procfs" ? Observer::procfs : Observer::pidin;
         const std::string budget = argv[2];
         require(budget == "7500000" || budget == "112500000", "unsupported IPC budget");
         require(signal(SIGPIPE, SIG_IGN) != SIG_ERR, "could not ignore SIGPIPE");
@@ -479,7 +557,7 @@ int main(int argc, char** argv) {
         char root[] = "./qnx-ipc-run-XXXXXX";
         require(mkdtemp(root) != nullptr, "cannot create evidence directory in current working directory");
         std::cout << "run directory=" << root << " backend=" << shadow::WorkerProcess::backend()
-                  << " budget_ns=" << budget << " attempts_per_case=" << attempts
+                  << " budget_ns=" << budget << " observer=" << observer_name << " attempts_per_case=" << attempts
                   << " watchdog_seconds=" << attempt_watchdog_seconds << " guest=" << identity.sysname
                   << ' ' << identity.release << ' ' << identity.version << ' ' << identity.machine << std::endl;
         bool failed = false;
@@ -489,7 +567,7 @@ int main(int argc, char** argv) {
                 const auto dir = std::string(root) + "/" + test.name + "-" + std::to_string(i);
                 int code = 1;
                 try {
-                    code = supervise(argv[1], dir, test, std::stoull(budget));
+                    code = supervise(argv[1], dir, test, std::stoull(budget), observer);
                 } catch (const std::exception& error) {
                     std::cerr << "attempt_setup_failure directory=" << dir << " error=" << error.what() << std::endl;
                 }
