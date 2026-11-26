@@ -45,11 +45,13 @@ Prepare a fresh project bundle only after this check succeeds:
   while read -r hash file; do
     cp -p "build-qnx-pi4/$file" artifacts/pi4/
   done < artifacts/pi4/SHA256SUMS
-  cp tools/qnx_lifecycle_checks.sh tools/qnx_timeout_checks.sh artifacts/pi4/
+  cp tools/qnx_lifecycle_checks.sh tools/qnx_timeout_checks.sh \
+    tools/qnx_controlled_trials.sh artifacts/pi4/
   (
     cd artifacts/pi4
     shasum -a 256 -c SHA256SUMS
-    shasum -a 256 qnx_lifecycle_checks.sh qnx_timeout_checks.sh >> SHA256SUMS
+    shasum -a 256 qnx_lifecycle_checks.sh qnx_timeout_checks.sh \
+      qnx_controlled_trials.sh >> SHA256SUMS
   )
   tar -C artifacts -cf artifacts/pi4-project.tar pi4
   cksum artifacts/pi4-project.tar
@@ -96,7 +98,7 @@ The run setup verifies the extracted files when `sha256sum` is available.
 If the board lacks it, copy the exact extracted files to a fresh directory
 on the host and run `shasum -a 256 -c /absolute/path/to/host/SHA256SUMS`
 from that returned copy. Use the original host bundle's checksums.
-Set `verified_offline=yes` in the board shell only after all ten files pass.
+Set `verified_offline=yes` in the board shell only after every file in the manifest passes.
 
 ```sh
 cd /data/pi4 || exit 2
@@ -210,6 +212,82 @@ Acceptance for the explicit functional runs:
 - Retain the default runs independently and report all deadline misses and
   publication gaps even if the relaxed suite passes. A successful process
   exit is insufficient to establish deadline compliance.
+
+## Collect baseline-only timing trials
+
+The collector runs the broker with `--control-stdin` and closed input, with
+no candidate manifest or staging commands. Each repetition contains one
+idle trial (no added load) and one CPU trial (a fixed number of target shell
+busy loops). The broker writes straight to the evidence filesystem. Load
+processes run across each CPU attempt and are terminated and reaped before
+the next attempt. Store all attempts, including nonzero exits, as a single
+collection.
+
+Prepare a nonempty `environment.txt` before the run. Include the target
+and image identity, source revision or unknown mapping, SDK/BSP version,
+binary SHA-256 values from the bundle, scheduler policy, priorities and
+affinity, and the evidence filesystem. Record observed CPU and memory
+conditions and, on the Pi, cooling, temperature and throttling. For QEMU,
+include host architecture/OS, QEMU version, accelerator, allocated RAM
+and vCPU count. Mark unmeasured conditions explicitly. The collector adds
+target `uname`, `pidin` identity and process snapshots, binary checksums
+and UTC attempt timestamps. The busy-loop count identifies the load
+generator configuration. Measure utilization separately when required.
+
+For a short QEMU trial, use the existing guest binary directory and a fresh
+writable archive destination. These arguments request three attempts per
+condition, 100 samples per attempt, a 20 ms period, a 10 ms decision budget
+and two busy loops.
+
+```sh
+sh /data/qnx_controlled_trials.sh /system/bin/shadowdeploy \
+    /data/shadow-controlled-smoke 3 100 20 10 2 /data/environment.txt
+```
+
+On the Pi, the idle and CPU baseline-only control runs can use the same
+collector with the verified project bundle. Supply the predeclared CPU load
+count in `busy_loops`. Five attempts of 10,000 samples run for approximately
+33 minutes when both conditions reach their requested sample counts.
+
+```sh
+sh "$bin/qnx_controlled_trials.sh" "$bin" "$out/controlled-trials" \
+    5 10000 20 10 "$busy_loops" /data/environment.txt
+```
+
+Analyze the exported collection on the host:
+
+```bash
+python3 tools/summarize_qnx_trials.py /path/to/exported/controlled-trials > timing-summary.json
+```
+
+The analyzer exits 0 only after every planned attempt passes and the
+collection metadata is complete. Inspect the report on exit 1. It tracks
+delivered samples, produced outputs, deadline failures and missing outputs
+against the planned count, and gives nearest-rank p50/p95/p99/max over
+observed samples. Baseline IPC time is acquisition to reported completion,
+including timeout handling when a timeout observation is present. The
+report names every planned attempt even if its trace is missing,
+incomplete, invalid, interrupted or stopped unexpectedly. A gap from a
+completed fail-closed trace includes both the terminal sample without
+output and any sample slots after the stop. Unknown counts stay null when
+the evidence lacks a validated trace. Stop-on-failure injections belong to
+the functional matrix above, where the verifier checks reason and stop
+sequence independently. The controlled workload has no planned stops.
+
+The baseline controls cover only the idle and CPU cells of the timing
+matrix. Memory, slow reader, combined load, and lifecycle cycles retain
+their separate acceptance criteria. QEMU measurements characterize the
+observed virtualized environment. Run the hardware matrix on the physical
+Pi before claiming board timing behavior.
+
+The historical 2026-11-26 QEMU comparison can be reanalyzed using
+`--legacy-plan 3 100 20 10 2` after pointing the analyzer at its exported
+`timing/` directory. Those traces ran the candidate-enabled `rollback`
+scenario with and without two busy loops. Keep that result separate from
+the baseline-only controls. The legacy trace bundle does not include the
+per-attempt cleanup records required by the new collector.
+
+## Export native evidence
 
 Export a tar archive of the entire run directory:
 

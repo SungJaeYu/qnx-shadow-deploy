@@ -6,13 +6,21 @@ import re
 import sys
 
 
+class TraceValidationError(ValueError):
+    pass
+
+
 def check(condition, description):
     if not condition:
-        raise ValueError(description)
+        raise TraceValidationError(description)
 
 
 def load(path):
     rows = [json.loads(line) for line in path.read_text().splitlines()]
+    return validate_rows(path, rows)
+
+
+def validate_rows(path, rows, *, allow_interrupted=False):
     check(rows[0]["type"] == "meta", f"{path.name}: missing metadata")
     check(rows[0]["backend"] == "qnx-native-ipc", f"{path.name}: wrong backend")
     check(rows[-1]["type"] == "summary", f"{path.name}: incomplete trace")
@@ -27,7 +35,7 @@ def load(path):
           f"{path.name}: incorrect missing-output count")
     check(summary["publication_misses"] == sum(r["publication_miss"] for r in ticks),
           f"{path.name}: incorrect deadline-miss count")
-    check(not summary["interrupted"], f"{path.name}: interrupted run")
+    check(allow_interrupted or not summary["interrupted"], f"{path.name}: interrupted run")
     for previous, current in zip(ticks, ticks[1:]):
         check(current["time_s"] - previous["time_s"] >= meta["period_ms"] / 1000 - 1e-6,
               f"{path.name}: catch-up burst")
