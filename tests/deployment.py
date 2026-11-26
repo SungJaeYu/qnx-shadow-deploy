@@ -1,6 +1,7 @@
 """Attach separately built artifacts while real baseline processes continue serving."""
 import json
 import os
+import shutil
 import signal
 from pathlib import Path
 import subprocess
@@ -81,6 +82,31 @@ class DeploymentIntegration(unittest.TestCase):
             with self.assertRaises(ProcessLookupError):
                 os.kill(pid, 0)
         return rows
+
+    def test_late_attachment_crash_rollback_and_retry(self):
+        tools = Path(__file__).resolve().parents[1] / "tools"
+        directory = Path(tempfile.mkdtemp(prefix="lifecycle-", dir=BUILD))
+        evidence = directory / "evidence"
+        try:
+            command = ["sh", str(tools / "lifecycle_checks.sh"), str(BUILD), str(evidence)]
+            with subprocess.Popen(command, start_new_session=True) as runner:
+                try:
+                    code = runner.wait(timeout=30)
+                except subprocess.TimeoutExpired:
+                    runner.terminate()
+                    try:
+                        runner.wait(timeout=4)
+                    except subprocess.TimeoutExpired:
+                        os.killpg(runner.pid, signal.SIGKILL)
+                    raise
+                if code:
+                    raise subprocess.CalledProcessError(code, command)
+            subprocess.run([sys.executable, str(tools / "verify_lifecycle.py"), "--functional-only",
+                            str(evidence)], check=True, timeout=5)
+        except (subprocess.SubprocessError, OSError) as error:
+            self.fail(f"{error}; lifecycle evidence preserved at {directory}")
+        else:
+            shutil.rmtree(directory)
 
     def test_separate_artifact_replays_then_qualifies_live(self):
         rows = self.run_live(self.manifest())
