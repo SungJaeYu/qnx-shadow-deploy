@@ -296,7 +296,13 @@ int main(int argc, char** argv) {
                 if (argument.empty()) throw std::invalid_argument("sensor trace path is empty");
                 trace_path = argument;
             } else if (option == "--stage-at") stage_at = number(argument);
-            else if (option == "--samples") samples = number(argument);
+            else if (option == "--output-fd") {
+                if (output_fd != -1) throw std::invalid_argument("--output-fd must appear only once");
+                const auto* end = argument.data() + argument.size();
+                const auto parsed = std::from_chars(argument.data(), end, output_fd);
+                if (parsed.ec != std::errc{} || parsed.ptr != end || output_fd < 0)
+                    throw std::invalid_argument("--output-fd requires an integer descriptor above 2");
+            } else if (option == "--samples") samples = number(argument);
             else if (option == "--period-ms") period_ms = number(argument);
             else if (option == "--deadline-ms") deadline_ms = number(argument);
             else if (option == "--qualify") qualify = number(argument);

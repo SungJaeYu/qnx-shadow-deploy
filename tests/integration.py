@@ -76,7 +76,10 @@ class ProcessIntegration(unittest.TestCase):
                          [row.get("event") for row in timed_rows])
         phases = [json.loads(line) for line in timed.stderr.splitlines()]
         self.assertEqual([row["sequence"] for row in phases], [1, 2, 3])
-        self.assertEqual(timed_rows[1]["event"], "candidate_rejected")
+        rejections = [row for row in timed_rows if row.get("event") == "candidate_rejected"]
+        self.assertEqual([row["sequence"] for row in rejections], [2])
+        self.assertEqual(rejections[0]["reason"], "protocol_mismatch")
+        rejection_sequence = rejections[0]["sequence"]
         for record in phases:
             self.assertEqual(record["type"], "phase_timing")
             self.assertEqual(record["ipc_deadline_ns"] - record["acquired_ns"], 56_250_000)
@@ -93,10 +96,18 @@ class ProcessIntegration(unittest.TestCase):
                 self.assertLessEqual(worker["future_wait_ns"], worker["future_return_ns"])
                 self.assertIsNone(worker["pre_expiry_ns"])
             self.assertIsNone(record["baseline"]["retirement_start_ns"])
-        retired = phases[0]["candidate"]
-        self.assertLessEqual(phases[0]["flush_end_ns"], retired["retirement_start_ns"])
-        self.assertLessEqual(retired["retirement_start_ns"], retired["retirement_end_ns"])
-        self.assertTrue(all(record["candidate"] is None for record in phases[1:]))
+        for record in phases:
+            candidate = record["candidate"]
+            if record["sequence"] < rejection_sequence:
+                self.assertIsNotNone(candidate)
+                self.assertIsNone(candidate["retirement_start_ns"])
+                self.assertIsNone(candidate["retirement_end_ns"])
+            elif record["sequence"] == rejection_sequence:
+                self.assertIsNotNone(candidate)
+                self.assertLessEqual(record["flush_end_ns"], candidate["retirement_start_ns"])
+                self.assertLessEqual(candidate["retirement_start_ns"], candidate["retirement_end_ns"])
+            else:
+                self.assertIsNone(candidate)
 
     def test_interrupted_run_has_no_missing_tail(self):
         command = [DEMO, "--worker", WORKER, "--scenario", "promote", "--samples", "20",

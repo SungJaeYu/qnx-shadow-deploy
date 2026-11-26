@@ -119,6 +119,20 @@ class OutputDelivery(unittest.TestCase):
             self.assertEqual(result.returncode, 2, result.stderr)
             self.assertFalse(result.stdout)
 
+    def test_requires_one_decimal_descriptor_above_standard_streams(self):
+        for value in ("", "-1", "+3", " 3", "3 ", "3x", "0", "1", "2", "999999999999"):
+            with self.subTest(value=value):
+                result = subprocess.run(COMMAND + ["--output-fd", value], capture_output=True, timeout=5)
+                self.assertEqual(result.returncode, 2, result.stderr)
+                self.assertFalse(result.stdout)
+        with pipe() as (source, sink):
+            result = self.run_demo(sink, extra=("--output-fd", str(sink.fileno())))
+            sink.close()
+            self.assertEqual(result.returncode, 2, result.stderr)
+            self.assertIn(b"must appear only once", result.stderr)
+            self.assertFalse(result.stdout)
+            self.assertEqual(source.read(), b"")
+
     def test_nonpipe_stdout_requires_explicit_telemetry_off(self):
         with pipe() as (source, sink), tempfile.TemporaryFile() as log:
             rejected = self.run_demo(sink, stdout=log)
