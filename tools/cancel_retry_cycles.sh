@@ -47,9 +47,19 @@ stop_child() {
 cleanup() {
     stop_child "$controller"
     stop_child "$broker"
-    if [ -n "$broker" ] && ! kill -0 "$broker" 2>/dev/null; then
-        if wait "$broker"; then code=0; else code=$?; fi
-        printf '%s\n' "$code" > "$out/exit"
+    if [ -n "$broker" ]; then
+        # The shell can still see the child briefly after sending KILL.
+        attempts=0
+        while kill -0 "$broker" 2>/dev/null && [ "$attempts" -lt 40 ]; do
+            attempts=$((attempts + 1))
+            sleep 0.05
+        done
+        if kill -0 "$broker" 2>/dev/null; then
+            echo 'Broker still exists after cleanup timeout; exit status unavailable.' >&2
+        else
+            if wait "$broker"; then code=0; else code=$?; fi
+            printf '%s\n' "$code" > "$out/exit"
+        fi
     fi
     rm -f "$fifo"
 }
