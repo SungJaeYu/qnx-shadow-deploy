@@ -166,7 +166,9 @@ WorkerProcess::WorkerProcess(const std::string& executable, const std::string& m
 #else
     if (hello.channel != -1) throw std::runtime_error("Unexpected worker transport");
 #endif
-    impl_->dispatch = std::thread([this] { impl_->loop(); });
+    // Impl joins dispatch before its members are destroyed.
+    auto* const implementation = impl_.get();
+    implementation->dispatch = std::thread([implementation] { implementation->loop(); });
 }
 WorkerProcess::~WorkerProcess() = default;
 std::future<Observation> WorkerProcess::submit(Sample sample, std::uint64_t deadline) {

@@ -1,10 +1,12 @@
 #include "shadow/staging.hpp"
+#include <cerrno>
 #include <chrono>
 #include <cstdlib>
 #include <fstream>
 #include <iostream>
 #include <stdexcept>
 #include <thread>
+#include <signal.h>
 #include <unistd.h>
 
 using namespace shadow;
@@ -13,6 +15,7 @@ int main(int argc, char** argv) {
     // When spawned as a worker, deliberately never complete the hello handshake.
     // This process creates no descendants and is reaped by WorkerProcess.
     if (argc == 3) { std::this_thread::sleep_for(std::chrono::seconds(6)); return 0; }
+    if (argc > 2) return 1;
     char directory[] = "/tmp/shadow-staging-XXXXXX";
     if (!mkdtemp(directory)) return 1;
     const std::string path = std::string(directory) + "/candidate.manifest";
@@ -25,6 +28,16 @@ int main(int argc, char** argv) {
         if (!resolved) throw std::runtime_error("Cannot resolve test worker path");
         const std::string executable = resolved;
         free(resolved);
+        const std::string worker_path = argc == 2 ? argv[1] :
+            executable.substr(0, executable.find_last_of('/') + 1) + "shadow-worker";
+        for (unsigned iteration = 0; iteration < 64; ++iteration) {
+            int pid;
+            {
+                WorkerProcess worker(worker_path, "baseline", 0);
+                pid = worker.pid();
+            }
+            CHECK(kill(pid, 0) == -1 && errno == ESRCH);
+        }
         const std::string valid = "format=1\nartifact=test-v2\nexecutable=" + executable +
             "\nprotocol=2\narchitecture=" + native_architecture() + "\nos=" + native_os() +
             "\ncontract=position-m-velocity-mps-v1\nreplay_samples=1\nmode=good\nfault_after=0\n";
@@ -63,7 +76,7 @@ int main(int argc, char** argv) {
             std::this_thread::sleep_for(std::chrono::milliseconds(2));
         CHECK(stager.status().done);
         CHECK(stager.status().error == "replay_backlog_overflow");
-        std::cout << "PASS manifest admission and bounded replay overflow\n";
+        std::cout << "PASS immediate worker retirement, manifest admission and bounded replay overflow\n";
         return 0;
     } catch (const std::exception& error) {
         std::cerr << "FAIL " << error.what() << '\n'; return 1;
