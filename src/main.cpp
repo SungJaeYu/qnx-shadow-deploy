@@ -11,16 +11,19 @@
 #include <cmath>
 #include <csignal>
 #include <cstdio>
+#include <cstdlib>
 #include <deque>
 #include <fcntl.h>
 #include <iomanip>
 #include <iostream>
+#include <limits>
 #include <memory>
 #include <optional>
 #include <poll.h>
 #include <sstream>
 #include <stdexcept>
 #include <string>
+#include <string_view>
 #include <sys/stat.h>
 #include <thread>
 #include <unistd.h>
@@ -81,6 +84,27 @@ bool same_pipe(int first, int second) {
     return ::fstat(first, &a) == 0 && S_ISFIFO(a.st_mode) &&
            ::fstat(second, &b) == 0 && S_ISFIFO(b.st_mode) &&
            a.st_dev == b.st_dev && a.st_ino == b.st_ino;
+}
+
+struct OutputAliases {
+    bool stdout_pipe = false;
+    bool stderr_pipe = false;
+};
+
+OutputAliases output_aliases(int argc, char** argv) {
+    OutputAliases aliases;
+    for (int i = 1; i + 1 < argc; ++i) {
+        if (std::string_view(argv[i]) != "--output-fd") continue;
+        // Check every occurrence before parsing can print help or an error. The
+        // decimal prefix protects the pipe even when the actual value is invalid.
+        char* end = nullptr;
+        const long value = std::strtol(argv[i + 1], &end, 10);
+        if (end == argv[i + 1] || value < 0 || value > std::numeric_limits<int>::max()) continue;
+        const int fd = static_cast<int>(value);
+        aliases.stdout_pipe |= fd == STDOUT_FILENO || same_pipe(fd, STDOUT_FILENO);
+        aliases.stderr_pipe |= fd == STDERR_FILENO || same_pipe(fd, STDERR_FILENO);
+    }
+    return aliases;
 }
 
 constexpr std::uint64_t telemetry_shutdown_grace_ns = 20'000'000;
@@ -311,6 +335,12 @@ private:
 } // namespace
 int main(int argc, char** argv) {
     using namespace shadow;
+    const auto aliases = output_aliases(argc, argv);
+    if (aliases.stderr_pipe) return 2;
+    if (aliases.stdout_pipe) {
+        std::cerr << "shadow-demo: --output-fd must be separate from stdout\n";
+        return 2;
+    }
     try {
         std::string worker = "./build/shadow-worker", scenario = "rollback";
         std::string manifest, trace_path;
@@ -363,8 +393,6 @@ int main(int argc, char** argv) {
         }
         const bool split_output = output_fd != -1;
         if (split_output) {
-            // Do not write even an error message to a pipe designated for authority.
-            if (output_fd == STDERR_FILENO || same_pipe(output_fd, STDERR_FILENO)) return 2;
             std::signal(SIGPIPE, SIG_IGN);
             AtomicPipe::prepare(STDERR_FILENO);
         }

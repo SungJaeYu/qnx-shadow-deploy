@@ -161,6 +161,24 @@ class OutputDelivery(unittest.TestCase):
             self.assertEqual(result.returncode, 2, result.stderr)
             self.assertFalse(result.stdout)
 
+    def test_help_and_parser_errors_cannot_write_to_aliased_authority(self):
+        for stream in ("stdout", "stderr"):
+            for case in ("help", "malformed-option", "malformed-descriptor", "duplicate"):
+                with self.subTest(stream=stream, case=case), pipe() as (source, sink):
+                    fd = str(sink.fileno())
+                    args = {
+                        "help": ["--help", "--output-fd", fd],
+                        "malformed-option": ["--samples", "invalid", "--output-fd", fd],
+                        "malformed-descriptor": ["--output-fd", fd + "invalid"],
+                        "duplicate": ["--output-fd", "99", "--output-fd", fd],
+                    }[case]
+                    stdio = {"stdout": subprocess.PIPE, "stderr": subprocess.PIPE, stream: sink}
+                    result = subprocess.run([DEMO, *args], pass_fds=(sink.fileno(),),
+                                            timeout=5, **stdio)
+                    sink.close()
+                    self.assertEqual(result.returncode, 2, result.stderr)
+                    self.assertEqual(source.read(), b"")
+
     def test_requires_one_decimal_descriptor_above_standard_streams(self):
         for value in ("", "-1", "+3", " 3", "3 ", "3x", "0", "1", "2", "999999999999"):
             with self.subTest(value=value):
