@@ -48,7 +48,13 @@ and leaves the stdout schema and configured deadlines unchanged. Match
 records to stdout samples by sequence within the same invocation.
 
 Timestamps are absolute monotonic nanoseconds. Each row records acquisition,
-the IPC deadline, selection and the final write/flush of the sample line.
+the IPC deadline, selection and the sample telemetry emission attempt.
+`flush_start_ns` and `flush_end_ns` bracket the stdout write and flush in
+default mode. With `--output-fd`, they bracket the telemetry emission step,
+which can resume a pending row, drop a row, or skip the write when telemetry
+is disabled. The authoritative pipe write happens earlier and has no
+separate interval in this trace.
+
 Each submitted worker has timestamps for submission, dispatch, IPC, receipt
 completion, the beginning and return of the broker's future get, and
 retirement if it occurs within that sample. A worker without a submission
@@ -67,6 +73,17 @@ staging replay are outside these records.
 The extra clock reads can perturb short runs. Compare instrumented and
 uninstrumented runs at the same workload and contract before attributing
 timing failures to a phase.
+
+At revision `16d134a`, a QNX x86-64 guest ran 180 requested baseline-only
+inputs with a 20 ms period and the default 10 ms decision budget. The idle
+run selected 180/180 without phase tracing. With tracing, input 31 reached
+dispatch 9.618 ms after acquisition and reached the expiry check at 9.652 ms.
+The 7.5 ms IPC cutoff had passed before `MsgSend`; the decision completed
+at 11.536 ms. The preceding 30 IPC intervals ranged from 121 to 693 µs.
+With two guest busy loops, both runs stopped on input 1 with one decision
+miss and 179 unprocessed inputs. Distinguishing guest scheduling from host
+vCPU descheduling requires a synchronized host observation.
+[Recorded comparison](https://github.com/SungJaeYu/qnx-shadow-deploy/issues/1#issuecomment-7185398101)
 
 ## Submission preparation
 
