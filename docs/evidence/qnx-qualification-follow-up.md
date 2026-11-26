@@ -253,8 +253,12 @@ The regular Release build contains none of these trace calls.
 
 The 20/10/7.5 ms baseline-only trial stopped at its first decision despite
 a valid baseline. The broker measured 11.991589 ms. The inner/outer marker
-bounds on the kernel trace clock (998,700,000 Hz) were 11.980574 and
-12.019626 ms. In this specific run, three nonoverlapping guest intervals
+bounds on the kernel trace clock (998,700,000 Hz) were 11.980575 and
+12.019626 ms. The baseline exchange completed 6.195 ms after acquisition;
+the broker returned from collecting its future at 11.382 ms. The raw trace
+header and decoded trace agree on the clock frequency. Both CPUs had
+contiguous trace buffer sequences and valid end cookies. In this specific
+run, three nonoverlapping guest intervals
 had the broker ready to run and awaiting dispatch:
 
 | Broker thread and interval | READY to RUNNING (ms) | Guest load RUNNING-state overlap, CPU 0 / CPU 1 (ms) |
