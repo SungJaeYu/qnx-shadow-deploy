@@ -1,0 +1,63 @@
+--- a/src/main.cpp
++++ b/src/main.cpp
+@@ -28,8 +28,18 @@
+ #include <thread>
+ #include <unistd.h>
+ #include <vector>
++
++#ifndef __QNXNTO__
++#error This diagnostic source is QNX-only
++#endif
++#include <sys/neutrino.h>
++#include <sys/trace.h>
+ 
+ namespace {
++void trace_seq1(unsigned sequence, int event, int pid) {
++    if (sequence == 1) TraceEvent(_NTO_TRACE_INSERTSUSEREVENT, event, 1, pid);
++}
++
+ volatile std::sig_atomic_t interrupted = 0;
+ void stop(int) { interrupted = 1; }
+ unsigned number(const std::string& text) {
+@@ -502,6 +512,7 @@
+         ServiceContinuity continuity(start, contract.period_ns);
+         unsigned worker_retirement_samples = 0;
+         std::uint64_t max_worker_retirement_ns = 0;
++        const int diagnostic_pid = static_cast<int>(::getpid());
+         for (unsigned i = 1; i <= samples && !interrupted; ++i) {
+             const auto now = monotonic_ns();
+             if (now < next_release) std::this_thread::sleep_for(std::chrono::nanoseconds(next_release - now));
+@@ -545,7 +556,10 @@
+                 } else control_event(telemetry, generation, i - 1, "command_rejected", "invalid_command_or_phase");
+             }
+             Sample sample{};
+-            sample.sequence = i; sample.acquired_ns = monotonic_ns();
++            sample.sequence = i;
++            trace_seq1(i, 720, diagnostic_pid);
++            sample.acquired_ns = monotonic_ns();
++            trace_seq1(i, 721, diagnostic_pid);
+             const double seconds = static_cast<double>(sample.acquired_ns - start) / 1e9;
+             const double truth = 10 + 0.5 * seconds + std::sin(seconds * 0.6);
+             sample.position_m = trace.empty() ? truth + 0.08 * std::sin(static_cast<double>(i) * 1.7) : trace[i - 1];
+@@ -568,14 +582,20 @@
+             if (candidate) cf = candidate->submit(sample, ipc_deadline,
+                                                   candidate_timing ? &candidate_timing->exchange : nullptr);
+             Observation b, c;
+-            if (bf.valid()) b = collect(bf, baseline_timing);
++            if (bf.valid()) {
++                trace_seq1(i, 722, diagnostic_pid);
++                b = collect(bf, baseline_timing);
++                trace_seq1(i, 723, diagnostic_pid);
++            }
+             const bool candidate_pending = split_output && supervisor.phase() == Phase::shadowing && cf.valid()
+                 && cf.wait_for(std::chrono::nanoseconds::zero()) == std::future_status::timeout;
+             if (cf.valid() && !candidate_pending) c = collect(cf, candidate_timing);
+             auto decision = supervisor.step(sample, b, c, candidate_pending);
+             // A result received before the deadline may still be published too late.
+             // Do not describe receipt latency as end-to-end output latency.
++            trace_seq1(i, 724, diagnostic_pid);
+             const auto selected_ns = monotonic_ns();
++            trace_seq1(i, 725, diagnostic_pid);
+             if (phase) phase->selected_ns = selected_ns;
+             const bool publication_miss = selected_ns > deadline;
+             const auto timing = continuity.acquire(sample.acquired_ns, next_release);
