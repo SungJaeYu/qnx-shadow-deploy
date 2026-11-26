@@ -32,8 +32,13 @@ Acceptance: attach a candidate after the baseline has processed live input, show
 - Measure QNX timing with declared thread priorities, resource assumptions and controlled load.
 - Add resource admission limits; abort shadow execution if it harms the active path.
 - [x] Exercise native timeout/worker exit, cancellation/retry, six replay rejections and connection/process cleanup in QEMU.
-- [ ] Repeat under controlled target load, isolate SEND-blocked timeout behavior, and address default 10 ms budget failures without weakening acceptance rules.
-- Produce the short English target demonstration and final reproducible setup guide.
+- [x] Run the gated SEND/REPLY matrix at the 112.5 ms functional budget in QEMU.
+- [x] Check in the short English recap of the recorded same-broker QEMU lifecycle.
+- [ ] Repeat the native IPC matrix at its default budget and the lifecycle under declared target load.
+- [ ] Verify the live Pi 4B sensor, LED and Ethernet relay.
+
+The [pre-board campaign](evidence/qnx-preboard-campaign-2026-11-26.md)
+records the QEMU observations and remaining acceptance gates.
 
 Acceptance: the repository's target support claims match captured QNX execution, and the public video demonstrates the final behavior.
 

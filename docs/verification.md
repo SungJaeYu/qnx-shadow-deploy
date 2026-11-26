@@ -106,6 +106,16 @@ python3 tools/verify_qnx_logs.py docs/evidence/qnx-validation-2026-11-23/shadow-
 
 The fresh host Debug build and policy, staging, process and live-deployment suites passed. `workbench-api` failed during setup because the sandbox denied binding `127.0.0.1`; zero HTTP tests executed. The complete [CTest transcript](evidence/qnx-validation-2026-11-23/host-ctest.log) is preserved. Earlier host/API/sanitizer results above remain historical results, not a claim that this restricted rerun passed every suite.
 
+## Pre-board QNX campaign, 2026-11-26
+
+The [campaign record](evidence/qnx-preboard-campaign-2026-11-26.md)
+documents fresh stock lifecycle and controlled-load runs, functional and
+default-budget IPC fixture outcomes, and stock and test-only operator
+cancellation. It includes failed and inconclusive attempts, configuration
+and artifact hashes. The [English lifecycle video](qnx-lifecycle-demo.mp4)
+is based on the separate [recorded same-broker run](evidence/live-lifecycle-2026-11-26.md),
+including its skipped nominal slot and strict verifier failure.
+
 ## Earlier host scheduling failures
 
 One earlier macOS run ended the HTTP scenario in `failed` rather than `rejected`. That first assertion did not preserve the decision reason, so its exact cause was not established; a diagnostic-only follow-up passed. The test now saves JSONL evidence and includes decision details in failures.
@@ -182,9 +192,9 @@ Under heavy scheduling interference, a timing scenario may fail closed. Preserve
 ## Remaining validation gates
 
 1. Reproduce the installation with QSC 2.0.4+ on a supported x86-64 development host and capture fresh compiler output. Cached release membership and inspected guest provenance passed; independent catalog signature validation and a whole-filesystem integrity audit were not performed.
-2. Isolate SEND-blocked timeout behavior and broaden cancellation/unblock interleavings; observed REPLY timeouts and functional cleanup passed.
+2. Observe the SEND/REPLY timeout and cleanup matrix at the default IPC budget and broaden cancellation/unblock interleavings near the deadline.
 3. Resolve default-budget timing failures under a declared scheduling/resource configuration and controlled load; emulation is not hardware timing proof.
 4. Separate selected-output delivery from telemetry and shadow waits; add target resource admission and validate repeated deployments under load.
-5. Validate the final target demonstration and record its precise build/configuration.
+5. Verify live sensor input, GPIO indication, and Ethernet relay on Pi 4B. Retain the board trace and build configuration.
 
 See [QNX setup](qnx-setup.md) and [the roadmap](roadmap.md). No competition submission or target verification is implied by the host CI badge or screenshot.

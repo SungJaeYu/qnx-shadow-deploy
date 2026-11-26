@@ -43,7 +43,12 @@ The image contains only Ubuntu packages. It mounts this repository, the SDK read
 
 Output goes to `build-qnx-container/`, separate from native host builds. `bash tools/qnx_container.sh shell` opens a diagnostic shell with the same mounts. This helper does not start a QNX VM, activate a license, or run QNX binaries on Linux. Emulator timing is not hardware timing evidence.
 
-**Setup checkpoint, 2026-11-23:** QSC installed the SDK after selecting the 8.0.6 patch set and displayed successful local license activation. The installed Linux GCC package is `12.2.0.01008T202610011452L`. The owner built the Ubuntu container and cross-compiled all five executables from the Mac terminal. Docker engine access remains blocked by the automated session sandbox; it was not bypassed. The later native run reused these artifacts. The [SDK audit](evidence/qnx-sdk-audit.json) inventories 260 packages and verifies nine selected installed assets against package size/SHA-512 metadata. The follow-up [release audit](evidence/qnx-release-audit-2026-11-23/README.md) matches all 260 IDs/versions to `com.qnx.qnx800.patchset806/8.0.6.00398T202611040724L`, with no missing, extra or mismatched package. The guest kernel package and 164 distinct guest build IDs also match. This uses cached vendor metadata and does not certify a supported installation or every filesystem byte.
+**Setup checkpoint, 2026-11-23:** QSC installed the SDK after selecting the 8.0.6 patch set and displayed successful local license activation. The installed Linux GCC package is `12.2.0.01008T202610011452L`. The owner built the Ubuntu container and cross-compiled all five executables from the Mac terminal. Docker engine access was unavailable in the 2026-11-23 automated session. The later native run reused these artifacts. The [SDK audit](evidence/qnx-sdk-audit.json) inventories 260 packages and verifies nine selected installed assets against package size/SHA-512 metadata. The follow-up [release audit](evidence/qnx-release-audit-2026-11-23/README.md) matches all 260 IDs/versions to `com.qnx.qnx800.patchset806/8.0.6.00398T202611040724L`, with no missing, extra or mismatched package. The guest kernel package and 164 distinct guest build IDs also match. This uses cached vendor metadata and does not certify a supported installation or every filesystem byte.
+
+**Setup checkpoint, 2026-11-26:** The [pre-board campaign](evidence/qnx-preboard-campaign-2026-11-26.md)
+used the local SDK and Docker container to rebuild x86-64 guest artifacts
+and validate them under QEMU. The supported x86-64 QSC installation and
+the Pi 4B target remain separate gates.
 
 ## Cross-build
 
@@ -144,17 +149,22 @@ Capture the serial session on the Mac, for example with `script -q serial-origin
 - [x] Run target policy/staging tests, all eleven functional scenarios and late artifact attachment.
 - [x] Exercise cancel/retry, replay failure and backlog overflow; record baseline PID continuity in live runs.
 - [x] Verify observed native timeout return, child exit, connection cleanup and rejection of stale observations across retries.
-- [ ] Independently isolate SEND-blocked timeout behavior; REPLY blocking was observed.
+- [x] Observe SEND- and REPLY-blocked timeout behavior in the gated QEMU fixture at 112.5 ms.
+- [ ] Observe the complete 7.5 ms default-budget fixture. The QEMU attempts at that budget were inconclusive.
 - [x] Verify sample continuity across promotion and rollback; preserve default-budget missing outputs.
 - [ ] Measure decision and release timing under declared CPU/memory load with chosen priorities.
-- [ ] Save original JSONL logs and a video showing target execution and workbench evidence.
+- [x] Retain QEMU guest logs and check in the recorded English lifecycle recap.
+- [ ] Save original Pi 4B logs and compare them with workbench evidence.
+
+See the [pre-board campaign record](evidence/qnx-preboard-campaign-2026-11-26.md)
+for fresh runs, source and image hashes, and timing limits.
 
 ## QNX features used by this project
 
 | QNX mechanism | Project use | Verification state |
 | --- | --- | --- |
 | `ChannelCreate`, `ConnectAttach`, `MsgSend`, `MsgReceive`, `MsgReply` | Broker-to-worker request/reply with matching input sequence and a single output owner | Native functional scenarios, connection snapshots and repeated deployment passed |
-| `TimerTimeout` with monotonic absolute SEND/REPLY limits | Bound IPC blocking when a worker stalls or fails to reply | Native timeout and REPLY blocking observed; isolated SEND case remains open |
+| `TimerTimeout` with monotonic absolute SEND/REPLY limits | Bound IPC blocking when a worker stalls or fails to reply | Gated SEND and REPLY timeouts observed in QEMU at 112.5 ms. Default-budget and board gates remain. |
 | Separate process address spaces and `posix_spawn` | Keep candidate filter state separate; terminate/reap an owned failed candidate | Host and QNX lifecycle checks passed; no owned child remained after exit |
 | Message priority inheritance and real-time thread scheduling | Intended basis for chosen broker/worker priorities under load | No explicit priority configuration or target evidence yet |
 
