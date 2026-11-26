@@ -31,7 +31,9 @@ In the host workbench, **Attach a candidate to a running baseline** invokes the 
 - `reject-nan`: reject a non-finite value.
 - `reject-stale`: reject an incorrect sequence.
 - `reject-protocol`: reject an incompatible message version.
-- `reject-switch`: reject a transition between individually valid but discontinuous streams.
+- `reject-switch` adds 2.75 m to the candidate on the last qualifying sample and 5.5 m at promotion, producing a discontinuous switch on the built-in trajectory while keeping the candidate's individual steps within range.
+- `semantic-bias` adds a 3 m candidate position bias starting on the sample after promotion.
+- `semantic-freeze` holds the candidate position starting on the sample after promotion. A moving input trace can expose the freeze through the sustained residual check.
 - `rollback`: candidate exits during probation; use a valid current baseline output.
 - `baseline-failure`: stop rather than granting authority to an unqualified candidate.
 - `no-fallback`: both versions fail during probation; stop output.

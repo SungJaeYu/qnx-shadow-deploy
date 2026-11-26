@@ -163,6 +163,80 @@ int main() {
             auto s4 = sample(4); auto d = g.step(s4, ok(s4, 6), {});
             CHECK(d.phase == Phase::failed); CHECK(d.reason == "output_discontinuity"); CHECK(!d.output);
         }},
+        {"sustained live residual rejects a biased shadow candidate", [] {
+            auto contract = quick(); contract.qualification_samples = 10;
+            Supervisor g(contract);
+            for (unsigned i = 1; i <= 4; ++i) {
+                auto s = sample(i);
+                CHECK(g.step(s, ok(s), ok(s, 13)).phase == Phase::shadowing);
+            }
+            auto s = sample(5); const auto d = g.step(s, ok(s), ok(s, 13));
+            CHECK(d.phase == Phase::rejected); CHECK(d.source == Source::baseline);
+            CHECK(d.candidate_check == "measurement_residual_exceeded");
+        }},
+        {"semantic candidate failure rolls back after promotion", [] {
+            auto contract = quick(); contract.probation_samples = 10;
+            Supervisor g(contract); tick(g, 1); tick(g, 2); tick(g, 3);
+            for (unsigned i = 4; i <= 7; ++i) {
+                auto s = sample(i);
+                CHECK(g.step(s, ok(s), ok(s, 13)).phase == Phase::probation);
+            }
+            auto s = sample(8); const auto d = g.step(s, ok(s), ok(s, 13));
+            CHECK(d.phase == Phase::rolled_back); CHECK(d.source == Source::baseline);
+            CHECK(d.reason == "measurement_residual_exceeded");
+        }},
+        {"semantic failure after commit stops publication", [] {
+            Supervisor g(quick());
+            for (unsigned i = 1; i <= 5; ++i) tick(g, i);
+            for (unsigned i = 6; i <= 9; ++i) {
+                auto s = sample(i);
+                CHECK(g.step(s, {}, ok(s, 13)).phase == Phase::committed);
+            }
+            auto s = sample(10); const auto d = g.step(s, {}, ok(s, 13));
+            CHECK(d.phase == Phase::failed); CHECK(!d.output);
+            CHECK(d.reason == "candidate_measurement_residual_exceeded");
+        }},
+        {"biased standby is unavailable for fallback", [] {
+            auto contract = quick(); contract.probation_samples = 10;
+            Supervisor g(contract); tick(g, 1); tick(g, 2); tick(g, 3);
+            for (unsigned i = 4; i <= 7; ++i) {
+                auto s = sample(i);
+                CHECK(g.step(s, ok(s, 13), ok(s)).phase == Phase::probation);
+            }
+            auto s = sample(8); const auto d = g.step(s, ok(s, 13), {});
+            CHECK(d.phase == Phase::failed); CHECK(!d.output);
+            CHECK(d.reason == "no_valid_fallback");
+            CHECK(d.baseline_check == "measurement_residual_exceeded");
+        }},
+        {"baseline residual alone can invalidate authority", [] {
+            Supervisor g(quick(), false);
+            for (unsigned i = 1; i <= 4; ++i) {
+                auto s = sample(i);
+                CHECK(g.step(s, ok(s, 13), {}).source == Source::baseline);
+            }
+            auto s = sample(5); const auto d = g.step(s, ok(s, 13), {});
+            CHECK(d.phase == Phase::failed); CHECK(!d.output);
+            CHECK(d.reason == "baseline_measurement_residual_exceeded");
+        }},
+        {"transient residuals clear and candidate generation starts fresh", [] {
+            auto contract = quick(); contract.qualification_samples = 10;
+            Supervisor g(contract);
+            for (unsigned i = 1; i <= 4; ++i) {
+                auto s = sample(i); CHECK(g.step(s, ok(s), ok(s, 13)).phase == Phase::shadowing);
+            }
+            CHECK(tick(g, 5).phase == Phase::shadowing);
+            auto sixth = sample(6);
+            CHECK(g.step(sixth, ok(sixth), ok(sixth, 13)).phase == Phase::shadowing);
+            CHECK(g.request_cancel());
+            auto seventh = sample(7);
+            CHECK(g.step(seventh, ok(seventh), ok(seventh, 13)).phase == Phase::rejected);
+            CHECK(g.begin_staging());
+            g.begin_shadowing(ok(seventh, 13).estimate);
+            for (unsigned i = 8; i <= 11; ++i) {
+                auto s = sample(i); CHECK(g.step(s, ok(s), ok(s, 13)).phase == Phase::shadowing);
+            }
+            CHECK(tick(g, 12).phase == Phase::shadowing);
+        }},
         {"duplicate and invalid inputs stop the broker", [] {
             Supervisor g(quick()); tick(g, 1);
             auto d = tick(g, 1); CHECK(d.phase == Phase::failed); CHECK(!d.output);

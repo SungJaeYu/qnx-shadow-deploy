@@ -23,7 +23,8 @@ int main(int argc, char** argv) {
     if (argc != 3) { std::cerr << "Usage: shadow-worker MODE FAULT_AFTER\n"; return 2; }
     const std::string mode = argv[1];
     if (mode != "baseline" && mode != "good" && mode != "bad-units" && mode != "delay" &&
-        mode != "crash" && mode != "nan" && mode != "stale" && mode != "bad-header" && mode != "offset") {
+        mode != "crash" && mode != "nan" && mode != "stale" && mode != "bad-header" && mode != "offset" &&
+        mode != "switch-offset" && mode != "semantic-bias" && mode != "semantic-freeze") {
         std::cerr << "Unknown worker mode\n"; return 2;
     }
     unsigned fault_after = 0;
@@ -62,7 +63,8 @@ int main(int argc, char** argv) {
         if (inject && mode == "delay") std::this_thread::sleep_for(std::chrono::milliseconds(250));
         const double previous_position = position;
         const double alpha = mode == "baseline" ? 0.25 : SHADOW_GOOD_ALPHA;
-        position = initialized ? position + alpha * (sample.position_m - position) : sample.position_m;
+        if (!initialized) position = sample.position_m;
+        else if (!inject || mode != "semantic-freeze") position += alpha * (sample.position_m - position);
         const double dt = initialized ? static_cast<double>(sample.acquired_ns - previous_ns) / 1e9 : 1;
         Estimate estimate{};
         estimate.sequence = sample.sequence; estimate.acquired_ns = sample.acquired_ns;
@@ -73,6 +75,9 @@ int main(int argc, char** argv) {
         if (inject && mode == "stale") --estimate.sequence;
         if (inject && mode == "bad-header") ++estimate.header.version;
         if (mode == "offset") estimate.position_m += 50;
+        if (inject && mode == "switch-offset")
+            estimate.position_m += sample.sequence == fault_after ? 2.75 : 5.5;
+        if (inject && mode == "semantic-bias") estimate.position_m += 3.0;
         initialized = true; previous_ns = sample.acquired_ns;
 #ifdef __QNXNTO__
         // A timed-out caller can make MsgReply fail; the supervisor retires that child.

@@ -105,6 +105,12 @@ class DeploymentIntegration(unittest.TestCase):
                 self.assertEqual(failure["reason"], reason)
                 self.assertTrue(all(r["source"] == "baseline" for r in rows if r["type"] == "sample"))
 
+    def test_semantically_invalid_replay_never_gains_authority(self):
+        rows = self.run_live(self.manifest(mode="offset", replay_samples=5), samples=16)
+        self.assertIn("replay_measurement_residual_exceeded",
+                      [row.get("reason") for row in rows if row.get("event") == "preparation_failed"])
+        self.assertTrue(all(row["source"] == "baseline" for row in rows if row["type"] == "sample"))
+
     def test_invalid_manifest_can_be_replaced_without_baseline_restart(self):
         bad = self.manifest("bad", protocol=99)
         good = self.manifest("good")

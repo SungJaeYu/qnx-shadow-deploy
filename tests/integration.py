@@ -12,11 +12,14 @@ sys.argv = [sys.argv[0]]
 
 
 class ProcessIntegration(unittest.TestCase):
-    def run_scenario(self, scenario, expected_phase, expected_event, code=0):
-        result = subprocess.run(
-            [DEMO, "--worker", WORKER, "--scenario", scenario, "--samples", "22",
-             "--qualify", "3", "--probation", "8", "--period-ms", "100", "--deadline-ms", "75"],
-            capture_output=True, text=True, timeout=8)
+    def run_scenario(self, scenario, expected_phase, expected_event, code=0, *,
+                     probation=8, trace=None):
+        command = [DEMO, "--worker", WORKER, "--scenario", scenario, "--samples", "22",
+                   "--qualify", "3", "--probation", str(probation), "--period-ms", "100",
+                   "--deadline-ms", "75"]
+        if trace is not None:
+            command.extend(["--sensor-trace", str(trace)])
+        result = subprocess.run(command, capture_output=True, text=True, timeout=8)
         self.assertEqual(result.returncode, code, result.stderr + result.stdout[-1200:])
         rows = [json.loads(line) for line in result.stdout.splitlines()]
         self.assertEqual(rows[0]["backend"], "host-posix-pipes")
@@ -60,6 +63,30 @@ class ProcessIntegration(unittest.TestCase):
 
     def test_rollback(self):
         self.run_scenario("rollback", "rolled_back", "candidate_rolled_back")
+
+    def test_frozen_candidate_rolls_back_on_a_moving_trace(self):
+        with tempfile.TemporaryDirectory() as directory:
+            trace = Path(directory) / "ramp.mm"
+            trace.write_text("".join(f"{10000 + index * 200}\n" for index in range(22)))
+            rows = self.run_scenario("semantic-freeze", "rolled_back", "candidate_rolled_back",
+                                     probation=18, trace=trace)
+        rollback = next(row for row in rows if row.get("event") == "candidate_rolled_back")
+        self.assertEqual(rollback["reason"], "measurement_residual_exceeded")
+        self.assertEqual(rollback["candidate_check"], "measurement_residual_exceeded")
+        self.assertTrue(any(row.get("event") == "candidate_promoted" for row in rows))
+
+    def test_frozen_candidate_on_stationary_input_remains_valid(self):
+        with tempfile.TemporaryDirectory() as directory:
+            trace = Path(directory) / "stationary.mm"
+            trace.write_text("10000\n" * 22)
+            self.run_scenario("semantic-freeze", "committed", "candidate_committed", trace=trace)
+
+    def test_biased_candidate_rolls_back_after_promotion(self):
+        rows = self.run_scenario("semantic-bias", "rolled_back", "candidate_rolled_back")
+        rollback = next(row for row in rows if row.get("event") == "candidate_rolled_back")
+        self.assertEqual(rollback["reason"], "measurement_residual_exceeded")
+        self.assertEqual(rollback["sequence"], 9)
+        self.assertTrue(any(row.get("event") == "candidate_promoted" for row in rows))
 
     def test_no_valid_output(self):
         for scenario in ["baseline-failure", "no-fallback", "post-commit-failure"]:

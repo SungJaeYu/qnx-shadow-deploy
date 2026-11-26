@@ -38,6 +38,10 @@ The default contract is defined in `Contract`:
 - Completion within the decision budget; IPC gets an earlier cutoff at 75% of that budget.
 - Consecutive qualifying candidate samples before promotion, followed by a bounded probation window.
 
+Each worker also has a position residual check against the current measured input. The broker compares the absolute measurement-to-estimate difference with 1 m of slack plus a filter lag allowance. For each sample, it adds 2 m/s times the larger of the configured period and the elapsed acquisition interval to the previous lag allowance, then retains 75% of that sum for the slowest supported filter (alpha 0.25). The initial lag allowance is seeded at three times that sample's motion allowance. This gives a 1.12 m residual limit at the default 20 ms cadence. A result becomes invalid on the fifth consecutive excess. An in-limit result clears the streak. Structural, deadline and range checks run first.
+
+The check runs independently for both live workers, including standby and the committed candidate, and on catch-up replay. A replay failure rejects preparation. Live residual state starts fresh for each candidate generation, while baseline state persists. The check uses measured input directly and can detect a frozen estimate on a moving trace or a sustained bias above its allowance. Stationary input can agree with a frozen estimate. Smaller biases, fewer than five consecutive excesses, and input faults shared by measurement and estimate can go undetected. This calibration assumes sensor motion and noise consistent with the demo, and a sustained transient outside that envelope can invalidate healthy results.
+
 These example thresholds are not a general correctness oracle. Each real application must define units, tolerances, freshness and transition constraints. Candidate-baseline difference is observable, but equality is not a pass condition.
 
 ## State and authority

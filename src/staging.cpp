@@ -1,4 +1,5 @@
 #include "shadow/staging.hpp"
+#include <algorithm>
 #include "shadow/io.hpp"
 #include <cerrno>
 #include <condition_variable>
@@ -128,6 +129,7 @@ struct CandidateStager::Impl {
                 if (queue.size() > history_capacity) { state.error = "replay_backlog_overflow"; stopping = true; }
                 busy = false;
             }
+            PositionResidualMonitor residual;
             for (;;) {
                 Sample sample;
                 {
@@ -143,6 +145,10 @@ struct CandidateStager::Impl {
                 // starts now; historical samples never count as fresh qualification output.
                 const auto reason = check_observation(sample, observation, previous, contract, receipt_origin);
                 if (reason != "ok") throw std::runtime_error("replay_" + reason);
+                const auto interval_ns = previous ?
+                    std::max(contract.period_ns, sample.acquired_ns - previous->acquired_ns) : contract.period_ns;
+                if (!residual.accepts(sample, observation.estimate, interval_ns))
+                    throw std::runtime_error("replay_measurement_residual_exceeded");
                 {
                     std::lock_guard<std::mutex> lock(mutex);
                     previous = observation.estimate; ++state.replayed;

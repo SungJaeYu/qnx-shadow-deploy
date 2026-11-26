@@ -146,7 +146,7 @@ int main(int argc, char** argv) {
                              "  stage PATH / cancel commands on stdin. Promotion follows qualification.\n"
                              "Scenarios: promote, reject-units, reject-delay, reject-nan, reject-stale,\n"
                              "  reject-protocol, reject-switch, rollback, baseline-failure, no-fallback,\n"
-                             "  post-commit-failure\n"
+                             "  post-commit-failure, semantic-bias, semantic-freeze\n"
                              "JSON Lines are written to stdout; diagnostics go to stderr.\n";
                 return 0;
             }
@@ -187,8 +187,11 @@ int main(int argc, char** argv) {
         else if (scenario == "reject-nan") candidate_mode = "nan";
         else if (scenario == "reject-stale") candidate_mode = "stale";
         else if (scenario == "reject-protocol") candidate_mode = "bad-header";
-        else if (scenario == "reject-switch") candidate_mode = "offset";
-        else if (scenario == "rollback" || scenario == "no-fallback") {
+        else if (scenario == "reject-switch") {
+            candidate_mode = "switch-offset"; fault_after = qualify;
+        } else if (scenario == "semantic-bias" || scenario == "semantic-freeze") {
+            candidate_mode = scenario; fault_after = qualify + 2;
+        } else if (scenario == "rollback" || scenario == "no-fallback") {
             if (probation < 2) throw std::invalid_argument("Rollback scenarios require probation >= 2");
             candidate_mode = "crash"; fault_after = qualify + 1 + probation / 2;
             if (scenario == "no-fallback") baseline_mode = "crash";

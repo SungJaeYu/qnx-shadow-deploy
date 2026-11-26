@@ -19,6 +19,13 @@ const char* name(Phase phase);
 const char* name(Source source);
 std::string check_observation(const Sample&, const Observation&, const std::optional<Estimate>&,
                               const Contract&, std::uint64_t receipt_origin_ns);
+class PositionResidualMonitor {
+public:
+    bool accepts(const Sample& sample, const Estimate& estimate, std::uint64_t interval_ns);
+private:
+    std::optional<double> filter_lag_allowance_m_;
+    unsigned consecutive_excesses_ = 0;
+};
 struct Decision {
     Phase phase = Phase::shadowing;
     Source source = Source::none;
@@ -50,6 +57,7 @@ private:
     std::uint64_t last_sequence_ = 0;
     std::uint64_t last_acquired_ns_ = 0;
     std::optional<Estimate> last_baseline_, last_candidate_, last_output_;
+    PositionResidualMonitor baseline_residual_, candidate_residual_;
     bool cancel_requested_ = false;
     std::string pending_event_, pending_reason_;
 };
