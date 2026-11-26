@@ -1,5 +1,28 @@
 # Native operator cancellation at IPC and handoff boundaries
 
+## QNX x86-64 guest result
+
+The `668a70c` fixture passed both cases with the stock broker. The first
+attempt on an earlier revision expired its worker gate before the helper
+recorded a command write. A second attempt stopped during FIFO identity
+validation. Both failed captures were retained. The passing helper writes
+through the shell's already-open control FIFO on standard output and records
+its timestamps in a separate file.
+
+| Gated case | FIFO write | Cancellation accepted | Generation 2 committed | Selected |
+| --- | --- | ---: | ---: | ---: |
+| Live request 22 | 36.830 to 36.522 ms before the 337.5 ms cutoff | 23 | 37 | 44/44 |
+| Replay handoff on request 17 | 0.103 ms duration | 18 | 32 | 44/44 |
+
+The verifier checked zero missing outputs, current baseline authority at
+cancellation, restored connection descriptors and absence of the owned
+processes after exit. In the handoff case it also checked that the observed
+sample preceded transfer and that transfer preceded acceptance. The gated
+worker identifies one request unambiguously. The passing trace archive's
+SHA-256 is `287c770d126d75b19b2578f6e8ef4a7ef468c363672239cc04bbe1084a22046c`.
+
+## Reproduce
+
 Run the boundary cases on QNX with `shadow-demo`, `shadow-worker`,
 `shadow-candidate`, `candidate.manifest`, `qnx-cancel-replay-worker` and
 `qnx_cancel_ordering_checks.sh` from the same build revision. The fixture

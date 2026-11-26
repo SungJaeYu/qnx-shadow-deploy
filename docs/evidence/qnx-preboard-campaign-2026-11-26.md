@@ -389,7 +389,95 @@ from the recorded summary with
 The checked-in MP4 SHA-256 is
 `2d1948db9fb94845225da4e1416f524c10542b2908871a5f9963ad2f1b0b4858`.
 
-## Remaining acceptance
+## Follow-up on the loaded crash driver
+
+Two QNX guest runs added monotonic timestamps and the latest input sequence
+around the driver's process snapshots and promotion poll. Both used two guest
+busy loops and the original 90 inputs, 200 ms period, 150 ms decision budget
+and 24 probation samples. Host builds overlapped part of A. B omitted only
+the two process snapshots between promotion detection and fault injection.
+
+| Observation | A, original snapshots | B, pre-fault snapshots omitted |
+| --- | ---: | ---: |
+| Baseline descriptor / process snapshot duration | 1.009 / 1.877 s | 0.958 / 1.701 s |
+| Stage requested after input | 71 | 68 |
+| Promotion input | 81 | 77 |
+| Promotion poll duration | 5.110 s | 5.049 s |
+| Latest input when the driver observed promotion | 90 | 90 |
+| Selected outputs / decision misses | 90 / 0 | 90 / 0 |
+| Skipped nominal slots / maximum selected interval | 3 / 225.603 ms | 4 / 243.167 ms |
+
+In both runs the driver saw promotion only after the terminal summary. Its
+ownership and phase guard refused the signal. Both runs ended in probation,
+with too few inputs left to complete the first generation. The driver exited
+1. Both load workers stopped and the watchdog was cancelled. A serial wrapper
+also exited before writing its completion marker. Recovery from the retained
+disk overlays established the driver outcomes independently of that timeout.
+
+The revised driver in `f19e7cf` stages generation 1 at input boundary 20
+and uses the stock worker's own crash injection at input 38. It waits for the
+actual rollback event before requesting generation 2. The original driver
+remains available for independent descriptor and process sampling.
+
+The first event-driven driver (`f19e7cf`) sent broker stdout through a shell
+reader. In three idle guest runs it selected 90/90, rolled back at 38 and
+committed generation 2 at 66. All three skipped three slots. With two guest
+busy loops, all three runs recorded only inputs 1–9 before the driver's
+35 s alarm. Those 27 decisions took 7.729–21.476 ms. None missed the
+150 ms decision budget. There was no terminal summary or evidence of
+deployment in any of the three partial captures. Post-cleanup snapshots
+showed no remaining broker or worker. The direct-file follow-up in
+`37e163d` takes the shell reader out of the broker's stdout path.
+
+Six new trials used the direct file and alternated idle with two busy
+loops in one guest. There was no concurrent host build. The `dc8235f`
+broker used the same 200/150 ms settings. The `82905d5` verifier checked
+each run twice. All six passed the functional gate with 90/90 outputs,
+zero decision misses, rollback at 38 and a fresh generation 2 commit.
+All six failed strict cadence. The maximum interval column measures
+successive selected outputs, not decision latency.
+
+| Trial | Promotions (generation 1 / 2) | Commit | Skipped slots | Maximum selected interval | Maximum decision latency |
+| --- | --- | ---: | ---: | ---: | ---: |
+| Idle 1 | 25 / 44 | 67 | 2 | 228.747 ms | 5.404 ms |
+| Two loops 1 | 31 / 57 | 80 | 3 | 231.311 ms | 27.733 ms |
+| Idle 2 | 25 / 44 | 67 | 2 | 230.236 ms | 4.746 ms |
+| Two loops 2 | 29 / 56 | 79 | 3 | 331.413 ms | 26.811 ms |
+| Idle 3 | 25 / 44 | 67 | 3 | 250.919 ms | 4.866 ms |
+| Two loops 3 | 29 / 57 | 80 | 3 | 233.679 ms | 25.985 ms |
+
+Worker retirement checks passed and the post-cleanup snapshots contained
+neither load PID. The complete six-run archive SHA-256 is
+`95deb76f3a0a5df26931d33101a7a17d0fa28f36b03a76313eedc7d038d39c2a`.
+
+## Default-budget guest and host clock comparison
+
+A follow-up at `16d134a` used the same x86-64 QNX guest, two vCPUs,
+two guest busy loops, a 20 ms period and a 10 ms decision deadline. Only
+the baseline ran. The broker acquired input 1, selected zero outputs and
+stopped with 179 inputs unprocessed. Dispatch wait took 4.294 ms, the IPC
+call took 2.729 ms and the interval from completion to the decision took
+5.857 ms. Selection occurred 14.994 ms after acquisition. In a separate
+idle run, input 31 expired before the dispatch thread entered IPC.
+
+Five serial markers on each side of the loaded run bracketed the host and
+guest clocks. Marker round trips ranged from 35.696 to 40.906 ms. Even
+assuming a constant clock offset, the offset interval was 39.209 ms wide.
+The host recorded 532 CPU-time samples on each QEMU vCPU thread. These
+counters include the load loops. The alignment uncertainty exceeds the
+deadline and prevents attribution of this particular miss to a host vCPU.
+
+A second comparison used a persistent native serial responder and 24
+markers before and after the workload. Round-trip brackets narrowed to
+1.261–1.890 ms. The guest measured 2889.759 ms between endpoints while
+the bounded host interval was 2885.251–2888.202 ms. A constant clock
+offset cannot explain both endpoints. In this run input 1 reached dispatch
+after 3.420 ms, spent 2.629 ms in IPC and took another 7.342 ms from
+completion to decision. Selection at 15.400 ms exceeded the 10 ms budget.
+The per-vCPU host counters include the load loops, and these measurements
+cannot assign the guest event to a particular host descheduling interval.
+
+## Remaining acceptance at the time of the original campaign
 
 | Issue | Remaining evidence |
 | --- | --- |
