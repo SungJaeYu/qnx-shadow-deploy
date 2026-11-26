@@ -113,7 +113,7 @@ class Handler(BaseHTTPRequestHandler):
                 except ProcessLookupError:
                     pass
 
-            timer = threading.Timer(15, terminate_group)
+            timer = threading.Timer(self.server.demo_timeout, terminate_group)
             timer.start()
             self.respond(200, "application/x-ndjson; charset=utf-8")
             for line in process.stdout:
@@ -157,6 +157,8 @@ def main():
         parser.error("Require 1..1000 samples and 0 < deadline-ms < period-ms <= 1000")
     server = ThreadingHTTPServer(("127.0.0.1", args.port), Handler)
     server.build_dir = args.build_dir.resolve()
+    # Allow the full nominal run plus startup, staging and output overhead.
+    server.demo_timeout = args.samples * args.period_ms / 1000 + 15
     server.demo_options = ["--samples", str(args.samples), "--period-ms", str(args.period_ms),
                            "--deadline-ms", str(args.deadline_ms)]
     if args.sensor_trace is not None:

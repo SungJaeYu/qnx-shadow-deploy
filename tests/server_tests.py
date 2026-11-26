@@ -24,6 +24,7 @@ class WorkbenchTests(unittest.TestCase):
         # This suite verifies HTTP wiring, not a 10 ms bound on a shared CI host.
         # Tight deadline boundaries are deterministic policy tests; target timing
         # requires separate evidence. The live workbench keeps its 20/10 ms defaults.
+        cls.server.demo_timeout = 15
         cls.server.demo_options = ["--samples", "12", "--period-ms", "100", "--deadline-ms", "75"]
         cls.thread = threading.Thread(target=cls.server.serve_forever)
         cls.thread.start()

@@ -21,6 +21,7 @@ class LedEvents:
         self.sequence = 0
         self.hold_until = 0
         self.active = active
+        self.failed = False
         return "off"
 
     def accept(self, row):
@@ -32,12 +33,14 @@ class LedEvents:
         if kind == "deployment" and self.active:
             return None
         phase = row.get("phase")
-        if (kind != "sample" or not self.active or not valid_sample(row)
+        if (kind != "sample" or not self.active or self.failed or not valid_sample(row)
                 or row["sequence"] <= self.sequence or phase not in PHASES):
             raise ValueError("unexpected broker row")
         self.sequence = row["sequence"]
         if phase == "failed":
-            return self.reset()
+            self.failed = True
+            self.hold_until = 0
+            return "off"
         if phase == "rolled_back" and row.get("event") in ("candidate_rolled_back", "candidate_cancelled"):
             self.hold_until = self.sequence + self.hold_samples
         if self.sequence < self.hold_until:

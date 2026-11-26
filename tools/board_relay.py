@@ -14,9 +14,9 @@ def frames(stream):
     """Yield (row, error) per newline-delimited frame with bounded reads."""
     while line := stream.readline(MAX_FRAME_BYTES + 1):
         if len(line) > MAX_FRAME_BYTES:
+            yield None, "oversize"
             while line and not line.endswith(b"\n"):
                 line = stream.readline(MAX_FRAME_BYTES + 1)
-            yield None, "oversize"
             continue
         if not line.endswith(b"\n"):
             yield None, "malformed"
@@ -46,15 +46,26 @@ def finite_number(value):
     return type(value) in (int, float) and -1e15 <= value <= 1e15
 
 
+def has_strings(row, *fields):
+    return all(isinstance(row.get(field, ""), str) for field in fields)
+
+
 def valid_meta(row):
     return (type(row.get("schema")) is int and row["schema"] in (1, 2)
             and row.get("backend") in ("host-posix-pipes", "qnx-native-ipc")
-            and isinstance(row.get("scenario"), str))
+            and isinstance(row.get("scenario"), str)
+            and has_strings(row, "producer_run_id", "input_source")
+            and all(finite_number(row.get(field, 0)) for field in
+                    ("baseline_pid", "candidate_pid", "deadline_ms", "qualification_samples", "probation_samples")))
 
 
 def valid_sample(row):
-    return (integer(row.get("sequence"), 1) and finite_number(row.get("time_s"))
-            and finite_number(row.get("input")) and (row.get("truth") is None or finite_number(row["truth"])))
+    return (integer(row.get("sequence"), 1) and finite_number(row.get("time_s")) and row["time_s"] >= 0
+            and finite_number(row.get("input")) and "truth" in row
+            and (row["truth"] is None or finite_number(row["truth"]))
+            and (row.get("output") is None or finite_number(row["output"]))
+            and finite_number(row.get("decision_latency_ms", 0))
+            and has_strings(row, "phase", "source", "event", "reason", "baseline_check", "candidate_check"))
 
 
 class BoardRelay:
@@ -112,7 +123,8 @@ class BoardRelay:
             self.sequence_gaps += sequence - self.sequence - 1
             self.sequence = sequence
         elif kind == "deployment":
-            if not integer(row.get("after_sequence")):
+            if (not integer(row.get("after_sequence")) or not integer(row.get("generation", 0))
+                    or not finite_number(row.get("candidate_pid", -1)) or not has_strings(row, "event", "reason")):
                 return False
         elif kind == "summary":
             if not integer(row.get("samples")) or row["samples"] < self.sequence:

@@ -15,6 +15,7 @@ BUILD = Path(sys.argv.pop()).resolve()
 sys.path.insert(0, str(Path(__file__).resolve().parents[1] / "tools"))
 from board_relay import BoardRelay, MAX_FRAME_BYTES, RING_SIZE
 from led_events import LedEvents
+from serve import Handler, ThreadingHTTPServer
 
 TOOLS = Path(__file__).resolve().parents[1] / "tools"
 
@@ -85,6 +86,66 @@ class Pipeline(unittest.TestCase):
         self.assertNotEqual(relay.snapshot()["run_id"], snapshot["run_id"])
         self.assertEqual(relay.snapshot()["rows"], [sample(1)])
 
+    def test_invalid_truth_is_malformed_and_preserves_gap(self):
+        relay = BoardRelay("pi4")
+        missing = sample(1)
+        del missing["truth"]
+        invalid = dict(sample(2), truth="unknown")
+        relay.consume(io.BytesIO(b"".join(map(encode, [meta(), missing, invalid, sample(3)]))))
+        snapshot = relay.snapshot()
+        self.assertEqual(snapshot["malformed"], 2)
+        self.assertEqual(snapshot["sequence_gaps"], 2)
+        self.assertEqual(snapshot["rows"], [sample(3)])
+
+    def test_stalled_http_writer_does_not_gate_ingestion(self):
+        writer_waiting = threading.Event()
+        release_writer = threading.Event()
+        relay = BoardRelay("pi4")
+
+        class StalledWriter:
+            def __init__(self, target):
+                self.target = target
+
+            def write(self, payload):
+                writer_waiting.set()
+                if not release_writer.wait(3):
+                    raise TimeoutError("test did not release the writer")
+                return self.target.write(payload)
+
+            def __getattr__(self, name):
+                return getattr(self.target, name)
+
+        class HandlerWithStalledWriter(Handler):
+            def respond(self, status, content_type):
+                super().respond(status, content_type)
+                if self.headers.get("X-Test-Writer") == "stall":
+                    self.wfile = StalledWriter(self.wfile)
+
+        with ThreadingHTTPServer(("127.0.0.1", 0), HandlerWithStalledWriter) as server:
+            server.board_relay = relay
+            server.board_observers = threading.BoundedSemaphore(2)
+            serving = threading.Thread(target=server.serve_forever, daemon=True)
+            serving.start()
+            stalled = http.client.HTTPConnection("127.0.0.1", server.server_port, timeout=2)
+            active = http.client.HTTPConnection("127.0.0.1", server.server_port, timeout=2)
+            try:
+                stalled.request("GET", "/api/board", headers={"X-Test-Writer": "stall"})
+                self.assertTrue(writer_waiting.wait(2))
+                data = encode(meta()) + encode(sample(1))
+                ingest = threading.Thread(target=relay.consume, args=(io.BytesIO(data),), daemon=True)
+                ingest.start()
+                ingest.join(timeout=1)
+                self.assertFalse(ingest.is_alive(), "HTTP writer blocked the relay")
+                active.request("GET", "/api/board")
+                self.assertEqual(json.load(active.getresponse())["rows"], [sample(1)])
+                self.assertFalse(release_writer.is_set())
+            finally:
+                release_writer.set()
+                stalled.close()
+                active.close()
+                server.shutdown()
+                serving.join(timeout=2)
+
     def test_read_only_http_and_abandoned_observer(self):
         with subprocess.Popen([sys.executable, str(TOOLS / "serve.py"), "--port", "0",
                                "--board-stdin", "pi4"], stdin=subprocess.PIPE, stdout=subprocess.PIPE,
@@ -127,6 +188,14 @@ class Pipeline(unittest.TestCase):
             self.assertEqual(result.returncode, status, result.stderr)
             self.assertEqual([json.loads(line)["state"] for line in result.stdout.splitlines()],
                              ["off", "qualification", "off"])
+
+    def test_failed_sample_followed_by_summary_is_valid(self):
+        command = [sys.executable, str(TOOLS / "led_events.py")]
+        rows = [meta(), sample(1), sample(2, "failed"), {"type": "summary", "samples": 2, "phase": "failed"}]
+        result = subprocess.run(command, input=b"".join(map(encode, rows)), capture_output=True, timeout=3)
+        self.assertEqual(result.returncode, 0, result.stderr)
+        self.assertEqual([json.loads(line)["state"] for line in result.stdout.splitlines()],
+                         ["off", "qualification", "off"])
 
     def test_led_hold_and_reset(self):
         leds = LedEvents(hold_samples=3)
