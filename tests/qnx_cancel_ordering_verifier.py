@@ -309,6 +309,43 @@ class CancelOrderingTraceTests(unittest.TestCase):
         return subprocess.run([sys.executable, str(verifier), str(self.root), *args],
                               text=True, capture_output=True, check=False)
 
+    def exact_replay(self, *, post_age=20_000_000, post_coid=71, parent=43,
+                     post_start=1_000_400_000):
+        self.fixture("replay")
+        stem = self.root / "replay"
+        stem.with_suffix(".exact.exit").write_text("0\n")
+        stem.with_suffix(".exact").write_text(
+            f"candidate parent={parent} pid=47 start_ns=800000000\n"
+            "pre_reply pid=43 tid=2 thread_start_ns=900000000 peer=47 chid=3 coid=71 "
+            "start_ns=1000000000 end_ns=1000100000 blocked_ns=20000000\n"
+            "write before_ns=1000200000 after_ns=1000300000\n"
+            f"post_reply pid=43 tid=2 thread_start_ns=900000000 peer=47 chid=3 coid={post_coid} "
+            f"start_ns={post_start} end_ns={post_start + 100_000} blocked_ns={post_age}\n")
+
+    def test_exact_stock_replay_passes_for_continuous_block(self):
+        self.exact_replay()
+        result = self.run_verifier("--replay-exact")
+        self.assertEqual(result.returncode, 0, result.stderr)
+        self.assertIn("PASS replay ordering", result.stdout)
+        self.assertIn("PASS replay cleanup", result.stdout)
+
+    def test_exact_stock_replay_rejects_ambiguous_block(self):
+        for data in (dict(post_age=2_500_000), dict(post_age=8_000_000), dict(post_coid=58)):
+            with self.subTest(data=data):
+                self.exact_replay(**data)
+                result = self.run_verifier("--replay-exact")
+                self.assertEqual(result.returncode, 77, result.stderr)
+                self.assertIn("INCONCLUSIVE replay ordering", result.stdout)
+                self.assertIn("PASS replay cleanup", result.stdout)
+
+    def test_exact_stock_replay_rejects_impossible_chronology_or_ownership(self):
+        for data in (dict(parent=55), dict(post_start=1_000_200_000)):
+            with self.subTest(data=data):
+                self.exact_replay(**data)
+                result = self.run_verifier("--replay-exact")
+                self.assertEqual(result.returncode, 1, result.stdout)
+                self.assertIn("FAIL replay ordering", result.stderr)
+
     def test_stock_replay_ordering_is_inconclusive_with_two_matching_snapshots(self):
         self.fixture("live")
         self.fixture("replay")

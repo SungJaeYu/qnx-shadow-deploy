@@ -167,6 +167,56 @@ def verify_observation(stem, case, broker, first, outstanding):
     return peer, bracket
 
 
+def verify_exact_replay(stem, broker):
+    code = int(stem.with_suffix(".exact.exit").read_text())
+    path = stem.with_suffix(".exact")
+    check(code in {0, 77}, f"native stock replay observer exited {code}")
+    if code == 77:
+        check(not path.exists(), "missed pre-write observation contradicts exact replay evidence")
+        return 0, False
+    lines = path.read_text().splitlines()
+    check(len(lines) == 4, "incomplete exact replay evidence")
+    owner = re.fullmatch(r"candidate parent=(\d+) pid=(\d+) start_ns=(\d+)", lines[0])
+    check(owner, "malformed candidate ownership evidence")
+    parent, peer, start = map(int, owner.groups())
+    check(parent == broker and peer > 1 and peer != broker and start > 0,
+          "stock replay candidate did not belong to the broker")
+    workers = Path(f"{stem}-worker.processes").read_text()
+    check(re.search(rf"^\s*{peer}[ \t]+(?:\S*/)?shadow-candidate[ \t]+delay[ \t]+0[ \t]*$",
+                    workers, re.M), "stock replay peer was not the staged delay worker")
+
+    def snapshot(line, label):
+        matched = re.fullmatch(label + r" pid=(\d+) tid=(\d+) thread_start_ns=(\d+) peer=(\d+) "
+                               r"chid=(\d+) coid=(\d+) start_ns=(\d+) end_ns=(\d+) blocked_ns=(\d+)", line)
+        check(matched, f"malformed {label} snapshot")
+        pid, tid, thread_start, receiver, chid, coid, low, high, age = map(int, matched.groups())
+        check(pid == broker and tid > 1 and thread_start > 0 and receiver == peer
+              and 0 < low <= high, f"invalid {label} identity or time bracket")
+        return (tid, thread_start, chid, coid), low, high, age
+
+    pre, pre_start, pre_end, pre_age = snapshot(lines[1], "pre_reply")
+    write = re.fullmatch(r"write before_ns=(\d+) after_ns=(\d+)", lines[2])
+    check(write, "malformed stock replay write timestamps")
+    before, after = map(int, write.groups())
+    check(pre_end <= before <= after, "invalid stock replay pre-write chronology")
+    if lines[3] == "post_unobserved":
+        return peer, False
+    post, post_start, post_end, post_age = snapshot(lines[3], "post_reply")
+    check(after <= post_start, "invalid stock replay post-write chronology")
+    rounding_ns = 2_000_000
+    if pre != post:
+        return peer, False
+    # The post snapshot may have been sampled as late as its end and the pre
+    # snapshot as early as its start. Its entire blocked interval must cover both.
+    age_covers_pre = post_age - rounding_ns > post_end - pre_start
+    # A reset between snapshots can only be ruled out if both elapsed ages
+    # admit an overlapping interval for the native block's start.
+    earliest = max(pre_start - pre_age, post_start - post_age) - rounding_ns
+    latest = min(pre_end - pre_age, post_end - post_age) + rounding_ns
+    plausible_ages = 5_000_000 <= pre_age <= 339_500_000 and post_age <= 339_500_000
+    return peer, age_covers_pre and plausible_ages and earliest <= latest
+
+
 def verify_gate(stem, broker, stage_after, case="replay-gated", outstanding=None, first=0):
     path = stem.with_suffix(".witness")
     lines = path.read_text().splitlines() if path.exists() else []
@@ -290,14 +340,14 @@ def verify_incomplete_capture(stem):
 
 
 def main():
-    if not (len(sys.argv) == 2 or len(sys.argv) == 3 and sys.argv[2] in {"--gated", "--boundary"}):
-        print("usage: verify_qnx_cancel_ordering.py FRESH_TRACE_DIR [--gated|--boundary]", file=sys.stderr)
+    if not (len(sys.argv) == 2 or len(sys.argv) == 3 and sys.argv[2] in {"--gated", "--boundary", "--replay-exact"}):
+        print("usage: verify_qnx_cancel_ordering.py FRESH_TRACE_DIR [--gated|--boundary|--replay-exact]", file=sys.stderr)
         return 2
     verdict = 0
     malformed = (OSError, ValueError, KeyError, IndexError, TypeError)
     mode = sys.argv[2] if len(sys.argv) == 3 else "stock"
     cases = {"stock": ("live", "replay"), "--gated": ("replay-gated",),
-             "--boundary": ("live-near", "handoff-gated")}[mode]
+             "--boundary": ("live-near", "handoff-gated"), "--replay-exact": ("replay",)}[mode]
     for case in cases:
         stem = Path(sys.argv[1]) / case
         incomplete = stem.with_suffix(".capture-inconclusive").exists()
@@ -343,6 +393,9 @@ def main():
                     "handoff-gated": "catch-up exchange across write; transfer before same-boundary acceptance",
                 }[case]
                 print(f"{'PASS' if bracket else 'INCONCLUSIVE'} {label} ordering: {description}")
+            elif mode == "--replay-exact":
+                first, bracket = verify_exact_replay(stem, broker)
+                print(f"{'PASS' if bracket else 'INCONCLUSIVE'} replay ordering: continuous native REPLY block across write")
             else:
                 peer, bracket = verify_observation(stem, case, broker, first, outstanding)
                 first = first or peer
@@ -364,7 +417,7 @@ def main():
             print(f"PASS {case} cleanup: descriptors restored and known children retired")
             if not first:
                 print(f"INCONCLUSIVE {case} cleanup: cancelled worker PID was unobserved")
-        if (case == "replay" or not bracket or not first) and verdict == 0:
+        if (not bracket or not first or mode == "stock" and case == "replay") and verdict == 0:
             verdict = 77
     return verdict
 

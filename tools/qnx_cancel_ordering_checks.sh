@@ -8,14 +8,16 @@ case "$out" in
     /*) ;;
     *) echo 'SHADOW_QNX_TRACE_DIR must be absolute.' >&2; exit 2 ;;
 esac
-case "${1:-stock}" in
+mode=${1:-stock}
+case "$mode" in
     stock) cases="live replay" ;;
-    gated | boundary)
+    gated | boundary | replay-exact)
         cases="replay-gated"
-        [ "$1" != boundary ] || cases="live-near handoff-gated"
+        [ "$mode" != boundary ] || cases="live-near handoff-gated"
+        [ "$mode" != replay-exact ] || cases="replay"
         [ -x ./qnx-cancel-replay-worker ] || { echo 'Missing qnx-cancel-replay-worker.' >&2; exit 2; }
         ;;
-    *) echo 'Expected stock, gated or boundary.' >&2; exit 2 ;;
+    *) echo 'Expected stock, gated, boundary or replay-exact.' >&2; exit 2 ;;
 esac
 mkdir -m 700 "$out"
 broker=
@@ -134,6 +136,32 @@ for name in $cases; do
             echo "FAIL $name FIFO writer exited $code; see $stem.write.stderr" >&2
             exit 1
         fi
+    elif [ "$mode" = replay-exact ]; then
+        count=0
+        while [ "$count" -lt 100 ]; do
+            pidin ar > "$stem-worker.processes"
+            candidate=$(awk '$2 ~ /(^|\/)shadow-candidate$/ && $3=="delay" && $4=="0" {p=$1; ++n} END {if (n==1) print p}' "$stem-worker.processes")
+            [ -z "$candidate" ] || break
+            count=$((count + 1))
+            sleep 0.01
+        done
+        code=77
+        if [ -n "$candidate" ]; then
+            if ./qnx-cancel-replay-worker --stock-replay-cancel "$stem" "$broker" "$candidate" \
+                >&3 3>&- 2> "$stem.exact.stderr"; then code=0; else code=$?; fi
+        fi
+        printf '%s\n' "$code" > "$stem.exact.exit"
+        case "$code" in
+            0) ;;
+            77)
+                printf 'cancel\n' >&3
+                inconclusive=1
+                ;;
+            *)
+                echo "FAIL $name procfs observer exited $code; see $stem.exact.stderr" >&2
+                exit 1
+                ;;
+        esac
     elif [ "$name" = replay-gated ]; then
         count=0
         while :; do

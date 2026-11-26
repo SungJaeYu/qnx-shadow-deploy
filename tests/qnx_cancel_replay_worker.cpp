@@ -9,12 +9,15 @@
 #include <cstdio>
 #include <cstdint>
 #include <cstdlib>
+#include <devctl.h>
 #include <fstream>
 #include <fcntl.h>
 #include <iostream>
 #include <sstream>
 #include <string>
 #include <sys/neutrino.h>
+#include <sys/procfs.h>
+#include <sys/states.h>
 #include <sys/stat.h>
 #include <thread>
 #include <unistd.h>
@@ -26,9 +29,7 @@ int report_error(const char* operation) {
     return 1;
 }
 
-int write_cancel(const std::string& stem, bool near_deadline) {
-    constexpr char command[] = "cancel\n";
-    static_assert(sizeof(command) - 1 <= PIPE_BUF, "cancel must fit in one atomic FIFO write");
+int prepare_control_fifo() {
     std::signal(SIGPIPE, SIG_IGN);
     // The driver connects stdout to its already-open private control FIFO.
     constexpr int fd = STDOUT_FILENO;
@@ -45,6 +46,27 @@ int write_cancel(const std::string& stem, bool near_deadline) {
         return report_error("cancel writer set stdout nonblocking");
     }
 
+    return 0;
+}
+
+int send_cancel(std::uint64_t& before, std::uint64_t& after) {
+    constexpr char command[] = "cancel\n";
+    static_assert(sizeof(command) - 1 <= PIPE_BUF, "cancel must fit in one atomic FIFO write");
+    before = shadow::monotonic_ns();
+    const auto written = write(STDOUT_FILENO, command, sizeof(command) - 1);
+    const int write_error = errno;
+    after = shadow::monotonic_ns();
+    errno = write_error;
+    if (written == -1) return report_error("cancel writer write FIFO");
+    if (written != static_cast<ssize_t>(sizeof(command) - 1)) {
+        std::cerr << "cancel writer: incomplete FIFO write\n";
+        return 1;
+    }
+    return 0;
+}
+
+int write_cancel(const std::string& stem, bool near_deadline) {
+    if (prepare_control_fifo()) return 1;
     std::string receipt;
     const auto witness_deadline = shadow::monotonic_ns() + 5000000000ULL;
     while (shadow::monotonic_ns() < witness_deadline) {
@@ -80,16 +102,8 @@ int write_cancel(const std::string& stem, bool near_deadline) {
         }
     }
 
-    const auto before = shadow::monotonic_ns();
-    const auto written = write(fd, command, sizeof(command) - 1);
-    const int write_error = errno;
-    const auto after = shadow::monotonic_ns();
-    errno = write_error;
-    if (written == -1) return report_error("cancel writer write FIFO");
-    if (written != static_cast<ssize_t>(sizeof(command) - 1)) {
-        std::cerr << "cancel writer: incomplete FIFO write\n";
-        return 1;
-    }
+    std::uint64_t before{}, after{};
+    if (send_cancel(before, after)) return 1;
     std::ofstream timestamps(stem + ".write");
     timestamps << "before_ns=" << before << " after_ns=" << after << std::endl;
     if (!timestamps) return report_error("cancel writer save write timestamps");
@@ -99,9 +113,100 @@ int write_cancel(const std::string& stem, bool near_deadline) {
     return 0;
 }
 
+struct ReplySnapshot {
+    using Tid = decltype(procfs_status{}.tid);
+    procfs_status status{};
+    std::uint64_t start_ns{};
+    std::uint64_t end_ns{};
+
+    int read(int fd, Tid tid) {
+        status = {};
+        status.tid = tid;
+        start_ns = shadow::monotonic_ns();
+        const auto result = devctl(fd, DCMD_PROC_TIDSTATUS, &status, sizeof(status), nullptr);
+        end_ns = shadow::monotonic_ns();
+        return result;
+    }
+
+    bool matches(pid_t broker, pid_t peer, Tid tid) const {
+        return status.pid == broker && status.tid == tid && tid > 1 && status.state == STATE_REPLY &&
+               status.blocked.connect.pid == peer && status.blocked.connect.chid >= 0 &&
+               status.blocked.connect.coid >= 0;
+    }
+
+    void record(std::ostream& output, const char* label) const {
+        const auto& endpoint = status.blocked.connect;
+        output << label << " pid=" << status.pid << " tid=" << status.tid
+               << " thread_start_ns=" << status.start_time << " peer=" << endpoint.pid
+               << " chid=" << endpoint.chid << " coid=" << endpoint.coid
+               << " start_ns=" << start_ns << " end_ns=" << end_ns
+               << " blocked_ns=" << status.nsec_since_block << '\n';
+    }
+};
+
+int stock_replay_cancel(const std::string& stem, pid_t broker, pid_t peer) {
+    if (broker <= 1 || peer <= 1 || broker == peer || prepare_control_fifo()) return 1;
+    const std::string peer_path = "/proc/" + std::to_string(peer) + "/ctl";
+    const int peer_fd = open(peer_path.c_str(), O_RDONLY);
+    if (peer_fd == -1) return report_error("replay observer open candidate procfs");
+    procfs_info info{};
+    const int owner = devctl(peer_fd, DCMD_PROC_INFO, &info, sizeof(info), nullptr);
+    close(peer_fd);
+    if (owner != EOK || info.pid != peer || info.parent != broker) {
+        std::cerr << "replay observer: candidate ownership mismatch or procfs error=" << owner << '\n';
+        return 1;
+    }
+    const std::string broker_path = "/proc/" + std::to_string(broker) + "/ctl";
+    const int fd = open(broker_path.c_str(), O_RDONLY);
+    if (fd == -1) return report_error("replay observer open broker procfs");
+
+    // This demo has only a baseline dispatch thread, stager and candidate dispatch thread
+    // in addition to its main thread. Allow for non-contiguous thread IDs.
+    const auto deadline = shadow::monotonic_ns() + 500000000ULL;
+    ReplySnapshot pre;
+    while (shadow::monotonic_ns() < deadline) {
+        for (ReplySnapshot::Tid tid = 2; tid <= 16; ++tid) {
+            const int result = pre.read(fd, tid);
+            if (result == ESRCH) continue;
+            if (result != EOK) {
+                std::cerr << "replay observer: before-status error=" << result << '\n';
+                return 1;
+            }
+            if (!pre.matches(broker, peer, tid) || pre.status.nsec_since_block < 5000000ULL) continue;
+
+            std::uint64_t before{}, after{};
+            if (send_cancel(before, after)) return 1;
+            ReplySnapshot post;
+            const int post_result = post.read(fd, tid);
+            if (post_result != EOK && post_result != ESRCH) {
+                std::cerr << "replay observer: after-status error=" << post_result << '\n';
+                return 1;
+            }
+            std::ofstream evidence(stem + ".exact");
+            evidence << "candidate parent=" << info.parent << " pid=" << info.pid
+                     << " start_ns=" << info.start_time << '\n';
+            pre.record(evidence, "pre_reply");
+            evidence << "write before_ns=" << before << " after_ns=" << after << '\n';
+            if (post_result == EOK && post.matches(broker, peer, tid)) {
+                post.record(evidence, "post_reply");
+            } else {
+                evidence << "post_unobserved\n";
+            }
+            evidence.flush();
+            return evidence ? 0 : report_error("replay observer save evidence");
+        }
+        std::this_thread::sleep_for(std::chrono::milliseconds(1));
+    }
+    std::cerr << "replay observer: no matching pre-write REPLY snapshot\n";
+    return 77;
+}
+
 }  // namespace
 
 int main(int argc, char** argv) {
+    if (argc == 5 && std::string(argv[1]) == "--stock-replay-cancel") {
+        return stock_replay_cancel(argv[2], std::stoi(argv[3]), std::stoi(argv[4]));
+    }
     if (argc == 4 && std::string(argv[1]) == "--write-cancel") {
         const std::string scenario(argv[3]);
         if (scenario != "live-near" && scenario != "handoff-gated") return 2;
