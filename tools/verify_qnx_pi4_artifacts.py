@@ -52,7 +52,7 @@ def check_manifest(path, data):
         "format": "1",
         "artifact": "position-filter-v2",
         "executable": "./shadow-candidate",
-        "protocol": "1",
+        "protocol": "2",
         "architecture": "aarch64",
         "os": "qnx",
         "contract": "position-m-velocity-mps-v1",

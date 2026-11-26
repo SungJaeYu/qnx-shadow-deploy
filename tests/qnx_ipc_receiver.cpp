@@ -54,7 +54,8 @@ int main(int argc, char** argv) {
             estimate.sequence = sample.sequence;
             estimate.acquired_ns = sample.acquired_ns;
             estimate.position_m = sample.position_m;
-            const int result = MsgReply(rcvid, sizeof(estimate), &estimate, sizeof(estimate));
+            const shadow::EstimateReply reply{estimate, shadow::estimate_reply_footer};
+            const int result = MsgReply(rcvid, shadow::estimate_reply_status, &reply, sizeof(reply));
             const int reply_error = result < 0 ? errno : 0;
             report(EventKind::reply, result, reply_error, sample);
         }

@@ -26,7 +26,7 @@ int main(int argc, char** argv) {
         const std::string executable = resolved;
         free(resolved);
         const std::string valid = "format=1\nartifact=test-v2\nexecutable=" + executable +
-            "\nprotocol=1\narchitecture=" + native_architecture() + "\nos=" + native_os() +
+            "\nprotocol=2\narchitecture=" + native_architecture() + "\nos=" + native_os() +
             "\ncontract=position-m-velocity-mps-v1\nreplay_samples=1\nmode=good\nfault_after=0\n";
         auto save = [&](const std::string& text) { std::ofstream file(path); file << text; };
         auto reject = [&](std::string text, const std::string& error) {
@@ -39,9 +39,9 @@ int main(int argc, char** argv) {
             auto text = valid; text.replace(text.find(from), from.size(), to); return text;
         };
         save(valid); CHECK(read_manifest(path).replay_samples == 1);
-        reject(valid + "protocol=1\n", "manifest_invalid_or_duplicate_field");
+        reject(valid + "protocol=2\n", "manifest_invalid_or_duplicate_field");
         reject(valid + "unknown=1\n", "manifest_field_set_mismatch");
-        reject(replace("protocol=1", "protocol=2"), "manifest_protocol_mismatch");
+        reject(replace("protocol=2", "protocol=1"), "manifest_protocol_mismatch");
         reject(replace("architecture=" + std::string(native_architecture()), "architecture=other"), "manifest_target_mismatch");
         reject(replace("contract=position-m-velocity-mps-v1", "contract=millimeters"), "manifest_contract_mismatch");
         reject(replace("replay_samples=1", "replay_samples=65"), "manifest_invalid_number");

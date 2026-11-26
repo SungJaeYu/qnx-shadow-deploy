@@ -49,7 +49,7 @@ int main(int argc, char** argv) {
         if (receive_id == 0) continue;
         if (info.msglen != static_cast<decltype(info.msglen)>(sizeof(sample)) ||
             info.srcmsglen != static_cast<decltype(info.srcmsglen)>(sizeof(sample)) ||
-            info.dstmsglen != static_cast<decltype(info.dstmsglen)>(sizeof(Estimate)) ||
+            info.dstmsglen != static_cast<decltype(info.dstmsglen)>(sizeof(NativeEstimateReply)) ||
             !valid_header(sample.header, Kind::sample)) {
             MsgError(receive_id, EINVAL); continue;
         }
@@ -79,11 +79,12 @@ int main(int argc, char** argv) {
             estimate.position_m += sample.sequence == fault_after ? 2.75 : 5.5;
         if (inject && mode == "semantic-bias") estimate.position_m += 3.0;
         initialized = true; previous_ns = sample.acquired_ns;
+        const EstimateReply reply{estimate, estimate_reply_footer};
 #ifdef __QNXNTO__
         // A timed-out caller can make MsgReply fail; the supervisor retires that child.
-        if (MsgReply(receive_id, static_cast<int>(sizeof(estimate)), &estimate, sizeof(estimate)) == -1) return 1;
+        if (MsgReply(receive_id, estimate_reply_status, &reply, sizeof(reply)) == -1) return 1;
 #else
-        if (!write_exact(STDOUT_FILENO, &estimate, sizeof(estimate))) return 0;
+        if (!write_exact(STDOUT_FILENO, &reply, sizeof(reply))) return 0;
 #endif
     }
 }

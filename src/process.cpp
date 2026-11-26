@@ -85,6 +85,7 @@ struct WorkerProcess::Impl {
             o.status = TransportStatus::timeout;
         } else {
 #ifdef __QNXNTO__
+            NativeEstimateReply receive{};
             // No intervening kernel call may clear the timeout before MsgSend.
             // ChannelCreate(0) in the worker intentionally omits _NTO_CHF_UNBLOCK.
             if (TimerTimeout(CLOCK_MONOTONIC,
@@ -92,22 +93,31 @@ struct WorkerProcess::Impl {
                              nullptr, &deadline, nullptr) == -1) {
                 o.status = TransportStatus::disconnected;
             } else {
-                const int result = MsgSend(connection, &sample, sizeof(sample), &o.estimate, sizeof(o.estimate));
-                if (result == static_cast<int>(sizeof(Estimate))) o.status = TransportStatus::ok;
-                else if (result == -1) o.status = errno == ETIMEDOUT ? TransportStatus::timeout : TransportStatus::disconnected;
-                else o.status = TransportStatus::protocol_error;
+                const long result = MsgSend(connection, &sample, sizeof(sample), &receive, sizeof(receive));
+                if (result == -1) {
+                    o.status = errno == ETIMEDOUT ? TransportStatus::timeout : TransportStatus::disconnected;
+                } else if (valid_native_estimate_reply(receive, result)) {
+                    o.estimate = receive.reply.estimate;
+                    o.status = TransportStatus::ok;
+                } else {
+                    o.status = TransportStatus::protocol_error;
+                }
             }
 #else
             o.status = status(write_until(input, &sample, sizeof(sample), deadline));
-            if (o.status == TransportStatus::ok)
-                o.status = status(read_until(output, &o.estimate, sizeof(o.estimate), deadline));
+            if (o.status == TransportStatus::ok) {
+                EstimateReply reply{};
+                o.status = status(read_until(output, &reply, sizeof(reply), deadline));
+                if (o.status == TransportStatus::ok) {
+                    if (valid_estimate_reply(reply)) o.estimate = reply.estimate;
+                    else o.status = TransportStatus::protocol_error;
+                }
+            }
 #endif
         }
         o.completed_ns = monotonic_ns();
         if (o.completed_ns > deadline) o.status = TransportStatus::timeout;
-        if (o.status == TransportStatus::ok && !valid_header(o.estimate.header, Kind::estimate))
-            o.status = TransportStatus::protocol_error;
-        // A timed-out stream may contain a partial or late response. Never reuse it.
+        // A failed exchange may leave a partial or late response. Never reuse the connection.
         if (o.status != TransportStatus::ok) usable = false;
         return o;
     }
@@ -148,7 +158,7 @@ WorkerProcess::WorkerProcess(const std::string& executable, const std::string& m
     nonblocking(impl_->input); nonblocking(impl_->output);
     Hello hello{};
     if (read_until(impl_->output, &hello, sizeof(hello), monotonic_ns() + 3000000000ULL) != IoResult::ok ||
-        !valid_header(hello.header, Kind::hello)) throw std::runtime_error("Worker handshake failed");
+        !valid_header(hello.header, Kind::hello) || hello.reserved != 0) throw std::runtime_error("Worker handshake failed");
 #ifdef __QNXNTO__
     if (hello.channel < 0) throw std::runtime_error("Worker has no QNX channel");
     impl_->connection = ConnectAttach(ND_LOCAL_NODE, impl_->child, hello.channel, _NTO_SIDE_CHANNEL, 0);

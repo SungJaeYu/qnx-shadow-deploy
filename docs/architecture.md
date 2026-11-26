@@ -26,7 +26,11 @@ All local IPC peers must use the same ABI, architecture, and protocol version. T
 | Header | 8 bytes | Signature, protocol version, message kind |
 | Hello | 16 bytes | Header, QNX channel ID or host sentinel, reserved word |
 | Sample | 32 bytes | Header, sequence, monotonic acquisition timestamp, position in meters |
-| Estimate | 40 bytes | Header, echoed sequence/timestamp, position in meters, velocity in meters/second |
+| Estimate reply | 48 bytes | Header, echoed sequence/timestamp, position in meters, velocity in meters/second, 8-byte completion footer |
+
+Protocol v2 requires a canonical estimate reply on both transports. The QNX broker allocates fresh reply storage with the footer and an additional 8-byte guard initialized to zero for every exchange. Each canonical footer byte is nonzero, so every contiguous short copy leaves an invalid footer. The host broker reads exactly the envelope size and validates the same footer and header.
+
+`MsgSend` returns the server's `long` status. Status 48 is a protocol convention and the QNX broker also checks the header, footer and guard. QNX copies at most the supplied receive capacity and exposes no reply byte count to the caller. Oversized copies that change the guard fail. Oversized replies that leave the observed guard bytes equal to the initial zeros are indistinguishable from a canonical reply with the same status. The canonical worker supplies exactly 48 bytes. The native exchange retains its single round trip and deadline. [QNX MsgReply](https://www.qnx.com/developers/docs/8.0/com.qnx.doc.neutrino.lib_ref/topic/m/msgreply.html)
 
 The broker supplies sequence and acquisition time. Workers cannot establish freshness by stamping old data with a new completion time. The parent records receipt completion using `CLOCK_MONOTONIC` on the same machine. Transport completion includes dispatch-thread scheduling and IPC, not just algorithm execution.
 
@@ -100,7 +104,7 @@ The manifest is a UTF-8-compatible ASCII `key=value` file, at most 4 KiB, with e
 
 | Key | Required value or meaning |
 | --- | --- |
-| `format` / `protocol` | `1` / `1` |
+| `format` / `protocol` | `1` / `2` |
 | `artifact` | 1–64 letters, digits, hyphens, underscores or periods |
 | `executable` | Local executable; relative to the manifest directory |
 | `architecture` | `x86_64` or `aarch64`, matching the runtime |

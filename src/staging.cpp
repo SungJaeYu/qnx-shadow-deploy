@@ -67,7 +67,7 @@ CandidateManifest read_manifest(const std::string& path) {
         "os", "contract", "replay_samples", "mode", "fault_after"};
     if (fields.size() != keys.size()) throw std::runtime_error("manifest_field_set_mismatch");
     for (const auto& key : keys) if (!fields.count(key)) throw std::runtime_error("manifest_field_set_mismatch");
-    if (fields.at("format") != "1" || fields.at("protocol") != "1")
+    if (fields.at("format") != "1" || fields.at("protocol") != std::to_string(protocol_version))
         throw std::runtime_error("manifest_protocol_mismatch");
     if (fields.at("architecture") != native_architecture() || fields.at("os") != native_os())
         throw std::runtime_error("manifest_target_mismatch");
