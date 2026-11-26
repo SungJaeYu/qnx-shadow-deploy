@@ -11,6 +11,7 @@ struct Contract {
     double max_step_m = 5;
     unsigned qualification_samples = 20;
     unsigned probation_samples = 40;
+    std::uint64_t period_ns = 20000000;
 };
 enum class Phase { idle, warming, shadowing, probation, committed, rejected, rolled_back, failed };
 enum class Source { none, baseline, candidate };

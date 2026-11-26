@@ -133,6 +133,30 @@ int main() {
             for (unsigned i = 1; i <= 3; ++i) { auto s = sample(i); d = g.step(s, ok(s, 10), ok(s, 60)); }
             CHECK(d.phase == Phase::rejected); CHECK(d.reason == "switch_discontinuity");
         }},
+        {"probation rolls back before candidate drift strands fallback", [] {
+            Supervisor g(quick()); tick(g, 1); tick(g, 2);
+            auto third = sample(3);
+            CHECK(g.step(third, ok(third), ok(third, 14)).phase == Phase::probation);
+            auto fourth = sample(4); auto d = g.step(fourth, ok(fourth), ok(fourth, 18));
+            CHECK(d.event == "candidate_rolled_back");
+            CHECK(d.reason == "rollback_margin_exceeded");
+            CHECK(d.phase == Phase::rolled_back); CHECK(d.source == Source::baseline);
+            CHECK(d.output && d.output->sequence == 4 && d.output->position_m == 10);
+        }},
+        {"promotion reserves room for baseline motion", [] {
+            Supervisor g(quick()); tick(g, 1);
+            auto second = sample(2); g.step(second, ok(second, 9.99), ok(second, 14));
+            auto third = sample(3);
+            auto d = g.step(third, ok(third, 9.98), ok(third, 14.97));
+            CHECK(d.event == "candidate_rejected"); CHECK(d.reason == "rollback_margin_exceeded");
+            CHECK(d.phase == Phase::rejected); CHECK(d.source == Source::baseline);
+        }},
+        {"last probation sample still preserves fallback", [] {
+            Supervisor g(quick()); tick(g, 1); tick(g, 2); tick(g, 3); tick(g, 4);
+            auto fifth = sample(5); auto d = g.step(fifth, ok(fifth), ok(fifth, 5));
+            CHECK(d.phase == Phase::rolled_back); CHECK(d.source == Source::baseline);
+            CHECK(d.reason == "rollback_margin_exceeded");
+        }},
         {"rollback continuity is checked", [] {
             Supervisor g(quick()); tick(g, 1); tick(g, 2);
             auto s3 = sample(3); g.step(s3, ok(s3, 10), ok(s3, 14));

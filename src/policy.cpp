@@ -1,8 +1,19 @@
 #include "shadow/policy.hpp"
+#include <algorithm>
 #include <cmath>
 #include <stdexcept>
 
 namespace shadow {
+namespace {
+constexpr double baseline_motion_bound_mps = 2.0;
+
+bool has_rollback_margin(const Estimate& baseline, const Estimate& candidate,
+                         std::uint64_t interval_ns, const Contract& contract) {
+    const double movement_m = baseline_motion_bound_mps * (interval_ns / 1e9);
+    return std::abs(candidate.position_m - baseline.position_m) + movement_m <= contract.max_step_m;
+}
+} // namespace
+
 const char* name(Phase p) {
     switch (p) {
     case Phase::idle: return "idle";
@@ -26,7 +37,7 @@ const char* name(Source s) {
 }
 Supervisor::Supervisor(Contract c, bool candidate_started) : contract_(c),
     phase_(candidate_started ? Phase::shadowing : Phase::idle) {
-    if (!c.deadline_ns || !c.qualification_samples || !c.probation_samples ||
+    if (!c.deadline_ns || !c.period_ns || !c.qualification_samples || !c.probation_samples ||
         !std::isfinite(c.max_position_m) || c.max_position_m <= 0 ||
         !std::isfinite(c.max_velocity_mps) || c.max_velocity_mps <= 0 ||
         !std::isfinite(c.max_step_m) || c.max_step_m <= 0)
@@ -94,6 +105,8 @@ Decision Supervisor::step(const Sample& s, const Observation& b, const Observati
         s.sequence <= last_sequence_ || s.acquired_ns <= last_acquired_ns_) {
         fail("invalid_or_non_monotonic_input"); return finish();
     }
+    const auto fallback_interval_ns = last_acquired_ns_ ?
+        std::max(contract_.period_ns, s.acquired_ns - last_acquired_ns_) : contract_.period_ns;
     last_sequence_ = s.sequence;
     last_acquired_ns_ = s.acquired_ns;
     d.baseline_check = needs_baseline() ? check_observation(s, b, last_baseline_, contract_, s.acquired_ns) : "not_running";
@@ -117,6 +130,8 @@ Decision Supervisor::step(const Sample& s, const Observation& b, const Observati
             // Qualified on the previous sample. Switch only at this sample boundary.
             if (last_output_ && std::abs(c.estimate.position_m - last_output_->position_m) > contract_.max_step_m) {
                 phase_ = Phase::rejected; d.event = "candidate_rejected"; d.reason = "switch_discontinuity";
+            } else if (!has_rollback_margin(b.estimate, c.estimate, fallback_interval_ns, contract_)) {
+                phase_ = Phase::rejected; d.event = "candidate_rejected"; d.reason = "rollback_margin_exceeded";
             } else {
                 phase_ = Phase::probation; d.event = "candidate_promoted"; d.reason = "qualification_passed";
             }
@@ -131,6 +146,8 @@ Decision Supervisor::step(const Sample& s, const Observation& b, const Observati
         } else if (!baseline_ok) {
             // Do not silently claim fallback protection after losing the standby.
             fail("standby_" + d.baseline_check); return finish();
+        } else if (!has_rollback_margin(b.estimate, c.estimate, fallback_interval_ns, contract_)) {
+            phase_ = Phase::rolled_back; d.event = "candidate_rolled_back"; d.reason = "rollback_margin_exceeded";
         } else if (++probation_ >= contract_.probation_samples) {
             phase_ = Phase::committed; d.event = "candidate_committed"; d.reason = "probation_passed";
         }

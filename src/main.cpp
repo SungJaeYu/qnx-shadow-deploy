@@ -171,6 +171,7 @@ int main(int argc, char** argv) {
             throw std::invalid_argument("Require samples > 0 and 0 < deadline-ms < period-ms <= 1000");
         Contract contract;
         contract.deadline_ns = static_cast<std::uint64_t>(deadline_ms) * 1000000;
+        contract.period_ns = static_cast<std::uint64_t>(period_ms) * 1000000;
         contract.qualification_samples = qualify; contract.probation_samples = probation;
         const bool live = control_stdin || !manifest.empty();
         if (live && scenario_set) throw std::invalid_argument("Live deployment and scenario modes are separate");
@@ -216,7 +217,6 @@ int main(int argc, char** argv) {
         std::cout << ",\"producer_run_id\":\"" << baseline->pid() << "-" << run_stamp_ns << "\"";
         if (!trace.empty()) std::cout << ",\"input_source\":\"sensor-trace-mm\"";
         std::cout << "}" << std::endl;
-        const auto period_ns = static_cast<std::uint64_t>(period_ms) * 1000000;
         const auto start = monotonic_ns();
         auto next_release = start;
         unsigned outputs = 0, misses = 0, emitted = 0;
@@ -315,7 +315,7 @@ int main(int argc, char** argv) {
             if (!supervisor.needs_baseline()) baseline.reset();
             if (decision.phase == Phase::failed) break;
             // Rebase on actual acquisition, not the old nominal release grid.
-            next_release = next_release_ns(sample.acquired_ns, monotonic_ns(), period_ns);
+            next_release = next_release_ns(sample.acquired_ns, monotonic_ns(), contract.period_ns);
         }
         std::cout << "{\"type\":\"summary\",\"phase\":\"" << name(supervisor.phase())
                   << "\",\"samples\":" << emitted << ",\"outputs\":" << outputs
