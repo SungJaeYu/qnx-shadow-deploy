@@ -37,9 +37,13 @@ function showContinuity(latest, summary) {
     ? `${summary.skipped_nominal_slots} / ${summary.initial_unoccupied_slots}` : "—";
   $("continuity-misses").textContent = hasSummary ? summary.decision_deadline_misses : "—";
 }
+function labelOutputs(scope = "") {
+  $("outputs-label").textContent = `Selected outputs${scope}`;
+  $("missing-label").textContent = `Missing outputs${scope}`;
+}
 function reset() {
   records = []; samples = []; count = 0; missing = 0;
-  showContinuity();
+  showContinuity(); labelOutputs();
   $("events").replaceChildren(); $("error").hidden = true; $("empty").hidden = false;
   $("reference-label").textContent = "Reference";
   $("backend").textContent = "Waiting for run metadata";
@@ -67,6 +71,7 @@ function accept(row, replay = false, board = null) {
       $("reference-label").textContent = "Sensor input";
       $("backend").textContent += " · sensor trace";
     }
+    if (board) labelOutputs(" (relay window)");
     $("deadline").textContent = `${row.deadline_ms} ms`; $("qualification").textContent = `${row.qualification_samples} samples`;
     $("probation").textContent = `${row.probation_samples} samples`;
   } else if (row.type === "sample") {
@@ -95,9 +100,12 @@ function accept(row, replay = false, board = null) {
   } else if (row.type === "summary") {
     const latest = samples[samples.length - 1];
     showContinuity(board && latest?.sequence !== row.samples ? null : latest, row);
-    if (Number.isFinite(row.selected_outputs)) {
-      $("outputs").textContent = row.selected_outputs;
-      $("missing").textContent = row.missing_selected_outputs;
+    const totalSelected = row.selected_outputs ?? row.outputs;
+    const totalMissing = row.missing_selected_outputs ?? row.missing_outputs;
+    if (Number.isFinite(totalSelected) && Number.isFinite(totalMissing)) {
+      $("outputs").textContent = totalSelected;
+      $("missing").textContent = totalMissing;
+      if (board) labelOutputs(" (broker total)");
     }
   } else if (row.type === "error") throw new Error(row.message);
   else throw new Error("Unknown record type");

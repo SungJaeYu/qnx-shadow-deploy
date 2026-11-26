@@ -33,6 +33,9 @@ def validate_continuity(meta, summary, ticks):
     period_ms = meta["period_ms"]
     check(type(period_ms) is int and 1 <= period_ms <= 1000, "invalid continuity period")
     period_ns = period_ms * 1_000_000
+    deadline_ms = meta["deadline_ms"]
+    check(type(deadline_ms) is int and 0 < deadline_ms < period_ms, "invalid continuity deadline")
+    deadline_ns = deadline_ms * 1_000_000
 
     def fields(row, expected):
         for key, value in expected.items():
@@ -43,7 +46,7 @@ def validate_continuity(meta, summary, ticks):
                 matches = type(actual) is type(value) and actual == value
             check(key in row and matches, f"invalid continuity field: {key}")
 
-    previous_acquired = None
+    previous_acquired = previous_decision = None
     last_slot = None
     initial = skipped = 0
     intervals, scheduling, nominal, grid, selected = [], [], [], [], []
@@ -61,6 +64,7 @@ def validate_continuity(meta, summary, ticks):
             initial = slot
         else:
             check(scheduled >= previous_acquired + period_ns, "release outside no-burst schedule")
+            check(scheduled >= previous_decision, "release precedes previous decision")
             interval_ms = (acquired - previous_acquired) / 1e6
             intervals.append(interval_ms)
             gap = slot - last_slot - 1
@@ -71,11 +75,15 @@ def validate_continuity(meta, summary, ticks):
             "nominal_slot": slot, "skipped_nominal_slots": gap, "acquisition_interval_ms": interval_ms,
             "release_lateness_ms": scheduling[-1], "nominal_slot_lateness_ms": nominal[-1],
             "nominal_grid_lateness_ms": grid[-1],
+            "time_s": acquired / 1e9,
+            "decision_latency_ms": (decision - acquired) / 1e6,
+            "publication_miss": decision - acquired > deadline_ns,
         })
         if row["output"] is not None:
+            check(not row["publication_miss"], "selection exceeds exact decision deadline")
             selected.append(decision)
         skipped += gap
-        previous_acquired, last_slot = acquired, slot
+        previous_acquired, previous_decision, last_slot = acquired, decision, slot
     selected_intervals = [(current - previous) / 1e6 for previous, current in zip(selected, selected[1:])]
     check(all(value > 0 for value in selected_intervals), "out-of-order selections")
     fields(summary, {
@@ -112,9 +120,10 @@ def validate_rows(path, rows, *, allow_interrupted=False):
     check(summary["publication_misses"] == sum(r["publication_miss"] for r in ticks),
           f"{path.name}: incorrect deadline-miss count")
     check(allow_interrupted or not summary["interrupted"], f"{path.name}: interrupted run")
-    for previous, current in zip(ticks, ticks[1:]):
-        check(current["time_s"] - previous["time_s"] >= meta["period_ms"] / 1000 - 1e-6,
-              f"{path.name}: catch-up burst")
+    if not validate_continuity(meta, summary, ticks):
+        for previous, current in zip(ticks, ticks[1:]):
+            check(current["time_s"] - previous["time_s"] >= meta["period_ms"] / 1000 - 1e-6,
+                  f"{path.name}: catch-up burst")
     for row in ticks:
         if row["baseline_pid"] > 0:
             check(row["baseline_pid"] == meta["baseline_pid"], f"{path.name}: baseline restarted")
@@ -130,7 +139,6 @@ def validate_rows(path, rows, *, allow_interrupted=False):
     if summary["phase"] == "failed":
         check(ticks[-1]["source"] == "none" and ticks[-1]["output"] is None,
               f"{path.name}: failed run did not stop output")
-    validate_continuity(meta, summary, ticks)
     return rows, ticks
 
 

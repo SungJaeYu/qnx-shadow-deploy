@@ -14,8 +14,8 @@ for number in "$trials" "$samples" "$period" "$deadline" "$loops"; do
     [ "$number" -le 100000 ] || exit 2
 done
 [ "$deadline" -lt "$period" ] && [ "$period" -le 1000 ] && [ "$loops" -le 64 ] || exit 2
-# Bound each run by the rounded-up nominal duration plus ten seconds.
-wall_limit=$(((samples * period + 999) / 1000 + 10))
+# Portable QNX fallback. Count one-second waits, which may overshoot under load.
+watchdog_polls=$(((samples * period + 999) / 1000 + 10))
 [ -x "$bin/shadow-demo" ] && [ -x "$bin/shadow-worker" ] && [ -s "$environment" ] || exit 2
 for command in pidin cksum cmp date awk sed tail grep tr sleep; do command -v "$command" >/dev/null || exit 2; done
 
@@ -141,15 +141,15 @@ while [ "$i" -le "$trials" ]; do
             < /dev/null > "$stem.jsonl" 2> "$stem.stderr" &
         broker=$!
         printf '%s\n' "$broker" > "$stem.broker-pid"
-        remaining_seconds=$wall_limit
-        while [ "$remaining_seconds" -gt 0 ] && kill -0 "$broker" 2>/dev/null; do
+        remaining_polls=$watchdog_polls
+        while [ "$remaining_polls" -gt 0 ] && kill -0 "$broker" 2>/dev/null; do
             sleep 1
-            remaining_seconds=$((remaining_seconds - 1))
+            remaining_polls=$((remaining_polls - 1))
         done
         timed_out=no
         if kill -0 "$broker" 2>/dev/null; then
             timed_out=yes
-            printf '%s\n' "$wall_limit" > "$stem.watchdog"
+            printf '%s\n' "$watchdog_polls" > "$stem.watchdog"
         else
             if wait "$broker"; then status=0; else status=$?; fi
             broker=

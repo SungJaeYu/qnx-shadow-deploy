@@ -43,3 +43,11 @@ reset(); accept({type: "meta", schema: 1, backend: "qnx-native-ipc", requested_i
     false, {source: "board"});
 accept(terminal, false, {source: "board"});`);
 assert.equal(shown("continuity-acquisition"), "— / 130.00 ms");
+evaluate(`reset(); const relay = {source: "board"};
+accept({type: "meta", schema: 1, backend: "qnx-native-ipc"}, false, relay);
+accept({type: "sample", sequence: 4, time_s: .4, truth: 10, output: 10, decision_latency_ms: 1}, false, relay);`);
+assert.equal(shown("outputs-label"), "Selected outputs (relay window)");
+assert.equal(shown("missing-label"), "Missing outputs (relay window)");
+evaluate(`accept(terminal, false, relay);`);
+assert.equal(shown("outputs-label"), "Selected outputs (broker total)");
+assert.equal(shown("missing-label"), "Missing outputs (broker total)");

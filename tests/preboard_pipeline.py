@@ -1,6 +1,7 @@
 """Exercise the broker trace, relay bounds and LED consumer."""
 import http.client
 import io
+from copy import deepcopy
 import json
 import os
 from pathlib import Path
@@ -16,7 +17,7 @@ sys.path.insert(0, str(Path(__file__).resolve().parents[1] / "tools"))
 from board_relay import BoardRelay, MAX_FRAME_BYTES, RING_SIZE
 from led_events import LedEvents
 from serve import Handler, ThreadingHTTPServer
-from summarize_qnx_trials import trial_continuity
+from summarize_qnx_trials import trial, trial_continuity
 from verify_qnx_logs import TraceValidationError, validate_continuity
 
 TOOLS = Path(__file__).resolve().parents[1] / "tools"
@@ -37,16 +38,18 @@ def sample(sequence, phase="shadowing", event=""):
 
 class Pipeline(unittest.TestCase):
     def test_continuity_validator(self):
-        metadata = {"period_ms": 10, "requested_inputs": 8}
+        metadata = {"period_ms": 10, "deadline_ms": 5, "requested_inputs": 8}
         ticks = [
             {"nominal_slot": 0, "acquired_offset_ns": 1_000_000,
              "decision_offset_ns": 2_000_000, "scheduled_release_offset_ns": 0,
              "release_lateness_ms": 1, "nominal_slot_lateness_ms": 1, "nominal_grid_lateness_ms": 1,
-             "skipped_nominal_slots": 0, "acquisition_interval_ms": None, "output": 10},
+             "skipped_nominal_slots": 0, "acquisition_interval_ms": None, "output": 10,
+             "time_s": .001, "decision_latency_ms": 1, "publication_miss": False},
             {"nominal_slot": 2, "acquired_offset_ns": 21_000_000,
              "decision_offset_ns": 22_000_000, "scheduled_release_offset_ns": 11_000_000,
              "release_lateness_ms": 10, "nominal_slot_lateness_ms": 1, "nominal_grid_lateness_ms": 11,
-             "skipped_nominal_slots": 1, "acquisition_interval_ms": 20, "output": 10},
+             "skipped_nominal_slots": 1, "acquisition_interval_ms": 20, "output": 10,
+             "time_s": .021, "decision_latency_ms": 1, "publication_miss": False},
         ]
         summary = {
             "samples": 2, "outputs": 2, "missing_outputs": 0, "publication_misses": 0,
@@ -58,6 +61,20 @@ class Pipeline(unittest.TestCase):
             "effective_selected_rate_hz": 50, "external_delivery": "unmeasured",
         }
         self.assertTrue(validate_continuity(metadata, summary, ticks))
+        for key, value in (("time_s", .002), ("decision_latency_ms", 9), ("publication_miss", True)):
+            invalid = deepcopy(ticks)
+            invalid[0][key] = value
+            with self.subTest(field=key), self.assertRaises(TraceValidationError):
+                validate_continuity(metadata, summary, invalid)
+        invalid = deepcopy(ticks)
+        invalid[0].update(decision_offset_ns=12_000_000, decision_latency_ms=11,
+                          publication_miss=True, output=None)
+        adjusted = dict(summary, outputs=1, selected_outputs=1, publication_misses=1,
+                        decision_deadline_misses=1, missing_outputs=1, missing_selected_outputs=1,
+                        max_selected_interval_ms=None, effective_selected_rate_hz=None)
+        with self.assertRaisesRegex(TraceValidationError, "previous decision"):
+            validate_continuity(metadata, adjusted, invalid)
+
         self.assertFalse(validate_continuity({"period_ms": 10}, {}, []))
         self.assertIsNone(trial_continuity({}, {}, 8, 0))
         self.assertFalse(trial_continuity(metadata, summary, 8, 0)["passed"])
@@ -70,6 +87,24 @@ class Pipeline(unittest.TestCase):
             validate_continuity(metadata, dict(summary, skipped_nominal_slots=7), ticks)
         with self.assertRaises(TraceValidationError):
             validate_continuity(metadata, dict(summary, max_selected_interval_ms=None), ticks)
+
+    def test_watchdog_precedes_partial_status(self):
+        with tempfile.TemporaryDirectory() as directory:
+            root = Path(directory)
+            (root / "idle-1.watchdog").write_text("11\n")
+            outcome = trial(root, "idle-1", "idle", 8, 10, 5, 0, False, {})
+            self.assertEqual(outcome["status"], "watchdog_expired")
+            self.assertIsNone(outcome["trace_observed_samples"])
+            (root / "idle-1.jsonl").write_bytes(encode(meta()) + encode(dict(sample(1), output=10))
+                                                + b'{"type":"sample"')
+            outcome = trial(root, "idle-1", "idle", 8, 10, 5, 0, False, {})
+            self.assertEqual(outcome["status"], "watchdog_expired")
+            self.assertEqual(outcome["trace_observed_samples"], 1)
+            self.assertEqual(outcome["trace_observed_outputs"], 1)
+            self.assertFalse(outcome["trial_fully_validated"])
+            (root / "idle-1.watchdog").write_text("12\n")
+            outcome = trial(root, "idle-1", "idle", 8, 10, 5, 0, False, {})
+            self.assertEqual(outcome["status"], "invalid")
 
     def test_trace(self):
         with tempfile.TemporaryDirectory() as directory:

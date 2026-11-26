@@ -240,29 +240,51 @@ def trial(root, name, condition, count, period, deadline, loops, legacy, exits):
         "trial": name, "condition": condition, "busy_loops": loops, "requested_samples": count,
         "exit_code": None, "status": "missing", "stop_reason": None, "process_cleanup_checked": False,
         "observed_samples": None, "observed_outputs": None, "missing_outputs_vs_requested": None,
+        "trace_observed_samples": None, "trace_observed_outputs": None, "trial_fully_validated": False,
     }
+    watchdog_validated = False
     path = root / f"{name}.jsonl"
     try:
         stop_marker = root / f"{name}.operator-stop"
         result["operator_stop_requested"] = not legacy and stop_marker.is_file()
         watchdog = root / f"{name}.watchdog"
-        result["watchdog_expired"] = not legacy and watchdog.is_file()
+        result["watchdog_marker_present"] = not legacy and watchdog.is_file()
+        result["watchdog_expired"] = False
+        if result["watchdog_marker_present"]:
+            expected_polls = (count * period + 999) // 1000 + 10
+            check(watchdog.read_text().strip() == str(expected_polls), "invalid watchdog marker")
+            watchdog_validated = True
+            result["watchdog_expired"] = True
+            result["status"] = "watchdog_expired"
         if not path.is_file():
             return result
-        # Inspect framing before the strict verifier rejects incomplete/interrupted files.
+        # Retain counts of framed records before checking terminal trial evidence.
         rows = []
         with path.open() as file:
+            result.update(trace_observed_samples=0, trace_observed_outputs=0)
             for number, line in enumerate(file, 1):
+                if not line.endswith("\n"):
+                    if not watchdog_validated:
+                        result["status"] = "partial"
+                    result["error"] = f"unterminated trace record at line {number}"
+                    return result
                 try:
                     row = json.loads(line)
                 except json.JSONDecodeError:
-                    result["status"] = "invalid" if line.endswith("\n") else "partial"
+                    if not watchdog_validated:
+                        result["status"] = "invalid"
                     result["error"] = f"malformed JSON at line {number}"
                     return result
                 check(isinstance(row, dict), "trace record must be an object")
                 rows.append(row)
+                if row.get("type") == "sample":
+                    result["trace_observed_samples"] += 1
+                    output = row.get("output")
+                    if type(output) in (int, float) and math.isfinite(output):
+                        result["trace_observed_outputs"] += 1
         if not rows or rows[-1].get("type") != "summary":
-            result["status"] = "partial"
+            if not watchdog_validated:
+                result["status"] = "partial"
             return result
         check(all(row.get("type") not in ("meta", "summary") for row in rows[1:-1]),
               "duplicate metadata or summary")
@@ -313,12 +335,9 @@ def trial(root, name, condition, count, period, deadline, loops, legacy, exits):
                       missing_outputs_vs_requested=count - summary["outputs"],
                       observed_samples_without_output=summary["missing_outputs"],
                       unobserved_requested_samples=count - len(ticks), stop_reason=reason)
+        if watchdog_validated:
+            return result
         if not legacy:
-            if result["watchdog_expired"]:
-                expected_limit = (count * period + 999) // 1000 + 10
-                check(watchdog.read_text().strip() == str(expected_limit), "invalid watchdog marker")
-                result["status"] = "watchdog_expired"
-                return result
             check((root / f"{name}.stderr").is_file(), "missing broker stderr")
             if result["operator_stop_requested"]:
                 check(stop_marker.read_text().strip() == "requested", "invalid operator stop marker")
@@ -333,6 +352,7 @@ def trial(root, name, condition, count, period, deadline, loops, legacy, exits):
             owned_processes(root, name, meta["baseline_pid"], loops)
             result["process_cleanup_checked"] = True
 
+        result["trial_fully_validated"] = result["exit_code"] is not None
         if result["exit_code"] is None:
             result["status"] = "partial"
         elif interrupted:
@@ -348,13 +368,16 @@ def trial(root, name, condition, count, period, deadline, loops, legacy, exits):
         else:
             result["status"] = "failed"
     except TraceValidationError as error:
-        result["status"] = "invalid"
+        if not watchdog_validated:
+            result["status"] = "invalid"
         result["error"] = str(error)
     except FileNotFoundError:
-        result["status"] = "partial"
+        if not watchdog_validated:
+            result["status"] = "partial"
         result["error"] = "missing trial sidecar"
     except (ValueError, KeyError, IndexError, TypeError, OverflowError, OSError) as error:
-        result["status"] = "invalid"
+        if not watchdog_validated:
+            result["status"] = "invalid"
         result["error"] = type(error).__name__
     return result
 
@@ -391,6 +414,10 @@ def main():
             name: {
                 "requested_attempts": count,
                 "requested_samples": count * samples,
+                "trace_observed_samples": sum(row["trace_observed_samples"] or 0 for row in runs),
+                "trace_observed_outputs": sum(row["trace_observed_outputs"] or 0 for row in runs),
+                "attempts_with_readable_trace": sum(row["trace_observed_samples"] is not None for row in runs),
+                "fully_validated_attempts": sum(row["trial_fully_validated"] for row in runs),
                 "observed_samples": sum(row["observed_samples"] or 0 for row in runs),
                 "observed_outputs": sum(row["observed_outputs"] or 0 for row in runs),
                 "missing_outputs_vs_requested": (sum(row["missing_outputs_vs_requested"] for row in runs)

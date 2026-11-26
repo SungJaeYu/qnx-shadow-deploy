@@ -221,14 +221,20 @@ idle trial (no added load) and one CPU trial (a fixed number of target shell
 busy loops). The broker writes straight to the evidence filesystem. Load
 processes run across each CPU attempt and are terminated and reaped before
 the next attempt. Store all attempts, including nonzero exits, as a single
-collection. The collector allows three seconds for its direct children to
-exit after TERM. It stops the matrix if cleanup cannot be verified and
-preserves any remaining PIDs for diagnosis. Worker PIDs from the trace
-are checked against the post-trial snapshot. The collector polls broker
-completion once per second and aborts an attempt at the requested nominal
-duration rounded up to whole seconds plus ten seconds. The watchdog
-records this wall-duration limit independently of the broker's decision
-deadline.
+collection. The collector allows three one-second sleep/poll intervals for
+its direct children to exit after TERM. It stops the matrix if cleanup
+cannot be verified and preserves any remaining PIDs for diagnosis. Worker
+PIDs from the trace are checked against the post-trial snapshot.
+
+The portable QNX shell watchdog uses a polling fallback. It waits up to
+one one-second sleep per poll for a poll budget equal to the requested
+nominal duration rounded up to whole seconds plus ten. If the broker is
+still present, the marker records that poll budget and the collector
+initiates TERM. Sleep overshoot, scheduling delays and filesystem latency
+can extend elapsed time, so the poll budget gives no strict wall-clock
+upper bound. UTC timestamps identify the attempt and can move with clock
+adjustments. The broker's acquisition-relative decision deadline uses its
+own monotonic clock.
 
 Prepare `environment.txt` before the run, with one `key=value` field per
 line and optional `#` comments. Set `target` to `qemu` or `pi4` and
@@ -282,8 +288,15 @@ including timeout handling when a timeout observation is present. The
 report names every planned attempt even if its trace is missing,
 incomplete, invalid, interrupted or stopped unexpectedly. A gap from a
 completed fail-closed trace includes both the terminal sample without
-output and any sample slots after the stop. Unknown counts stay null when
-the evidence lacks a validated trace. Stop-on-failure injections belong to
+output and the remaining requested acquisitions. A valid watchdog marker
+classifies the attempt as watchdog-expired even when the trace is missing
+or lacks a summary. `trace_observed_samples` and `trace_observed_outputs`
+count framed records from the readable prefix, including incomplete trials.
+Those counts do not attest to sequence, output authority or trial cleanup.
+`observed_samples` and `observed_outputs` require a validated terminal
+trace. `trial_fully_validated` additionally requires matching exit evidence
+and, for controlled trials, checked cleanup and complete attempt sidecars.
+Unknown counts stay null. Stop-on-failure injections belong to
 the functional matrix above, where the verifier checks reason and stop
 sequence independently. The controlled workload has no planned stops.
 
