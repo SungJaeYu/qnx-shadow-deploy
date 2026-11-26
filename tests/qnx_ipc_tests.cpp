@@ -303,15 +303,16 @@ bool run_exchange(const std::string& dir, const Case& test, Control& control,
         std::this_thread::sleep_for(1ms);
     }
     Exchange probe(worker, 2, 2 * probe_ns);
-    if (!receiver_killed) {
-        const auto idle = control.event(EventKind::receive_timeout);
-        require(idle.receive_started_ns <= probe.submit_started_ns &&
-                probe.submit_ended_ns < idle.timestamp_ns,
-                "receive probe did not overlap the second submission");
-    }
     const auto after = probe.result();
     require(after.status == TransportStatus::unavailable && after.completed_ns < probe.deadline,
             "failed worker did not return unavailable within a fresh deadline");
+    if (!receiver_killed) {
+        const auto idle = control.event(EventKind::receive_timeout);
+        require(idle.receive_started_ns <= probe.submit_started_ns &&
+                probe.submit_ended_ns < idle.timestamp_ns &&
+                after.completed_ns <= idle.timestamp_ns,
+                "receive probe did not cover the second submission and completion");
+    }
     return conclusive;
 }
 

@@ -60,7 +60,8 @@ For a failed exchange the harness expects a different sequence to return
 `unavailable` by a fresh deadline. Any first receive on a surviving receiver
 is accounted for even when REPLY observation was inconclusive. The
 subsequent receive probe must time out, with its recorded receive interval
-covering the full call to submit the second sequence. The harness checks
+covering the full submission call and asynchronous completion of the
+second sequence. The harness checks
 descriptor counts, the original side-channel ID, child reaping and child
 absence after each worker is destroyed. A separate worker runs a recovery
 exchange with a distinct sequence and a one-second fixture budget.
