@@ -61,6 +61,43 @@ class ProcessIntegration(unittest.TestCase):
             self.assertEqual(rollback["source"], "baseline")
         return rows
 
+    def test_phase_timing_is_opt_in_and_preserves_sample_telemetry(self):
+        command = [DEMO, "--worker", WORKER, "--scenario", "reject-protocol",
+                   "--samples", "3", "--period-ms", "100", "--deadline-ms", "75"]
+        normal = subprocess.run(command, capture_output=True, text=True, timeout=5)
+        timed = subprocess.run(command + ["--phase-timing"], capture_output=True, text=True, timeout=5)
+        self.assertEqual(normal.returncode, 0, normal.stderr)
+        self.assertEqual(timed.returncode, 0, timed.stderr)
+        self.assertEqual(normal.stderr, "")
+        normal_rows = [json.loads(line) for line in normal.stdout.splitlines()]
+        timed_rows = [json.loads(line) for line in timed.stdout.splitlines()]
+        self.assertEqual([row.keys() for row in normal_rows], [row.keys() for row in timed_rows])
+        self.assertEqual([row.get("event") for row in normal_rows],
+                         [row.get("event") for row in timed_rows])
+        phases = [json.loads(line) for line in timed.stderr.splitlines()]
+        self.assertEqual([row["sequence"] for row in phases], [1, 2, 3])
+        self.assertEqual(timed_rows[1]["event"], "candidate_rejected")
+        for record in phases:
+            self.assertEqual(record["type"], "phase_timing")
+            self.assertEqual(record["ipc_deadline_ns"] - record["acquired_ns"], 56_250_000)
+            self.assertLessEqual(record["selected_ns"], record["flush_start_ns"])
+            self.assertLessEqual(record["flush_start_ns"], record["flush_end_ns"])
+            for worker in (record["baseline"], record["candidate"]):
+                if worker is None:
+                    continue
+                sequence = [record["acquired_ns"], worker["submit_ns"], worker["dispatch_ns"],
+                            worker["ipc_start_ns"], worker["ipc_end_ns"], worker["completed_ns"],
+                            worker["future_return_ns"], record["selected_ns"]]
+                self.assertEqual(sequence, sorted(sequence))
+                self.assertLessEqual(worker["submit_ns"], worker["future_wait_ns"])
+                self.assertLessEqual(worker["future_wait_ns"], worker["future_return_ns"])
+                self.assertIsNone(worker["pre_expiry_ns"])
+            self.assertIsNone(record["baseline"]["retirement_start_ns"])
+        retired = phases[0]["candidate"]
+        self.assertLessEqual(phases[0]["flush_end_ns"], retired["retirement_start_ns"])
+        self.assertLessEqual(retired["retirement_start_ns"], retired["retirement_end_ns"])
+        self.assertTrue(all(record["candidate"] is None for record in phases[1:]))
+
     def test_interrupted_run_has_no_missing_tail(self):
         command = [DEMO, "--worker", WORKER, "--scenario", "promote", "--samples", "20",
                    "--period-ms", "200", "--deadline-ms", "150"]

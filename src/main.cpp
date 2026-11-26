@@ -82,6 +82,67 @@ void milliseconds(std::optional<std::uint64_t> ns) {
     if (ns) std::cout << static_cast<double>(*ns) / 1e6;
     else std::cout << "null";
 }
+constexpr unsigned phase_timing_capacity = 4096;
+struct WorkerPhaseTiming {
+    shadow::WorkerExchangeTiming exchange;
+    std::uint64_t future_wait_ns = 0;
+    std::uint64_t future_return_ns = 0;
+    std::uint64_t retirement_start_ns = 0;
+    std::uint64_t retirement_end_ns = 0;
+};
+struct PhaseTiming {
+    std::uint64_t acquired_ns = 0;
+    std::uint64_t ipc_deadline_ns = 0;
+    std::uint64_t selected_ns = 0;
+    std::uint64_t flush_start_ns = 0;
+    std::uint64_t flush_end_ns = 0;
+    WorkerPhaseTiming baseline;
+    WorkerPhaseTiming candidate;
+};
+void timestamp(const char* key, std::uint64_t ns) {
+    std::clog << ",\"" << key << "\":";
+    if (ns) std::clog << ns;
+    else std::clog << "null";
+}
+void worker_phase_timing(const WorkerPhaseTiming& timing) {
+    const auto& exchange = timing.exchange;
+    if (!exchange.submit_ns) { std::clog << "null"; return; }
+    std::clog << "{\"submit_ns\":" << exchange.submit_ns;
+    timestamp("dispatch_ns", exchange.dispatch_ns);
+    timestamp("ipc_start_ns", exchange.ipc_start_ns);
+    timestamp("ipc_end_ns", exchange.ipc_end_ns);
+    timestamp("pre_expiry_ns", exchange.pre_expiry_ns);
+    timestamp("completed_ns", exchange.completed_ns);
+    timestamp("future_wait_ns", timing.future_wait_ns);
+    timestamp("future_return_ns", timing.future_return_ns);
+    timestamp("retirement_start_ns", timing.retirement_start_ns);
+    timestamp("retirement_end_ns", timing.retirement_end_ns);
+    std::clog << "}";
+}
+void emit_phase_timing(const PhaseTiming& timing, unsigned sequence) {
+    std::clog << "{\"type\":\"phase_timing\",\"sequence\":" << sequence;
+    timestamp("acquired_ns", timing.acquired_ns);
+    timestamp("ipc_deadline_ns", timing.ipc_deadline_ns);
+    timestamp("selected_ns", timing.selected_ns);
+    timestamp("flush_start_ns", timing.flush_start_ns);
+    timestamp("flush_end_ns", timing.flush_end_ns);
+    std::clog << ",\"baseline\":";
+    worker_phase_timing(timing.baseline);
+    std::clog << ",\"candidate\":";
+    worker_phase_timing(timing.candidate);
+    std::clog << "}\n";
+}
+shadow::Observation collect(std::future<shadow::Observation>& future, WorkerPhaseTiming* timing) {
+    if (timing) timing->future_wait_ns = shadow::monotonic_ns();
+    const auto observation = future.get();
+    if (timing) timing->future_return_ns = shadow::monotonic_ns();
+    return observation;
+}
+void retire(std::unique_ptr<shadow::WorkerProcess>& worker, WorkerPhaseTiming* timing) {
+    if (timing) timing->retirement_start_ns = shadow::monotonic_ns();
+    worker.reset();
+    if (timing) timing->retirement_end_ns = shadow::monotonic_ns();
+}
 void observation(const shadow::Observation& o, const shadow::Sample& sample) {
     if (o.status == shadow::TransportStatus::unavailable) { std::cout << "null"; return; }
     std::cout << "{\"position\":";
@@ -138,7 +199,7 @@ int main(int argc, char** argv) {
     try {
         std::string worker = "./build/shadow-worker", scenario = "rollback";
         std::string manifest, trace_path;
-        bool control_stdin = false, scenario_set = false;
+        bool control_stdin = false, scenario_set = false, phase_timing = false;
         unsigned stage_at = 20;
         unsigned samples = 180, period_ms = 20, deadline_ms = 10, qualify = 20, probation = 40;
         for (int i = 1; i < argc; ++i) {
@@ -147,6 +208,7 @@ int main(int argc, char** argv) {
                 std::cout << "Usage: shadow-demo [--worker PATH] [--scenario NAME] [--samples N]\n"
                              "  [--period-ms N] [--deadline-ms N] [--qualify N] [--probation N]\n"
                              "  [--candidate-manifest PATH --stage-at N] [--control-stdin]\n"
+                             "  [--phase-timing] (up to 4096 samples on stderr after the run)\n"
                              "  [--sensor-trace PATH] (one integer millimetre value per sample)\n"
                              "Live mode starts baseline only. Stage after N completed inputs or send\n"
                              "  stage PATH / cancel commands on stdin. Promotion follows qualification.\n"
@@ -156,6 +218,7 @@ int main(int argc, char** argv) {
                              "JSON Lines are written to stdout; diagnostics go to stderr.\n";
                 return 0;
             }
+            if (option == "--phase-timing") { phase_timing = true; continue; }
             if (option == "--control-stdin") { control_stdin = true; continue; }
             if (i + 1 >= argc) throw std::invalid_argument("Missing option value");
             const std::string argument = argv[++i];
@@ -207,6 +270,8 @@ int main(int argc, char** argv) {
         const auto trace = trace_path.empty() ? std::vector<double>{} : load_sensor_trace(trace_path, samples);
         std::signal(SIGPIPE, SIG_IGN);
         std::signal(SIGINT, stop); std::signal(SIGTERM, stop);
+        // Keep records alive until both dispatch threads have joined, including on exceptions.
+        std::vector<PhaseTiming> phase_records(phase_timing ? std::min(samples, phase_timing_capacity) : 0);
         auto baseline = std::make_unique<WorkerProcess>(worker, baseline_mode, fault_after);
         std::unique_ptr<WorkerProcess> candidate;
         if (!live) candidate = std::make_unique<WorkerProcess>(worker, candidate_mode, fault_after);
@@ -285,16 +350,26 @@ int main(int argc, char** argv) {
             const auto deadline = sample.acquired_ns + contract.deadline_ns;
             // Reserve a quarter of the decision budget for validation and selection.
             const auto ipc_deadline = sample.acquired_ns + contract.deadline_ns * 3 / 4;
+            auto* const phase = i <= phase_records.size() ? &phase_records[i - 1] : nullptr;
+            auto* const baseline_timing = phase ? &phase->baseline : nullptr;
+            auto* const candidate_timing = phase ? &phase->candidate : nullptr;
+            if (phase) {
+                phase->acquired_ns = sample.acquired_ns;
+                phase->ipc_deadline_ns = ipc_deadline;
+            }
             std::future<Observation> bf, cf;
-            if (baseline) bf = baseline->submit(sample, ipc_deadline);
-            if (candidate) cf = candidate->submit(sample, ipc_deadline);
+            if (baseline) bf = baseline->submit(sample, ipc_deadline,
+                                                baseline_timing ? &baseline_timing->exchange : nullptr);
+            if (candidate) cf = candidate->submit(sample, ipc_deadline,
+                                                  candidate_timing ? &candidate_timing->exchange : nullptr);
             Observation b, c;
-            if (bf.valid()) b = bf.get();
-            if (cf.valid()) c = cf.get();
+            if (bf.valid()) b = collect(bf, baseline_timing);
+            if (cf.valid()) c = collect(cf, candidate_timing);
             auto decision = supervisor.step(sample, b, c);
             // A result received before the deadline may still be published too late.
             // Do not describe receipt latency as end-to-end output latency.
             const auto selected_ns = monotonic_ns();
+            if (phase) phase->selected_ns = selected_ns;
             const bool publication_miss = selected_ns > deadline;
             const auto timing = continuity.acquire(sample.acquired_ns, next_release);
             if (publication_miss) {
@@ -333,14 +408,16 @@ int main(int argc, char** argv) {
             milliseconds(timing.nominal_grid_lateness_ns);
             std::cout << ",\"acquisition_interval_ms\":";
             milliseconds(timing.acquisition_interval_ns);
+            if (phase) phase->flush_start_ns = monotonic_ns();
             std::cout << "}" << std::endl;
+            if (phase) phase->flush_end_ns = monotonic_ns();
             // Retire children after the decision. They cannot publish directly.
             const bool retire_candidate = candidate && !supervisor.needs_candidate();
             const bool retire_baseline = baseline && !supervisor.needs_baseline();
             if (retire_candidate || retire_baseline) {
                 const auto retirement_start_ns = monotonic_ns();
-                if (retire_candidate) candidate.reset();
-                if (retire_baseline) baseline.reset();
+                if (retire_candidate) retire(candidate, candidate_timing);
+                if (retire_baseline) retire(baseline, baseline_timing);
                 const auto retirement_ns = monotonic_ns() - retirement_start_ns;
                 ++worker_retirement_samples;
                 max_worker_retirement_ns = std::max(max_worker_retirement_ns, retirement_ns);
@@ -385,6 +462,9 @@ int main(int argc, char** argv) {
         if (worker_retirement_samples) std::cout << max_worker_retirement_ns;
         else std::cout << "null";
         std::cout << ",\"external_delivery\":\"unmeasured\"}" << std::endl;
+        for (unsigned i = 0; i < phase_records.size() && i < continuity.acquired; ++i)
+            emit_phase_timing(phase_records[i], i + 1);
+        if (phase_timing) std::clog.flush();
         return interrupted ? 130 : (supervisor.phase() == Phase::failed ? 3 : 0);
     } catch (const std::exception& error) {
         std::cerr << "shadow-demo: " << error.what() << '\n'; return 2;

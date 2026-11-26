@@ -56,7 +56,12 @@ struct WorkerProcess::Impl {
 #ifdef __QNXNTO__
     int connection = -1;
 #endif
-    struct Task { Sample sample; std::uint64_t deadline; std::promise<Observation> promise; };
+    struct Task {
+        Sample sample;
+        std::uint64_t deadline;
+        std::promise<Observation> promise;
+        WorkerExchangeTiming* timing;
+    };
     std::mutex mutex;
     std::condition_variable cv;
     std::optional<Task> task;
@@ -78,14 +83,18 @@ struct WorkerProcess::Impl {
             while (waitpid(child, nullptr, 0) < 0 && errno == EINTR) {}
         }
     }
-    Observation exchange(const Sample& sample, std::uint64_t deadline) {
+    Observation exchange(const Sample& sample, std::uint64_t deadline, WorkerExchangeTiming* timing) {
         Observation o;
         if (!usable) { o.completed_ns = monotonic_ns(); return o; }
-        if (monotonic_ns() >= deadline) {
+        const auto checked_ns = monotonic_ns();
+        if (checked_ns >= deadline) {
+            if (timing) timing->pre_expiry_ns = checked_ns;
             o.status = TransportStatus::timeout;
         } else {
 #ifdef __QNXNTO__
             NativeEstimateReply receive{};
+            // This boundary includes arming the timeout when MsgSend is entered.
+            const auto ipc_start_ns = timing ? monotonic_ns() : 0;
             // No intervening kernel call may clear the timeout before MsgSend.
             // ChannelCreate(0) in the worker intentionally omits _NTO_CHF_UNBLOCK.
             if (TimerTimeout(CLOCK_MONOTONIC,
@@ -94,8 +103,13 @@ struct WorkerProcess::Impl {
                 o.status = TransportStatus::disconnected;
             } else {
                 const long result = MsgSend(connection, &sample, sizeof(sample), &receive, sizeof(receive));
+                const int send_error = result == -1 ? errno : 0;
+                if (timing) {
+                    timing->ipc_start_ns = ipc_start_ns;
+                    timing->ipc_end_ns = monotonic_ns();
+                }
                 if (result == -1) {
-                    o.status = errno == ETIMEDOUT ? TransportStatus::timeout : TransportStatus::disconnected;
+                    o.status = send_error == ETIMEDOUT ? TransportStatus::timeout : TransportStatus::disconnected;
                 } else if (valid_native_estimate_reply(receive, result)) {
                     o.estimate = receive.reply.estimate;
                     o.status = TransportStatus::ok;
@@ -104,14 +118,16 @@ struct WorkerProcess::Impl {
                 }
             }
 #else
+            if (timing) timing->ipc_start_ns = monotonic_ns();
             o.status = status(write_until(input, &sample, sizeof(sample), deadline));
+            EstimateReply reply{};
             if (o.status == TransportStatus::ok) {
-                EstimateReply reply{};
                 o.status = status(read_until(output, &reply, sizeof(reply), deadline));
-                if (o.status == TransportStatus::ok) {
-                    if (valid_estimate_reply(reply)) o.estimate = reply.estimate;
-                    else o.status = TransportStatus::protocol_error;
-                }
+            }
+            if (timing) timing->ipc_end_ns = monotonic_ns();
+            if (o.status == TransportStatus::ok) {
+                if (valid_estimate_reply(reply)) o.estimate = reply.estimate;
+                else o.status = TransportStatus::protocol_error;
             }
 #endif
         }
@@ -131,7 +147,10 @@ struct WorkerProcess::Impl {
                 current = std::move(task); task.reset();
             }
             try {
-                const auto result = exchange(current->sample, current->deadline);
+                auto* const timing = current->timing;
+                if (timing) timing->dispatch_ns = monotonic_ns();
+                const auto result = exchange(current->sample, current->deadline, timing);
+                if (timing) timing->completed_ns = result.completed_ns;
                 { std::lock_guard<std::mutex> lock(mutex); busy = false; }
                 current->promise.set_value(result);
             } catch (...) {
@@ -171,10 +190,12 @@ WorkerProcess::WorkerProcess(const std::string& executable, const std::string& m
     implementation->dispatch = std::thread([implementation] { implementation->loop(); });
 }
 WorkerProcess::~WorkerProcess() = default;
-std::future<Observation> WorkerProcess::submit(Sample sample, std::uint64_t deadline) {
+std::future<Observation> WorkerProcess::submit(Sample sample, std::uint64_t deadline,
+                                               WorkerExchangeTiming* timing) {
+    if (timing) timing->submit_ns = monotonic_ns();
     std::lock_guard<std::mutex> lock(impl_->mutex);
     if (impl_->busy || impl_->stopping) throw std::logic_error("Worker already has an outstanding sample");
-    Impl::Task task{sample, deadline, {}};
+    Impl::Task task{sample, deadline, {}, timing};
     auto future = task.promise.get_future();
     impl_->busy = true; impl_->task = std::move(task); impl_->cv.notify_one();
     return future;

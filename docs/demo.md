@@ -39,6 +39,35 @@ In the host workbench, **Attach a candidate to a running baseline** invokes the 
 - `no-fallback`: both versions fail during probation; stop output.
 - `post-commit-failure`: candidate fails after standby retirement; stop output.
 
+## Phase timing diagnostics
+
+Add `--phase-timing` to a direct `shadow-demo` invocation to emit
+`phase_timing` JSON Lines on stderr after the sample loop and stdout summary.
+The broker reserves space for up to the first 4096 samples before the run
+and leaves the stdout schema and configured deadlines unchanged. Match
+records to stdout samples by sequence within the same invocation.
+
+Timestamps are absolute monotonic nanoseconds. Each row records acquisition,
+the IPC deadline, selection and the final write/flush of the sample line.
+Each submitted worker has timestamps for submission, dispatch, IPC, receipt
+completion, the beginning and return of the broker's future get, and
+retirement if it occurs within that sample. A worker without a submission
+is represented by null. Null timestamps mark phases that were not reached.
+A pre-expiry timestamp identifies a deadline already reached at the dispatch
+check before entering transport.
+
+On QNX the IPC interval starts just before arming `TimerTimeout` and ends
+just after `MsgSend` returns. The start is recorded only when `MsgSend`
+is called. On the host the interval covers the pipe write and any read.
+Since futures are collected in baseline-then-candidate order, an already
+completed candidate can have a return timestamp later than its completion.
+Retirement covers the explicit per-sample teardown. End-of-run cleanup and
+staging replay are outside these records.
+
+The extra clock reads can perturb short runs. Compare instrumented and
+uninstrumented runs at the same workload and contract before attributing
+timing failures to a phase.
+
 ## Submission preparation
 
 The intended category is **Developer Tooling & Host Tools**. Review the [official rules](https://qnx.devpost.com/rules) before submitting. Provide the public repository, open-source license, reproducible QNX build/run instructions, evidence of meaningful QNX use, and a public demonstration video. No submission has been made by creating this repository.
