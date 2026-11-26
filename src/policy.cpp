@@ -115,7 +115,7 @@ std::string check_observation(const Sample& s, const Observation& o,
         return "position_step_exceeded";
     return "ok";
 }
-Decision Supervisor::step(const Sample& s, const Observation& b, const Observation& c) {
+Decision Supervisor::step(const Sample& s, const Observation& b, const Observation& c, bool candidate_pending) {
     Decision d;
     d.event = std::move(pending_event_); pending_event_.clear();
     d.reason = std::move(pending_reason_); pending_reason_.clear();
@@ -131,10 +131,12 @@ Decision Supervisor::step(const Sample& s, const Observation& b, const Observati
     }
     const auto sample_interval_ns = last_acquired_ns_ ?
         std::max(contract_.period_ns, s.acquired_ns - last_acquired_ns_) : contract_.period_ns;
+    if (candidate_pending) last_sample_interval_ns_ = sample_interval_ns;
     last_sequence_ = s.sequence;
     last_acquired_ns_ = s.acquired_ns;
     d.baseline_check = needs_baseline() ? check_observation(s, b, last_baseline_, contract_, s.acquired_ns) : "not_running";
-    d.candidate_check = needs_candidate() ? check_observation(s, c, last_candidate_, contract_, s.acquired_ns) : "not_running";
+    d.candidate_check = candidate_pending ? "pending" :
+        needs_candidate() ? check_observation(s, c, last_candidate_, contract_, s.acquired_ns) : "not_running";
     if (d.baseline_check == "ok" && !baseline_residual_.accepts(s, b.estimate, sample_interval_ns))
         d.baseline_check = "measurement_residual_exceeded";
     if (d.candidate_check == "ok" && !candidate_residual_.accepts(s, c.estimate, sample_interval_ns))
@@ -152,7 +154,9 @@ Decision Supervisor::step(const Sample& s, const Observation& b, const Observati
 
     if (phase_ == Phase::shadowing) {
         if (!baseline_ok) { fail("baseline_" + d.baseline_check); return finish(); }
-        if (!candidate_ok) {
+        if (candidate_pending) {
+            // Keep earlier qualification credit. A fresh candidate is required to advance or promote.
+        } else if (!candidate_ok) {
             phase_ = Phase::rejected; d.event = "candidate_rejected"; d.reason = d.candidate_check;
         } else if (qualified_ >= contract_.qualification_samples) {
             // Qualified on the previous sample. Switch only at this sample boundary.
@@ -195,5 +199,23 @@ Decision Supervisor::step(const Sample& s, const Observation& b, const Observati
     }
     last_output_ = d.output;
     return finish();
+}
+bool Supervisor::finish_pending_candidate(const Sample& s, const Observation& c, Decision& d) {
+    if (phase_ != Phase::shadowing) {
+        d.candidate_check = "drained_without_validation";
+        return false;
+    }
+    d.candidate_check = check_observation(s, c, last_candidate_, contract_, s.acquired_ns);
+    if (d.candidate_check == "ok" && !candidate_residual_.accepts(s, c.estimate, last_sample_interval_ns_))
+        d.candidate_check = "measurement_residual_exceeded";
+    if (d.candidate_check == "ok") {
+        last_candidate_ = c.estimate;
+    } else {
+        phase_ = Phase::rejected;
+        d.phase = phase_;
+        d.event = "candidate_rejected";
+        d.reason = d.candidate_check;
+    }
+    return true;
 }
 } // namespace shadow

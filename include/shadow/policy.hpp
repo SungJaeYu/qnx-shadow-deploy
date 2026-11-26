@@ -38,7 +38,9 @@ struct Decision {
 class Supervisor {
 public:
     explicit Supervisor(Contract contract, bool candidate_started = true);
-    Decision step(const Sample& sample, const Observation& baseline, const Observation& candidate);
+    Decision step(const Sample& sample, const Observation& baseline, const Observation& candidate,
+                  bool candidate_pending = false);
+    bool finish_pending_candidate(const Sample& sample, const Observation& candidate, Decision& decision);
     Decision stop_output(const std::string& reason);
     bool begin_staging();
     void begin_shadowing(const Estimate& last_replayed);
@@ -56,6 +58,7 @@ private:
     unsigned probation_ = 0;
     std::uint64_t last_sequence_ = 0;
     std::uint64_t last_acquired_ns_ = 0;
+    std::uint64_t last_sample_interval_ns_ = 0;
     std::optional<Estimate> last_baseline_, last_candidate_, last_output_;
     PositionResidualMonitor baseline_residual_, candidate_residual_;
     bool cancel_requested_ = false;

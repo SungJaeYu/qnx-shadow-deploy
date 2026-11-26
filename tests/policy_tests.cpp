@@ -20,6 +20,40 @@ Contract quick() { Contract c; c.qualification_samples = 2; c.probation_samples 
 Decision tick(Supervisor& g, unsigned i) { auto s = sample(i); return g.step(s, ok(s), ok(s)); }
 int main() {
     const std::vector<std::pair<std::string, std::function<void()>>> tests{
+        {"pending candidate neither qualifies nor promotes", [] {
+            Supervisor g(quick());
+            CHECK(tick(g, 1).phase == Phase::shadowing);
+            for (const auto sequence : {2u, 4u}) {
+                const auto s = sample(sequence);
+                auto d = g.step(s, ok(s), {}, true);
+                CHECK(d.phase == Phase::shadowing && d.source == Source::baseline);
+                CHECK(d.candidate_check == "pending");
+                CHECK(g.finish_pending_candidate(s, ok(s), d));
+                CHECK(d.phase == Phase::shadowing && d.candidate_check == "ok");
+                if (sequence == 2) CHECK(tick(g, 3).phase == Phase::shadowing);
+            }
+            CHECK(tick(g, 5).event == "candidate_promoted");
+        }},
+        {"unsafe drained candidate rejects without withdrawing baseline", [] {
+            Supervisor g(quick());
+            const auto s = sample(1);
+            auto d = g.step(s, ok(s), {}, true);
+            CHECK(g.finish_pending_candidate(s, ok(s, std::numeric_limits<double>::quiet_NaN()), d));
+            CHECK(d.phase == Phase::rejected && d.event == "candidate_rejected");
+            CHECK(d.reason == "non_finite_output" && d.source == Source::baseline && d.output);
+            CHECK(tick(g, 2).source == Source::baseline);
+        }},
+        {"cancelled shadow drains without changing the cancellation decision", [] {
+            Supervisor g(quick());
+            CHECK(g.request_cancel());
+            const auto s = sample(1);
+            auto d = g.step(s, ok(s), {}, true);
+            CHECK(!g.finish_pending_candidate(s, ok(s, std::numeric_limits<double>::quiet_NaN()), d));
+            CHECK(d.phase == Phase::rejected && d.event == "candidate_cancelled");
+            CHECK(d.reason == "operator_cancelled" && d.source == Source::baseline && d.output);
+            CHECK(d.candidate_check == "drained_without_validation");
+            CHECK(!g.needs_candidate() && tick(g, 2).source == Source::baseline);
+        }},
         {"preparation cannot qualify or restart the baseline", [] {
             Supervisor g(quick(), false);
             CHECK(tick(g, 1).phase == Phase::idle); CHECK(g.begin_staging());

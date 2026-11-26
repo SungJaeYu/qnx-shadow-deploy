@@ -40,6 +40,33 @@ def fill(sink):
 
 
 class OutputDelivery(unittest.TestCase):
+    def controlled_worker(self, directory):
+        worker = Path(directory) / "controlled-worker"
+        release = Path(directory) / "release"
+        worker.write_text(
+            f"#!{sys.executable}\n"
+            "from pathlib import Path\n"
+            "import struct, sys, time\n"
+            "baseline = sys.argv[1] == 'baseline'\n"
+            "fault = int(sys.argv[2])\n"
+            f"release = Path({str(release)!r})\n"
+            "send = sys.stdout.buffer.write\n"
+            "flush = sys.stdout.buffer.flush\n"
+            "send(struct.pack('=IHHii', 0x53484457, 2, 1, -1, 0)); flush()\n"
+            "while data := sys.stdin.buffer.read(32):\n"
+            "    _, _, _, seq, acquired, position = struct.unpack('=IHHQQd', data)\n"
+            "    if baseline and sys.argv[0].endswith('rollback-worker'):\n"
+            "        time.sleep(0.02)\n"
+            "    elif not baseline and seq == 1 and sys.argv[0].endswith('controlled-worker'):\n"
+            "        while not release.exists(): time.sleep(0.001)\n"
+            "        position = float('nan')\n"
+            "    if sys.argv[1] == 'crash' and seq >= fault: sys.exit(42)\n"
+            "    send(struct.pack('=IHHQQdd', 0x53484457, 2, 3, seq, acquired, position, 0))\n"
+            "    send(bytes.fromhex('a9471fc3e6852d72')); flush()\n"
+        )
+        worker.chmod(0o755)
+        return worker, release
+
     def run_demo(self, sink, *, command=COMMAND, extra=(), stdout=subprocess.PIPE):
         fd = sink.fileno()
         return subprocess.run(command + ["--output-fd", str(fd), *extra], pass_fds=(fd,),
@@ -61,8 +88,10 @@ class OutputDelivery(unittest.TestCase):
         return phases
 
     def test_delivers_exactly_the_selected_sources_through_rollback(self):
-        with pipe() as (source, sink):
-            result = self.run_demo(sink, extra=("--phase-timing",))
+        with tempfile.TemporaryDirectory() as directory, pipe() as (source, sink):
+            worker, _ = self.controlled_worker(directory)
+            worker = worker.rename(worker.with_name("rollback-worker"))
+            result = self.run_demo(sink, command=COMMAND + ["--worker", str(worker)], extra=("--phase-timing",))
             sink.close()
             authority = records(source.read())
         self.assertEqual(result.returncode, 0, result.stderr)
@@ -86,6 +115,35 @@ class OutputDelivery(unittest.TestCase):
         phases = self.check_write_phases(result.stderr, ["accepted"] * 8)
         for timing, output in zip(phases, authority):
             self.assertLessEqual(timing["authority_write_end_ns"], output["deadline_ns"])
+
+    def test_pending_shadow_is_drained_after_baseline_reaches_authority_pipe(self):
+        with tempfile.TemporaryDirectory() as directory, pipe() as (source, sink):
+            worker, release = self.controlled_worker(directory)
+            fd = sink.fileno()
+            command = [DEMO, "--worker", str(worker), "--scenario", "promote", "--samples", "2",
+                       "--period-ms", "500", "--deadline-ms", "400", "--output-fd", str(fd), "--phase-timing"]
+            with subprocess.Popen(command, pass_fds=(fd,), stdout=subprocess.PIPE, stderr=subprocess.PIPE) as process:
+                sink.close()
+                try:
+                    self.assertTrue(select.select([source], [], [], 2)[0])
+                    first = json.loads(source.readline())
+                    self.assertEqual((first["sequence"], first["source"]), (1, "baseline"))
+                finally:
+                    release.touch()
+                stdout, stderr = process.communicate(timeout=3)
+            self.assertEqual(process.returncode, 0, stderr)
+            self.assertEqual([row["source"] for row in records(source.read())], ["baseline"])
+        meta, sample, following, summary = records(stdout)
+        self.assertEqual(sample["event"], "candidate_rejected")
+        self.assertEqual(sample["reason"], "non_finite_output")
+        self.assertTrue(sample["shadow_qualification_omitted"])
+        self.assertEqual(summary["shadow_qualification_omissions"], 1)
+        self.assertEqual(following["baseline_pid"], meta["baseline_pid"])
+        self.assertEqual(following["candidate_pid"], -1)
+        phase, _ = self.check_write_phases(stderr, ["accepted", "accepted"])
+        self.assertLess(phase["authority_write_start_ns"], phase["candidate"]["ipc_end_ns"])
+        with self.assertRaises(ProcessLookupError):
+            os.kill(sample["candidate_pid"], 0)
 
     def test_full_authority_pipe_stops_after_the_first_attempt(self):
         with pipe() as (source, sink):

@@ -482,6 +482,7 @@ int main(int argc, char** argv) {
         const auto producer_run_id = std::to_string(baseline->pid()) + "-" + std::to_string(monotonic_ns());
         const char* delivery_error = nullptr;
         unsigned delivered_outputs = 0;
+        unsigned shadow_qualification_omissions = 0;
         unsigned last_selected_sequence = 0;
         unsigned last_delivered_sequence = 0;
         out << std::setprecision(10);
@@ -568,8 +569,10 @@ int main(int argc, char** argv) {
                                                   candidate_timing ? &candidate_timing->exchange : nullptr);
             Observation b, c;
             if (bf.valid()) b = collect(bf, baseline_timing);
-            if (cf.valid()) c = collect(cf, candidate_timing);
-            auto decision = supervisor.step(sample, b, c);
+            const bool candidate_pending = split_output && supervisor.phase() == Phase::shadowing && cf.valid()
+                && cf.wait_for(std::chrono::nanoseconds::zero()) == std::future_status::timeout;
+            if (cf.valid() && !candidate_pending) c = collect(cf, candidate_timing);
+            auto decision = supervisor.step(sample, b, c, candidate_pending);
             // A result received before the deadline may still be published too late.
             // Do not describe receipt latency as end-to-end output latency.
             const auto selected_ns = monotonic_ns();
@@ -610,6 +613,12 @@ int main(int argc, char** argv) {
                 }
                 if (delivery_error) supervisor.stop_output(delivery_error);
             }
+            bool shadow_qualification_omitted = false;
+            if (candidate_pending) {
+                c = collect(cf, candidate_timing);
+                shadow_qualification_omitted = supervisor.finish_pending_candidate(sample, c, decision);
+                if (shadow_qualification_omitted) ++shadow_qualification_omissions;
+            }
             out << "{\"type\":\"sample\",\"sequence\":" << i << ",\"time_s\":" << seconds
                       << ",\"truth\":";
             if (trace.empty()) value(out, truth); else out << "null";
@@ -640,6 +649,7 @@ int main(int argc, char** argv) {
             out << ",\"acquisition_interval_ms\":";
             milliseconds(out, timing.acquisition_interval_ns);
             if (split_output) {
+                out << ",\"shadow_qualification_omitted\":" << (shadow_qualification_omitted ? "true" : "false");
                 out << ",\"output_delivered\":" << (output_delivered ? "true" : "false")
                     << ",\"output_delivery_error\":";
                 if (delivery_error) json_string(out, delivery_error);
@@ -706,6 +716,7 @@ int main(int argc, char** argv) {
         if (worker_retirement_samples) out << max_worker_retirement_ns;
         else out << "null";
         if (split_output) {
+            out << ",\"shadow_qualification_omissions\":" << shadow_qualification_omissions;
             out << ",\"delivered_outputs\":" << delivered_outputs
                 << ",\"last_selected_sequence\":" << last_selected_sequence
                 << ",\"last_delivered_sequence\":" << last_delivered_sequence

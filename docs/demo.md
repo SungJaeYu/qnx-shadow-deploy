@@ -64,6 +64,22 @@ the pre-write deadline check suppresses the attempt, no output is selected,
 or the dedicated pipe is disabled. Acceptance means the kernel accepted
 the record into the pipe. Consumer receipt requires a separate observation.
 
+During shadowing with `--output-fd`, the broker checks whether the candidate
+exchange has finished as soon as the baseline exchange returns. If the
+candidate is pending, the broker validates and publishes the current baseline
+output first. The pending sample keeps earlier qualification credit and cannot
+add credit or promote. Promotion requires a fresh, already available candidate.
+The broker drains the same exchange against its existing IPC deadline before
+it begins the next sample or retires the worker. It checks the drained result
+for transport and estimate faults and rejects the candidate if validation fails.
+If cancellation or output failure ends shadowing first, the candidate check
+reports `drained_without_validation` and that sample does not count as a
+qualification omission. Sample telemetry reports `shadow_qualification_omitted`
+and the summary reports `shadow_qualification_omissions`. The candidate drain can still affect the
+next acquisition, and the rule does not provide CPU isolation. Probation,
+committed service and invocations without `--output-fd` keep their existing
+worker collection rules.
+
 Each submitted worker has timestamps for submission, dispatch, IPC, receipt
 completion, the beginning and return of the broker's future get, and
 retirement if it occurs within that sample. A worker without a submission
