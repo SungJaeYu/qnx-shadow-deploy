@@ -354,7 +354,9 @@ class CancelOrderingTraceTests(unittest.TestCase):
         lines.insert(1, f"stage before_ns={stage_before} after_ns={stage_before + 100}")
         witness.write_text("\n".join(lines) + "\n")
         stem.with_suffix(".manifest").write_text(
-            "executable=/bin/shadow-candidate\nmode=delay\nfault_after=0\nreplay_samples=16\n")
+            "format=1\nartifact=position-filter-v2\nexecutable=/bin/shadow-candidate\n"
+            "protocol=2\narchitecture=x86_64\nos=qnx\ncontract=position-m-velocity-mps-v1\n"
+            "replay_samples=16\nmode=delay\nfault_after=0\n")
         stem.with_suffix(".stderr").write_text("".join(json.dumps(
             dict(type="phase_timing", sequence=sequence, acquired_ns=timestamp),
             separators=(",", ":")) + "\n"
@@ -378,6 +380,17 @@ class CancelOrderingTraceTests(unittest.TestCase):
         result = self.run_verifier("--replay-exact")
         self.assertEqual(result.returncode, 77, result.stdout)
         self.assertIn("INCONCLUSIVE replay ordering", result.stdout)
+
+    def test_stage_window_rejects_duplicate_manifest_fields(self):
+        for duplicate in ("mode=delay", "fault_after=0"):
+            with self.subTest(duplicate=duplicate):
+                self.stage_window()
+                manifest = self.root / "replay.manifest"
+                with manifest.open("a") as stream:
+                    stream.write(duplicate + "\n")
+                result = self.run_verifier("--replay-exact")
+                self.assertEqual(result.returncode, 1, result.stdout)
+                self.assertIn("invalid or duplicate manifest field", result.stderr)
 
     def test_stage_window_requires_warming_at_cancel_acceptance(self):
         self.stage_window(wrong_phase=True)

@@ -6,6 +6,7 @@ import json
 import re
 import sys
 
+from verify_lifecycle import read_manifest
 from verify_qnx_logs import check, load, validate_rows
 
 
@@ -217,8 +218,7 @@ def verify_exact_replay(stem, broker, stage_after):
     if stage_times:
         stage_before, stage_written = stage_times
         check(0 < stage_before <= stage_written <= pre_start, "invalid stock replay stage chronology")
-        manifest = dict(line.split("=", 1) for line in stem.with_suffix(".manifest").read_text().splitlines()
-                        if line and not line.startswith("#"))
+        manifest = read_manifest(stem.with_suffix(".manifest"))
         check(Path(manifest["executable"]).name == "shadow-candidate"
               and manifest["mode"] == "delay" and manifest["fault_after"] == "0"
               and manifest["replay_samples"] == "16", "stock replay stage used an unexpected fixture")
