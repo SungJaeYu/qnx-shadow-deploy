@@ -4,6 +4,62 @@ This campaign exercised the x86-64 native QNX backend in QEMU. It combined
 stock broker lifecycle and timing runs, a gated transport fixture, and a
 separate test-only replay worker for the operator cancellation witness.
 
+## Build a guest with the validation tools
+
+Start from a clean tracked checkout at a revision that contains
+`qnx-cancel-replay-worker` and the matching cancel driver. Apply the
+[SDK and Docker setup](../qnx-setup.md#apple-silicon-mac-observed-container-cross-build)
+first, including the licensed SDK with the QNX SDP Linux x86-64 host
+tools. Use fresh build directories so an earlier image's snippets and
+binaries cannot enter the package. The extra snippet below adds the
+native fixtures and guest drivers. The normal image builder separately
+packages the stock broker, workers, manifest and target unit tests.
+
+```sh
+bash tools/qnx_container.sh build
+mkdir -p build-qnx-vm/local/snippets
+cat > build-qnx-vm/local/snippets/system_files.preboard <<'SNIPPET'
+[-optional]
+[uid=0 gid=0 perms=555] bin/shadowdeploy/qnx-ipc-tests=/work/build-qnx-container/qnx-ipc-tests
+[uid=0 gid=0 perms=555] bin/shadowdeploy/qnx-ipc-receiver=/work/build-qnx-container/qnx-ipc-receiver
+[uid=0 gid=0 perms=555] bin/shadowdeploy/qnx-cancel-replay-worker=/work/build-qnx-container/qnx-cancel-replay-worker
+[uid=0 gid=0 perms=555] bin/shadowdeploy/qnx_lifecycle_checks.sh=/work/tools/qnx_lifecycle_checks.sh
+[uid=0 gid=0 perms=555] bin/shadowdeploy/qnx_controlled_trials.sh=/work/tools/qnx_controlled_trials.sh
+[uid=0 gid=0 perms=555] bin/shadowdeploy/qnx_cancel_ordering_checks.sh=/work/tools/qnx_cancel_ordering_checks.sh
+[uid=0 gid=0 perms=555] bin/shadowdeploy/lifecycle_checks.sh=/work/tools/lifecycle_checks.sh
+[+optional]
+SNIPPET
+bash tools/qnx_container.sh vm-image
+```
+
+The source paths in the snippet are inside the container's `/work`
+mount. Keep the `qnx-cancel-replay-worker` line if running the gated
+case. From the host, print a shell block populated with the actual
+checkout revision and hashes of the images just built. After booting
+with `bash tools/run_qnx_vm.sh`, paste the printed block at the QNX
+shell prompt. It creates the fresh guest evidence directory and the
+nonempty collector provenance file.
+
+```sh
+revision=$(git rev-parse HEAD)
+ifs_sha=$(shasum -a 256 build-qnx-vm/output/ifs.bin | awk '{print $1}')
+disk_sha=$(shasum -a 256 build-qnx-vm/output/disk-qemu | awk '{print $1}')
+cat <<EOF
+mkdir /data/qnx-preboard &&
+cat > /data/qnx-preboard/environment.txt <<'ENVIRONMENT'
+target=qemu
+build_provenance=source_mapped
+source_revision=$revision
+image_sha256=$ifs_sha
+disk_sha256=$disk_sha
+ENVIRONMENT
+EOF
+```
+
+This recipe exercises the checked-out tools and records their identities.
+The specific historical builds and the temporary loaded-run wrapper
+are described with their results below.
+
 ## Stock broker and native transport fixture
 
 The initial stock boot used binaries rebuilt from
@@ -62,6 +118,12 @@ reported all 12 inconclusive at the 7.5 ms default IPC budget (exit 77).
 The [fixture protocol](../qnx-ipc-fixture.md) defines the wait, late
 completion and cleanup evidence required per attempt.
 
+The stock cancellation driver requested 44 inputs per case, with a
+500 ms period, a 450 ms decision deadline, a 337.5 ms IPC budget, one
+fresh qualification sample and ten probation samples. The stock
+candidate used delay mode with activation at sample 22 for live
+probation and immediate activation for historical replay.
+
 Both stock cancellation cases passed behavior and cleanup. Live cancellation
 was applied at sample 23 and the retry committed at 37. The before and
 after REPLY views matched the broker thread and candidate PID, but sample
@@ -70,15 +132,15 @@ ordering inconclusive. Replay cancellation was applied at sample 18 and
 the retry committed at 32. Both REPLY views matched with the same
 high-water mark (17), but stock replay can move between historical
 requests without publishing a live sample. That exact-request verdict
-was also inconclusive. The host verifier exited 77 overall.
+was also inconclusive. The guest driver and host verifier both exited 77.
 
 A separate stock retry established live ordering. The REPLY snapshots
 around the cancel write matched the same broker thread and candidate peer
 for one unpublished live input. All four high-water marks were 21.
 The broker applied cancellation at sample 23 and committed the retry at 37. The replay case again passed behavior and cleanup, with
 cancellation at 18 and commit at 32. Exact stock replay ordering remained
-inconclusive for the same request-identity gap, so the overall verifier
-exit remained 77.
+inconclusive for the same request-identity gap. The guest driver exited
+0 and the overall host verifier exited 77.
 
 Run the matching project tools from the packaged guest directory.
 The controlled-trial environment file records target, source revision,
@@ -136,9 +198,11 @@ sh /system/bin/shadowdeploy/lifecycle_checks.sh \
 python3 tools/verify_lifecycle.py EXPORTED_LIFECYCLE_DIR
 ```
 
-The loaded attempt uses two guest shell busy loops during the same
-driver invocation. The wrapper records both load PIDs, stops and reaps
-them, then checks whether either survives. The strict continuity verdict
+The recorded loaded attempts used two guest shell busy loops during the
+same driver invocation. The command above reproduces the idle driver.
+The loaded wrapper and its helpers were temporary campaign tooling.
+The wrapper records both load PIDs, stops and reaps them, then checks
+whether either survives. The strict continuity verdict
 requires complete selection, no decision misses and no unoccupied
 nominal slots in the observed horizon.
 
@@ -176,8 +240,9 @@ and an observed continuity shortfall under load. Rollback behavior
 under that load remains unverified. QEMU exited 0 after export. The
 archive's POSIX `cksum` was `605072429 105472`.
 
-The retry packaged two independently bounded load workers with a 210 s
-self-stop, a 180 s driver watchdog, and a wrapper that starts the
+The recorded retry explicitly packaged a wrapper plus helpers in an
+additional image snippet. It used two independently bounded load
+workers with a 210 s self-stop, a 180 s driver watchdog, and a wrapper that starts the
 workers, runs the stock lifecycle driver, then terminates and reaps load
 workers and reports whether they survived. The observed run ended by
 parent cleanup before either bound expired.
@@ -235,16 +300,15 @@ baseline and 22 from generation 2. Descriptor restoration and retirement
 of known owned children passed. Driver, verifier and QEMU each exited 0.
 The revised export matched POSIX `cksum` `960954267 51712`.
 
-Use the isolated source snapshot and package the matching test driver and
-worker in the guest image. The [QNX setup](../qnx-setup.md) covers SDK and
-container prerequisites. The two attempts used image ID
+For a fresh gated run, use the validation snippet above with the test
+driver and replay worker from the same clean revision. The two recorded
+attempts used container image ID
 `sha256:cce4a67d31f14f7ae613cec68c3cc8aaca230106dc91e049f278544e5566e2d0`.
 
 ```sh
 export SHADOW_QNX_IMAGE=sha256:cce4a67d31f14f7ae613cec68c3cc8aaca230106dc91e049f278544e5566e2d0
 export SHADOW_DOCKER=/Applications/Docker.app/Contents/Resources/bin/docker
-bash tools/qnx_container.sh build
-bash tools/qnx_container.sh vm-image
+# Then follow the validation snippet and build commands above.
 ```
 
 In the guest and then on the host after export:
