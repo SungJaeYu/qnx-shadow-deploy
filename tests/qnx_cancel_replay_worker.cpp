@@ -26,29 +26,23 @@ int report_error(const char* operation) {
     return 1;
 }
 
-int write_cancel(const std::string& stem, const char* fifo, bool near_deadline) {
+int write_cancel(const std::string& stem, bool near_deadline) {
     constexpr char command[] = "cancel\n";
     static_assert(sizeof(command) - 1 <= PIPE_BUF, "cancel must fit in one atomic FIFO write");
     std::signal(SIGPIPE, SIG_IGN);
-    struct stat expected{};
-    if (lstat(fifo, &expected) == -1) return report_error("cancel writer stat FIFO");
-    if (!S_ISFIFO(expected.st_mode)) {
-        std::cerr << "cancel writer: control path is not a FIFO\n";
+    // The driver connects stdout to its already-open private control FIFO.
+    constexpr int fd = STDOUT_FILENO;
+    struct stat sink{};
+    if (fstat(fd, &sink) == -1) return report_error("cancel writer stat stdout");
+    const int flags = fcntl(fd, F_GETFL);
+    if (flags == -1) return report_error("cancel writer get stdout flags");
+    if (!S_ISFIFO(sink.st_mode) || (flags & O_ACCMODE) != O_WRONLY) {
+        std::cerr << "cancel writer: stdout must be a write-only FIFO; mode="
+                  << std::oct << sink.st_mode << " access=" << (flags & O_ACCMODE) << '\n';
         return 1;
     }
-    int flags = O_WRONLY | O_NONBLOCK;
-#ifdef O_NOFOLLOW
-    flags |= O_NOFOLLOW;
-#endif
-    const int fd = open(fifo, flags);
-    if (fd == -1) return report_error("cancel writer open FIFO");
-    // This helper is a short-lived process and owns the descriptor until exit.
-    struct stat opened{};
-    if (fstat(fd, &opened) == -1) return report_error("cancel writer stat descriptor");
-    if (!S_ISFIFO(opened.st_mode) || opened.st_dev != expected.st_dev ||
-        opened.st_ino != expected.st_ino) {
-        std::cerr << "cancel writer: control FIFO identity changed\n";
-        return 1;
+    if (fcntl(fd, F_SETFL, flags | O_NONBLOCK) == -1) {
+        return report_error("cancel writer set stdout nonblocking");
     }
 
     std::string receipt;
@@ -96,8 +90,9 @@ int write_cancel(const std::string& stem, const char* fifo, bool near_deadline) 
         std::cerr << "cancel writer: incomplete FIFO write\n";
         return 1;
     }
-    std::cout << "before_ns=" << before << " after_ns=" << after << std::endl;
-    if (!std::cout) return report_error("cancel writer save write timestamps");
+    std::ofstream timestamps(stem + ".write");
+    timestamps << "before_ns=" << before << " after_ns=" << after << std::endl;
+    if (!timestamps) return report_error("cancel writer save write timestamps");
     std::ofstream release(stem + ".release");
     release << receipt << std::endl;
     if (!release) return report_error("cancel writer save release token");
@@ -107,10 +102,10 @@ int write_cancel(const std::string& stem, const char* fifo, bool near_deadline) 
 }  // namespace
 
 int main(int argc, char** argv) {
-    if (argc == 5 && std::string(argv[1]) == "--write-cancel") {
-        const std::string scenario(argv[4]);
+    if (argc == 4 && std::string(argv[1]) == "--write-cancel") {
+        const std::string scenario(argv[3]);
         if (scenario != "live-near" && scenario != "handoff-gated") return 2;
-        return write_cancel(argv[2], argv[3], scenario == "live-near");
+        return write_cancel(argv[2], scenario == "live-near");
     }
     const auto* directory = std::getenv("SHADOW_QNX_REPLAY_GATE_DIR");
     if (!directory) return 2;

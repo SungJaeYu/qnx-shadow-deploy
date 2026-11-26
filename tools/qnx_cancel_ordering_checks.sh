@@ -109,8 +109,8 @@ for name in $cases; do
     pidin -p "$broker" fds > "$stem-baseline.fds"
     case "$name" in
         live-near|handoff-gated)
-            ./qnx-cancel-replay-worker --write-cancel "$stem" "$out/control.fifo" "$name" \
-                3>&- > "$stem.write" 2> "$stem.write.stderr" &
+            ./qnx-cancel-replay-worker --write-cancel "$stem" "$name" \
+                >&3 3>&- 2> "$stem.write.stderr" &
             writer=$!
             ;;
     esac

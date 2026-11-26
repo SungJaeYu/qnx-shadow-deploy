@@ -32,12 +32,13 @@ python3 tools/verify_qnx_cancel_ordering.py FRESH_TRACE_DIR --boundary
   next input boundary, in that order. The baseline remains
   authoritative throughout generation 1.
 
-The driver starts the FIFO writer before staging, so it can open and
-validate the named pipe before the watched exchange. The writer records
-its exit status in `.write.exit` and diagnostics in `.write.stderr`.
-It records monotonic timestamps immediately before and after a single
-atomic write. The worker matches its receipt against the release token
-before replying. The broker's `cancel_requested` event records
+The driver starts the FIFO writer before staging and connects its
+standard output to the already-open control FIFO. The helper validates
+that descriptor and makes a single atomic command write. It records
+the surrounding monotonic timestamps separately in `.write`. The
+driver records the writer status in `.write.exit` and captures
+diagnostics in `.write.stderr`. The worker matches its receipt against
+the release token before replying. The broker's `cancel_requested` event records
 acceptance and `candidate_cancelled` records the policy decision.
 
 Both cases also require complete output, baseline authority at
