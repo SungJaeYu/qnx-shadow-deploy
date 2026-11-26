@@ -49,11 +49,11 @@ def verify(path):
           "incomplete live telemetry")
     check((meta["period_ms"], meta["deadline_ms"], meta["ipc_budget_ms"]) == (200, 150, 112.5),
           "unexpected lifecycle timing configuration")
+    check((meta["qualification_samples"], meta["probation_samples"]) == (3, 24),
+          "unexpected lifecycle qualification or probation configuration")
     backend = meta["backend"]
     check(backend in ("host-posix-pipes", "qnx-native-ipc"), f"unexpected backend {backend}")
     check((path / "exit").read_text().strip() == "0", "broker failed")
-    check((path / "retirement").read_text().startswith("PASS child retirement: "),
-          "runner did not verify child retirement")
     ticks = [row for row in rows if row["type"] == "sample"]
     requested = meta["requested_inputs"]
     check(requested == 90 and [tick["sequence"] for tick in ticks] == list(range(1, requested + 1)),
@@ -68,8 +68,11 @@ def verify(path):
     first, second = first_promote["candidate_pid"], second_promote["candidate_pid"]
     check(min(broker, baseline, first, second) > 1 and len({broker, baseline, first, second}) == 4,
           "invalid or reused process identity")
-    check(rollback["candidate_pid"] == first and commit["candidate_pid"] == second,
-          "candidate identity changed within its generation")
+    retirement = f"PASS child retirement: baseline={baseline} first={first} second={second}"
+    check((path / "retirement").read_text().splitlines() == [retirement],
+          "retirement PIDs do not match observed workers")
+    first_sequence, rollback_sequence = first_promote["sequence"], rollback["sequence"]
+    second_sequence, commit_sequence = second_promote["sequence"], commit["sequence"]
     check(first_promote["sequence"] < rollback["sequence"] <
           first_promote["sequence"] + meta["probation_samples"] - 1,
           "candidate crash was not observed before the generation 1 commit boundary")
@@ -77,30 +80,65 @@ def verify(path):
           rollback["candidate"]["position"] is None, "rollback did not observe candidate process loss")
     check(commit["sequence"] == second_promote["sequence"] + meta["probation_samples"] - 1,
           "generation 2 did not finish probation")
-    check(not any(row["event"] == "candidate_committed" and row["generation"] == 1 for row in ticks),
-          "failed generation committed")
-
-    for generation, promoted, pid in ((1, first_promote, first), (2, second_promote, second)):
-        stage = only(rows, "stage_requested", generation)
-        ready = only(rows, "replay_complete", generation)
-        check(stage["after_sequence"] >= (20 if generation == 1 else rollback["sequence"]),
-              "stage happened before live service or previous rollback")
-        through = ready["through_sequence"]
-        check(ready["candidate_pid"] == pid and ready["replayed"] >= 16 and
-              through == ready["after_sequence"] and through >= stage["after_sequence"],
-              "generation replay did not catch up with its own candidate")
+    deployment = [row for row in rows if row["type"] == "deployment"]
+    check([(row["event"], row["generation"]) for row in deployment] == [
+        ("stage_requested", 1), ("replay_complete", 1),
+        ("stage_requested", 2), ("replay_complete", 2),
+    ], "unexpected deployment event or generation chronology")
+    first_stage, first_ready, second_stage, second_ready = deployment
+    boundaries = []
+    for stage, ready, promoted, pid, earliest in (
+        (first_stage, first_ready, first_promote, first, 20),
+        (second_stage, second_ready, second_promote, second, rollback_sequence),
+    ):
+        staged_after, through = stage["after_sequence"], ready["through_sequence"]
+        check(earliest <= staged_after < through < promoted["sequence"] and
+              ready["after_sequence"] == through,
+              "stage, replay and promotion boundaries out of order")
+        check(stage["candidate_pid"] == -1 and ready["candidate_pid"] == pid and ready["replayed"] >= 16,
+              "replay did not catch up with its own candidate")
+        for event, after in ((stage, staged_after), (ready, through)):
+            check(rows.index(ticks[after - 1]) < rows.index(event) < rows.index(ticks[after]),
+                  "deployment event is outside its reported sample boundary")
         check(promoted["sequence"] == through + meta["qualification_samples"] + 1,
               "promotion did not follow fresh qualification")
-        for tick in ticks[through:promoted["sequence"] - 1]:
-            check(tick["phase"] == "shadowing" and tick["candidate_pid"] == pid and
-                  tick["candidate_check"] == "ok" and tick["source"] == "baseline",
-                  "invalid or authoritative candidate during fresh qualification")
-
+        boundaries.append((staged_after, through))
+    (stage1, through1), (stage2, through2) = boundaries
+    transitions = (
+        (stage1 + 1, 1, "warming", -1),
+        (through1 + 1, 1, "shadowing", first),
+        (first_sequence, 1, "probation", first),
+        (rollback_sequence, 1, "rolled_back", first),
+        (rollback_sequence + 1, 1, "rolled_back", -1),
+        (stage2 + 1, 2, "warming", -1),
+        (through2 + 1, 2, "shadowing", second),
+        (second_sequence, 2, "probation", second),
+        (commit_sequence, 2, "committed", second),
+    )
+    sample_milestones = {
+        stage1 + 1: "candidate_staged", through1 + 1: "candidate_ready",
+        first_sequence: "candidate_promoted", rollback_sequence: "candidate_rolled_back",
+        stage2 + 1: "candidate_staged", through2 + 1: "candidate_ready",
+        second_sequence: "candidate_promoted", commit_sequence: "candidate_committed",
+    }
     expected_baseline = None
     previous_output = None
     max_output_step = 0.0
     for tick in ticks:
         sequence = tick["sequence"]
+        expected_state = (0, "idle", -1)
+        for boundary, generation, phase, pid in transitions:
+            if sequence < boundary:
+                break
+            expected_state = (generation, phase, pid)
+        check((tick["generation"], tick["phase"], tick["candidate_pid"]) == expected_state,
+              f"generation, phase or candidate PID chronology at {sequence}")
+        check(tick["event"] == sample_milestones.get(sequence, ""),
+              f"unexpected or missing milestone at {sequence}")
+        if expected_state[1] == "shadowing":
+            check(tick["candidate_check"] == "ok", f"invalid qualification sample at {sequence}")
+        if expected_state[2] == -1:
+            check(tick["candidate"] is None, f"candidate observation without an active PID at {sequence}")
         check(tick["baseline_pid"] == (baseline if sequence <= commit["sequence"] else -1),
               f"baseline PID continuity at {sequence}")
         if sequence <= commit["sequence"]:
@@ -115,12 +153,6 @@ def verify(path):
                            sequence >= second_promote["sequence"] else "baseline")
         check(tick["source"] == expected_source and tick[f"{expected_source}_check"] == "ok",
               f"incorrect authority or selected observation at {sequence}")
-        if expected_source == "candidate":
-            check(tick["candidate_pid"] == (first if tick["generation"] == 1 else second),
-                  f"incorrect candidate PID at {sequence}")
-        if sequence > rollback["sequence"] and tick["generation"] == 1:
-            check(tick["candidate"] is None and tick["candidate_pid"] == -1,
-                  "failed generation transport was reused")
         output = tick["output"]
         check(output is not None and output == tick[expected_source]["position"],
               f"selection does not match current observation at {sequence}")

@@ -103,10 +103,44 @@ class DeploymentIntegration(unittest.TestCase):
                     raise subprocess.CalledProcessError(code, command)
             subprocess.run([sys.executable, str(tools / "verify_lifecycle.py"), "--functional-only",
                             str(evidence)], check=True, timeout=5)
-        except (subprocess.SubprocessError, OSError) as error:
+            self.check_lifecycle_verifier_rejects_modified_evidence(tools, evidence)
+        except (subprocess.SubprocessError, OSError, AssertionError) as error:
             self.fail(f"{error}; lifecycle evidence preserved at {directory}")
         else:
             shutil.rmtree(directory)
+
+    def check_lifecycle_verifier_rejects_modified_evidence(self, tools, evidence):
+        synthetic = evidence.parent / "synthetic"
+        shutil.copytree(evidence, synthetic)
+        command = [sys.executable, str(tools / "verify_lifecycle.py"), "--functional-only", str(synthetic)]
+
+        def rejects(message):
+            result = subprocess.run(command, capture_output=True, text=True, timeout=5)
+            self.assertEqual(result.returncode, 1, result.stdout + result.stderr)
+            self.assertIn(message, result.stderr)
+
+        marker = synthetic / "retirement"
+        original_marker = marker.read_text()
+        marker.write_text("PASS child retirement: baseline=1 first=2 second=3\n")
+        rejects("retirement PIDs do not match")
+        marker.write_text(original_marker)
+
+        trace = synthetic / "lifecycle.jsonl"
+        original_trace = trace.read_text()
+        for field, invalid in (("generation", 2), ("phase", "probation"), ("candidate_pid", -1)):
+            rows = [json.loads(line) for line in original_trace.splitlines()]
+            promote = next(row for row in rows if row.get("event") == "candidate_promoted")
+            qualification = next(row for row in rows if row.get("sequence") == promote["sequence"] - 1)
+            qualification[field] = invalid
+            trace.write_text("".join(json.dumps(row) + "\n" for row in rows))
+            rejects("generation, phase or candidate PID chronology")
+
+        rows = [json.loads(line) for line in original_trace.splitlines()]
+        stage = next(row for row in rows if row.get("event") == "stage_requested")
+        ready = next(row for row in rows if row.get("event") == "replay_complete")
+        ready["after_sequence"] = ready["through_sequence"] = stage["after_sequence"]
+        trace.write_text("".join(json.dumps(row) + "\n" for row in rows))
+        rejects("stage, replay and promotion boundaries out of order")
 
     def test_separate_artifact_replays_then_qualifies_live(self):
         rows = self.run_live(self.manifest())
