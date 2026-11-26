@@ -87,14 +87,26 @@ class DeploymentIntegration(unittest.TestCase):
         self.check_lifecycle_run("lifecycle_checks.sh")
 
     def test_loaded_lifecycle_crash_and_retry(self):
-        self.check_lifecycle_run("lifecycle_loaded_checks.sh", "--loaded")
+        binaries = self.root / "loaded-bin"
+        binaries.mkdir()
+        for name in ("shadow-worker", "shadow-candidate", "candidate.manifest"):
+            (binaries / name).symlink_to(BUILD / name)
+        broker = binaries / "shadow-demo"
+        broker.write_text(f"#!{sys.executable}\n"
+                          "import os, stat, sys\n"
+                          "if not stat.S_ISREG(os.fstat(sys.stdout.fileno()).st_mode):\n"
+                          "    sys.exit('loaded lifecycle broker stdout must be a regular file')\n"
+                          f"executable = {str(BUILD / 'shadow-demo')!r}\n"
+                          "os.execv(executable, [executable, *sys.argv[1:]])\n")
+        broker.chmod(0o700)
+        self.check_lifecycle_run("lifecycle_loaded_checks.sh", "--loaded", binary_dir=binaries)
 
-    def check_lifecycle_run(self, driver, *verify_options):
+    def check_lifecycle_run(self, driver, *verify_options, binary_dir=BUILD):
         tools = Path(__file__).resolve().parents[1] / "tools"
         directory = Path(tempfile.mkdtemp(prefix="lifecycle-", dir=BUILD))
         evidence = directory / "evidence"
         try:
-            command = ["sh", str(tools / driver), str(BUILD), str(evidence)]
+            command = ["sh", str(tools / driver), str(binary_dir), str(evidence)]
             with subprocess.Popen(command, start_new_session=True) as runner:
                 try:
                     code = runner.wait(timeout=30)

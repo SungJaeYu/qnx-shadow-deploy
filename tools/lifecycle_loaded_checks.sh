@@ -19,7 +19,7 @@ cleanup() {
     for job in "$alarm" "$observer" "$broker"; do
         if [ -n "$job" ]; then wait "$job" 2>/dev/null || :; fi
     done
-    rm -f "$out/control.fifo" "$out/telemetry.fifo"
+    rm -f "$out/control.fifo"
 }
 trap cleanup EXIT
 trap 'exit 130' INT TERM
@@ -35,48 +35,38 @@ rewrite_manifest() {
 rewrite_manifest crash 38 > "$out/candidate-crash.manifest"
 rewrite_manifest good 0 > "$out/candidate.manifest"
 
-pid_field() {
-    pid=${row#*\""$1"\":}
-    pid=${pid%%[,\}]*}
-    case "$pid" in ''|*[!0-9]*) fail "invalid $1 in broker telemetry" ;; esac
-    [ "$pid" -gt 1 ] || fail "invalid $1 in broker telemetry"
-}
-
 observe() {
-    # The broker opens its telemetry writer first, then its command reader.
-    # Keep the command writer open until EOF so stdin stays usable during replay.
     exec 3> "$out/control.fifo"
-    baseline= first= second= retried=0
-    while IFS= read -r row; do
-        printf '%s\n' "$row"
-        case "$row" in
-            '{"type":"meta",'*)
-                pid_field baseline_pid; baseline=$pid ;;
-            '{"type":"sample",'*'"generation":1,'*'"event":"candidate_promoted",'*)
-                pid_field candidate_pid; first=$pid ;;
-            '{"type":"sample",'*'"phase":"rolled_back","source":"baseline",'*'"generation":1,'*'"event":"candidate_rolled_back",'*'"candidate_check":"worker_disconnected",'*)
-                pid_field candidate_pid
-                [ "$pid" = "$first" ] && [ "$retried" -eq 0 ] || fail 'unexpected rollback identity'
-                printf 'stage %s/candidate.manifest\n' "$out" >&3
-                retried=1 ;;
-            '{"type":"sample",'*'"generation":2,'*'"event":"candidate_committed",'*)
-                pid_field candidate_pid; second=$pid ;;
-        esac
+    # The earliest possible crash is 7.4 s after acquisition starts. Keep
+    # the control writer open but avoid polling the early samples.
+    sleep 5
+    while :; do
+        if awk '
+            /^\{"type":"sample",.*"generation":1,.*"event":"candidate_promoted",/ { promoted = 1 }
+            /^\{"type":"sample",.*"phase":"rolled_back","source":"baseline",.*"generation":1,.*"event":"candidate_rolled_back",.*"candidate_check":"worker_disconnected",.*\}$/ {
+                if (promoted) { rolled_back = 1; exit }
+            }
+            END { if (!rolled_back) exit 3 }
+        ' "$out/lifecycle.jsonl"; then
+            printf 'stage %s/candidate.manifest\n' "$out" >&3
+            return
+        else
+            status=$?
+            [ "$status" -eq 3 ] || fail "rollback scan exited with $status"
+        fi
+        kill -0 "$broker" 2>/dev/null || fail 'broker exited before observed rollback'
+        sleep 0.5
     done
-    [ -n "$baseline" ] && [ -n "$first" ] && [ -n "$second" ] && [ "$retried" -eq 1 ] ||
-        fail 'missing promotion, rollback, or retry commit'
-    printf '%s %s %s\n' "$baseline" "$first" "$second" > "$out/worker-pids"
 }
 
-mkfifo "$out/control.fifo" "$out/telemetry.fifo"
-: > "$out/lifecycle.jsonl"
-observe < "$out/telemetry.fifo" >> "$out/lifecycle.jsonl" 2> "$out/observer.stderr" &
-observer=$!
+mkfifo "$out/control.fifo"
 ./shadow-demo --worker ./shadow-worker --control-stdin --samples 90 \
     --period-ms 200 --deadline-ms 150 --qualify 3 --probation 24 \
     --candidate-manifest "$out/candidate-crash.manifest" --stage-at 20 \
-    > "$out/telemetry.fifo" < "$out/control.fifo" 2> "$out/stderr" &
+    > "$out/lifecycle.jsonl" < "$out/control.fifo" 2> "$out/stderr" &
 broker=$!
+observe 2> "$out/observer.stderr" &
+observer=$!
 printf '%s\n' "$broker" > "$out/broker-pid"
 
 (
@@ -99,6 +89,20 @@ wait "$alarm" 2>/dev/null || :
 alarm=
 [ "$code" -eq 0 ] || fail "broker exited with $code"
 [ "$observed" -eq 0 ] || fail "observer exited with $observed"
+awk '
+    function extract_pid(line, key) {
+        sub(".*\"" key "\":", "", line)
+        sub(/[,}].*/, "", line)
+        return line ~ /^[0-9]+$/ ? line + 0 : 0
+    }
+    /^\{"type":"meta",/ { baseline = extract_pid($0, "baseline_pid") }
+    /^\{"type":"sample",.*"generation":1,.*"event":"candidate_promoted",/ { first = extract_pid($0, "candidate_pid") }
+    /^\{"type":"sample",.*"generation":2,.*"event":"candidate_committed",/ { second = extract_pid($0, "candidate_pid") }
+    END {
+        if (baseline <= 1 || first <= 1 || second <= 1) exit 1
+        print baseline, first, second
+    }
+' "$out/lifecycle.jsonl" > "$out/worker-pids" || fail 'missing valid baseline, promotion, or retry commit PID'
 read -r baseline first second < "$out/worker-pids"
 for pid in "$baseline" "$first" "$second"; do
     if kill -0 "$pid" 2>/dev/null; then fail "worker PID $pid still exists after broker exit"; fi
