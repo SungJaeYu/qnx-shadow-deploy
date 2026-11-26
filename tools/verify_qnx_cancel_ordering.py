@@ -266,7 +266,8 @@ def verify_incomplete_capture(stem):
     check(rows and rows[0]["type"] == "meta" and rows[0]["backend"] == "qnx-native-ipc",
           "capture lacks native broker metadata")
     check(not any(r.get("phase") == "failed" or r.get("publication_miss") or
-                  r.get("event") in {"command_rejected", "preparation_failed"} for r in rows),
+                  r.get("event") in {"command_rejected", "preparation_failed", "candidate_rejected",
+                                     "candidate_rolled_back"} for r in rows),
           "broker failure was recorded before capture stopped")
     check(not any(r.get("event") in {"cancel_requested", "candidate_cancelled", "candidate_committed"}
                   for r in rows), "no-receipt marker contradicts the capture trace")
@@ -299,7 +300,16 @@ def main():
              "--boundary": ("live-near", "handoff-gated")}[mode]
     for case in cases:
         stem = Path(sys.argv[1]) / case
-        if case != "live" and case != "replay" and stem.with_suffix(".capture-inconclusive").exists():
+        incomplete = stem.with_suffix(".capture-inconclusive").exists()
+        if mode == "--boundary":
+            try:
+                writer_code = int(Path(f"{stem}.write.exit").read_text())
+                check(writer_code == (77 if incomplete else 0), f"FIFO writer exited {writer_code}")
+            except malformed as error:
+                print(f"FAIL {case} capture: {error}", file=sys.stderr)
+                verdict = 1
+                continue
+        if case not in {"live", "replay"} and incomplete:
             try:
                 code, known_retired = verify_incomplete_capture(stem)
             except malformed as error:

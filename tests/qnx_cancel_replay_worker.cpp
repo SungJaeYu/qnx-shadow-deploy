@@ -2,43 +2,115 @@
 #include "shadow/protocol.hpp"
 
 #include <cerrno>
+#include <charconv>
 #include <chrono>
+#include <climits>
+#include <csignal>
+#include <cstdio>
 #include <cstdint>
 #include <cstdlib>
 #include <fstream>
+#include <fcntl.h>
 #include <iostream>
 #include <sstream>
 #include <string>
 #include <sys/neutrino.h>
+#include <sys/stat.h>
 #include <thread>
 #include <unistd.h>
 
 namespace {
 
-int write_cancel(const std::string& stem, std::uint64_t acquired_ns) {
-    std::ifstream witness(stem + ".witness");
-    std::string receipt;
-    if (!std::getline(witness, receipt) || receipt.empty()) return 2;
-    const auto target_ns = acquired_ns ? acquired_ns + 300000000ULL : 0;
-    const auto now = shadow::monotonic_ns();
-    if (now < target_ns) {
-        std::this_thread::sleep_for(std::chrono::nanoseconds(target_ns - now));
-    }
-    const auto before = shadow::monotonic_ns();
+int report_error(const char* operation) {
+    std::perror(operation);
+    return 1;
+}
+
+int write_cancel(const std::string& stem, const char* fifo, bool near_deadline) {
     constexpr char command[] = "cancel\n";
-    if (!shadow::write_exact(3, command, sizeof(command) - 1)) return 1;
+    static_assert(sizeof(command) - 1 <= PIPE_BUF, "cancel must fit in one atomic FIFO write");
+    std::signal(SIGPIPE, SIG_IGN);
+    struct stat expected{};
+    if (lstat(fifo, &expected) == -1) return report_error("cancel writer stat FIFO");
+    if (!S_ISFIFO(expected.st_mode)) {
+        std::cerr << "cancel writer: control path is not a FIFO\n";
+        return 1;
+    }
+    int flags = O_WRONLY | O_NONBLOCK;
+#ifdef O_NOFOLLOW
+    flags |= O_NOFOLLOW;
+#endif
+    const int fd = open(fifo, flags);
+    if (fd == -1) return report_error("cancel writer open FIFO");
+    // This helper is a short-lived process and owns the descriptor until exit.
+    struct stat opened{};
+    if (fstat(fd, &opened) == -1) return report_error("cancel writer stat descriptor");
+    if (!S_ISFIFO(opened.st_mode) || opened.st_dev != expected.st_dev ||
+        opened.st_ino != expected.st_ino) {
+        std::cerr << "cancel writer: control FIFO identity changed\n";
+        return 1;
+    }
+
+    std::string receipt;
+    const auto witness_deadline = shadow::monotonic_ns() + 5000000000ULL;
+    while (shadow::monotonic_ns() < witness_deadline) {
+        std::ifstream witness(stem + ".witness");
+        // A partial line can be visible while the worker is writing the receipt.
+        if (std::getline(witness, receipt) && !witness.eof()) break;
+        receipt.clear();
+        std::this_thread::sleep_for(std::chrono::milliseconds(1));
+    }
+    if (receipt.empty()) {
+        std::cerr << "cancel writer: receipt window expired\n";
+        return 77;
+    }
+    const std::string acquired_key = " acquired_ns=";
+    const auto marker = receipt.find(acquired_key);
+    if (receipt.rfind("received pid=", 0) != 0 || marker == std::string::npos) {
+        std::cerr << "cancel writer: malformed receipt\n";
+        return 1;
+    }
+    std::uint64_t acquired_ns = 0;
+    const auto* end = receipt.data() + receipt.size();
+    const auto parsed = std::from_chars(receipt.data() + marker + acquired_key.size(), end, acquired_ns);
+    if (parsed.ec != std::errc{} || parsed.ptr == end || *parsed.ptr != ' ' ||
+        acquired_ns == 0 || acquired_ns > UINT64_MAX - 300000000ULL) {
+        std::cerr << "cancel writer: malformed acquisition timestamp\n";
+        return 1;
+    }
+    if (near_deadline) {
+        const auto target_ns = acquired_ns + 300000000ULL;
+        const auto now = shadow::monotonic_ns();
+        if (now < target_ns) {
+            std::this_thread::sleep_for(std::chrono::nanoseconds(target_ns - now));
+        }
+    }
+
+    const auto before = shadow::monotonic_ns();
+    const auto written = write(fd, command, sizeof(command) - 1);
+    const int write_error = errno;
     const auto after = shadow::monotonic_ns();
+    errno = write_error;
+    if (written == -1) return report_error("cancel writer write FIFO");
+    if (written != static_cast<ssize_t>(sizeof(command) - 1)) {
+        std::cerr << "cancel writer: incomplete FIFO write\n";
+        return 1;
+    }
     std::cout << "before_ns=" << before << " after_ns=" << after << std::endl;
+    if (!std::cout) return report_error("cancel writer save write timestamps");
     std::ofstream release(stem + ".release");
     release << receipt << std::endl;
-    return release ? 0 : 1;
+    if (!release) return report_error("cancel writer save release token");
+    return 0;
 }
 
 }  // namespace
 
 int main(int argc, char** argv) {
-    if (argc == 4 && std::string(argv[1]) == "--write-cancel") {
-        return write_cancel(argv[2], std::stoull(argv[3]));
+    if (argc == 5 && std::string(argv[1]) == "--write-cancel") {
+        const std::string scenario(argv[4]);
+        if (scenario != "live-near" && scenario != "handoff-gated") return 2;
+        return write_cancel(argv[2], argv[3], scenario == "live-near");
     }
     const auto* directory = std::getenv("SHADOW_QNX_REPLAY_GATE_DIR");
     if (!directory) return 2;

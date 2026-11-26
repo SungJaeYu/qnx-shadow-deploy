@@ -209,6 +209,7 @@ class CancelOrderingTraceTests(unittest.TestCase):
             receipt + f"released sequence={sequence} rcvid=123 time_ns={released}\n"
             f"replied sequence={sequence} rcvid=123 time_ns={replied} result=0\n")
         stem.with_suffix(".write").write_text(f"before_ns={before} after_ns={after}\n")
+        (self.root / f"{case}.write.exit").write_text("0\n")
         current = dict(type="phase_timing", sequence=sequence,
                        acquired_ns=acquired, ipc_deadline_ns=acquired + 337_500_000,
                        candidate=dict(ipc_start_ns=acquired, ipc_end_ns=replied))
@@ -257,20 +258,24 @@ class CancelOrderingTraceTests(unittest.TestCase):
                       result.stderr)
 
     def incomplete_gated_capture(self, *, code=130, preparation_failed=False, process_survives=False,
-                                 snapshot=True):
-        self.fixture("replay-gated", peer_known=False)
-        stem = self.root / "replay-gated"
+                                 snapshot=True, case="replay-gated", writer_code=None, candidate_rolled_back=False):
+        self.fixture(case, peer_known=False)
+        stem = self.root / case
         trace = stem.with_suffix(".jsonl")
         rows = [json.loads(line) for line in trace.read_text().splitlines()]
         sample_17 = next(i for i, row in enumerate(rows) if row.get("sequence") == 17)
         rows = rows[:sample_17 + 1]
         if preparation_failed:
             rows.append(dict(type="deployment", event="preparation_failed", generation=1, after_sequence=17))
+        if candidate_rolled_back:
+            rows[-1].update(event="candidate_rolled_back", reason="deadline_exceeded")
         rows.append(dict(type="summary", phase="warming", samples=17, outputs=17, missing_outputs=0,
                          publication_misses=0, interrupted=True))
         trace.write_text("".join(json.dumps(row) + "\n" for row in rows))
         stem.with_suffix(".capture-inconclusive").write_text("reason=no-receipt term_sent=1\n")
         stem.with_suffix(".exit").write_text(f"{code}\n")
+        if writer_code is not None:
+            (self.root / f"{case}.write.exit").write_text(f"{writer_code}\n")
         Path(f"{stem}-cancelled.fds").unlink()
         Path(f"{stem}-cancelled.processes").unlink()
         finished = Path(f"{stem}-finished.processes")
@@ -278,6 +283,26 @@ class CancelOrderingTraceTests(unittest.TestCase):
             finished.unlink()
         elif process_survives:
             finished.write_text("1 procnto\n46 baseline\n")
+
+    def test_boundary_writer_error_overrides_inconclusive_marker(self):
+        self.boundary_witness("live-near")
+        self.incomplete_gated_capture(case="handoff-gated", writer_code=1)
+        result = self.run_verifier("--boundary")
+        self.assertEqual(result.returncode, 1, result.stdout)
+        self.assertIn("FAIL handoff-gated capture: FIFO writer exited 1", result.stderr)
+
+    def test_boundary_no_receipt_only_inconclusive_if_no_broker_failure(self):
+        self.boundary_witness("live-near")
+        for rolled_back in (False, True):
+            with self.subTest(rolled_back=rolled_back):
+                self.incomplete_gated_capture(case="handoff-gated", writer_code=77,
+                                              candidate_rolled_back=rolled_back)
+                result = self.run_verifier("--boundary")
+                self.assertEqual(result.returncode, 1 if rolled_back else 77, result.stdout)
+                if rolled_back:
+                    self.assertIn("broker failure was recorded", result.stderr)
+                else:
+                    self.assertIn("INCONCLUSIVE handoff-gated capture", result.stdout)
 
     def run_verifier(self, *args):
         verifier = Path(__file__).resolve().parents[1] / "tools" / "verify_qnx_cancel_ordering.py"

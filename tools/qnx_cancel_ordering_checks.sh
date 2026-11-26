@@ -17,10 +17,12 @@ case "${1:-stock}" in
         ;;
     *) echo 'Expected stock, gated or boundary.' >&2; exit 2 ;;
 esac
-mkdir "$out"
+mkdir -m 700 "$out"
 broker=
+writer=
 cleanup() {
     exec 3>&-
+    if [ -n "$writer" ]; then kill -TERM "$writer" 2>/dev/null || :; wait "$writer" || :; fi
     if [ -n "$broker" ]; then kill -TERM "$broker" 2>/dev/null || :; wait "$broker" || :; fi
     rm -f "$out/control.fifo"
 }
@@ -105,6 +107,13 @@ for name in $cases; do
     printf '%s\n' "$broker" > "$stem.broker-pid"
     wait_trace '"type":"sample","sequence":16,'
     pidin -p "$broker" fds > "$stem-baseline.fds"
+    case "$name" in
+        live-near|handoff-gated)
+            ./qnx-cancel-replay-worker --write-cancel "$stem" "$out/control.fifo" "$name" \
+                3>&- > "$stem.write" 2> "$stem.write.stderr" &
+            writer=$!
+            ;;
+    esac
     printf 'stage %s/%s.manifest\n' "$out" "$name" >&3
     [ "$name" = replay-gated ] || wait_trace '"generation":1,.*"event":"stage_requested"'
     candidate=
@@ -113,10 +122,19 @@ for name in $cases; do
         candidate=$(sed -n '/"generation":1,.*"event":"candidate_promoted"/s/.*"candidate_pid":\([0-9][0-9]*\),.*/\1/p' "$log")
     fi
 
-    if [ "$name" = replay-gated ] || [ "$name" = live-near ] || [ "$name" = handoff-gated ]; then
-        if [ "$name" = live-near ]; then
-            wait_trace '"type":"sample","sequence":21,'
+    if [ -n "$writer" ]; then
+        if wait "$writer"; then code=0; else code=$?; fi
+        writer=
+        printf '%s\n' "$code" > "$stem.write.exit"
+        if [ "$code" -eq 77 ]; then
+            finish_capture_without_receipt || inconclusive=1
+            continue
         fi
+        if [ "$code" -ne 0 ]; then
+            echo "FAIL $name FIFO writer exited $code; see $stem.write.stderr" >&2
+            exit 1
+        fi
+    elif [ "$name" = replay-gated ]; then
         count=0
         while :; do
             receipt=
@@ -132,19 +150,9 @@ for name in $cases; do
             fi
             sleep 0.005
         done
-        # Release only after the complete command write to the broker FIFO.
-        if [ "$name" = replay-gated ]; then
-            printf 'cancel\n' >&3
-            printf '%s\n' "$receipt" > "$stem.release"
-        else
-            target=0
-            if [ "$name" = live-near ]; then
-                acquired=$(printf '%s\n' "$receipt" | sed -n 's/.* acquired_ns=\([0-9][0-9]*\) .*/\1/p')
-                # awk uses doubles, so do the addition in the native helper to preserve ns.
-                target=$acquired
-            fi
-            ./qnx-cancel-replay-worker --write-cancel "$stem" "$target" > "$stem.write"
-        fi
+        # The worker releases the reply after the complete command write.
+        printf 'cancel\n' >&3
+        printf '%s\n' "$receipt" > "$stem.release"
     else
         tid=
         observed_from=0

@@ -32,8 +32,11 @@ python3 tools/verify_qnx_cancel_ordering.py FRESH_TRACE_DIR --boundary
   next input boundary, in that order. The baseline remains
   authoritative throughout generation 1.
 
-The FIFO writer records monotonic timestamps immediately before and after
-the write. The worker matches its receipt against the release token
+The driver starts the FIFO writer before staging, so it can open and
+validate the named pipe before the watched exchange. The writer records
+its exit status in `.write.exit` and diagnostics in `.write.stderr`.
+It records monotonic timestamps immediately before and after a single
+atomic write. The worker matches its receipt against the release token
 before replying. The broker's `cancel_requested` event records
 acceptance and `candidate_cancelled` records the policy decision.
 
@@ -52,3 +55,11 @@ The host controls create all fixtures in temporary directories.
 ```sh
 python3 tests/qnx_cancel_ordering_verifier.py
 ```
+
+For an instrumented guest retry, the driver can run from a fresh writable
+directory selected by `SHADOW_QNX_TARGET_DIR`. Copy the four existing
+broker, worker, candidate and manifest files there from the original
+image, then transfer the updated `qnx-cancel-replay-worker` and driver
+to that directory. Keep the original image and first attempt intact.
+Record the source revision and host/guest checksums of the reused and
+replaced files in the retry inventory.
