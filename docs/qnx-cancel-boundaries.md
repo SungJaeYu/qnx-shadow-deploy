@@ -23,6 +23,23 @@ SHA-256 is `287c770d126d75b19b2578f6e8ef4a7ef468c363672239cc04bbe1084a22046c`.
 
 ## Reproduce
 
+The companion `replay-exact` mode uses the stock delayed worker. On the
+`fa360fd` QNX x86-64 run, the observer verified the candidate was the
+broker's child, then observed the same dispatch TID (4), process, peer,
+channel and connection in REPLY on both sides of the 0.095 ms cancel write.
+The post-write snapshot ended 95.101 ms after the stage write, inside the
+248 ms gate and before the stock worker could complete its first 250 ms
+delay. The broker accepted cancellation on input 18 and generation 2
+committed on 32. The verifier confirmed descriptor restoration and absence
+of the broker, baseline and both candidates after exit. The previous
+`1ebc3b4` trial was interrupted after detecting an unrelated REPLY peer.
+The observer now checks ownership before issuing cancel.
+
+To repeat the stock case, give the guest driver `replay-exact` instead of
+`boundary`, select a fresh trace directory, then pass `--replay-exact` to
+the host verifier. This proof uses the measured stage-to-snapshot interval
+and stock worker delay; it works when the kernel returns zero block age.
+
 Run the boundary cases on QNX with `shadow-demo`, `shadow-worker`,
 `shadow-candidate`, `candidate.manifest`, `qnx-cancel-replay-worker` and
 `qnx_cancel_ordering_checks.sh` from the same build revision. The fixture
