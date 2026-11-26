@@ -77,6 +77,9 @@ if(BUILD_TESTING)
     add_test(NAME workbench-api COMMAND ${Python3_EXECUTABLE}
       ${CMAKE_CURRENT_SOURCE_DIR}/tests/server_tests.py $<TARGET_FILE_DIR:shadow-demo>)
     set_tests_properties(workbench-api PROPERTIES TIMEOUT 30)
+    add_test(NAME preboard-pipeline COMMAND ${Python3_EXECUTABLE}
+      ${CMAKE_CURRENT_SOURCE_DIR}/tests/preboard_pipeline.py $<TARGET_FILE_DIR:shadow-demo>)
+    set_tests_properties(preboard-pipeline PROPERTIES TIMEOUT 20)
   endif()
 endif()
 install(TARGETS shadow-demo shadow-worker shadow-candidate RUNTIME DESTINATION bin)

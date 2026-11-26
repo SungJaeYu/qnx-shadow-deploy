@@ -3,10 +3,13 @@
 #include "shadow/process.hpp"
 #include "shadow/schedule.hpp"
 #include "shadow/staging.hpp"
+#include <charconv>
 #include <chrono>
 #include <cmath>
 #include <csignal>
+#include <cstdio>
 #include <deque>
+#include <fcntl.h>
 #include <iomanip>
 #include <iostream>
 #include <memory>
@@ -14,6 +17,7 @@
 #include <poll.h>
 #include <stdexcept>
 #include <string>
+#include <sys/stat.h>
 #include <thread>
 #include <unistd.h>
 #include <vector>
@@ -27,6 +31,46 @@ unsigned number(const std::string& text) {
     if (used != text.size() || text.empty() || text[0] == '-' || value > 1000000)
         throw std::invalid_argument("Invalid numeric argument");
     return static_cast<unsigned>(value);
+}
+std::vector<double> load_sensor_trace(const std::string& path, unsigned samples) {
+    constexpr unsigned max_samples = 100000;
+    constexpr unsigned max_line_bytes = 16;
+    constexpr int max_position_mm = 1000000;
+    if (samples > max_samples) throw std::invalid_argument("sensor trace supports at most 100000 samples");
+
+    const int fd = ::open(path.c_str(), O_RDONLY | O_NONBLOCK);
+    if (fd == -1) throw std::invalid_argument("cannot open sensor trace");
+    struct stat info{};
+    if (::fstat(fd, &info) == -1 || !S_ISREG(info.st_mode)) {
+        ::close(fd);
+        throw std::invalid_argument("sensor trace must be a regular file");
+    }
+    std::unique_ptr<std::FILE, decltype(&std::fclose)> stream(::fdopen(fd, "rb"), std::fclose);
+    if (!stream) {
+        ::close(fd);
+        throw std::invalid_argument("cannot read sensor trace");
+    }
+
+    std::vector<double> positions;
+    positions.reserve(samples);
+    for (unsigned i = 1; i <= samples; ++i) {
+        char line[max_line_bytes];
+        unsigned length = 0;
+        int ch = std::fgetc(stream.get());
+        while (ch != '\n' && ch != EOF && length < sizeof(line)) {
+            line[length++] = static_cast<char>(ch);
+            ch = std::fgetc(stream.get());
+        }
+        int position_mm = 0;
+        const auto parsed = std::from_chars(line, line + length, position_mm);
+        if (ch != '\n' || parsed.ec != std::errc{} || parsed.ptr != line + length ||
+            position_mm < -max_position_mm || position_mm > max_position_mm)
+            throw std::invalid_argument("invalid sensor trace sample at line " + std::to_string(i));
+        positions.push_back(position_mm / 1000.0);
+    }
+    if (std::fgetc(stream.get()) != EOF || std::ferror(stream.get()))
+        throw std::invalid_argument("sensor trace read failed or contains more than --samples rows");
+    return positions;
 }
 void value(double x) {
     if (std::isfinite(x)) std::cout << x;
@@ -87,7 +131,7 @@ int main(int argc, char** argv) {
     using namespace shadow;
     try {
         std::string worker = "./build/shadow-worker", scenario = "rollback";
-        std::string manifest;
+        std::string manifest, trace_path;
         bool control_stdin = false, scenario_set = false;
         unsigned stage_at = 20;
         unsigned samples = 180, period_ms = 20, deadline_ms = 10, qualify = 20, probation = 40;
@@ -97,6 +141,7 @@ int main(int argc, char** argv) {
                 std::cout << "Usage: shadow-demo [--worker PATH] [--scenario NAME] [--samples N]\n"
                              "  [--period-ms N] [--deadline-ms N] [--qualify N] [--probation N]\n"
                              "  [--candidate-manifest PATH --stage-at N] [--control-stdin]\n"
+                             "  [--sensor-trace PATH] (one integer millimetre value per sample)\n"
                              "Live mode starts baseline only. Stage after N completed inputs or send\n"
                              "  stage PATH / cancel commands on stdin. Promotion follows qualification.\n"
                              "Scenarios: promote, reject-units, reject-delay, reject-nan, reject-stale,\n"
@@ -111,7 +156,10 @@ int main(int argc, char** argv) {
             if (option == "--worker") worker = argument;
             else if (option == "--scenario") { scenario = argument; scenario_set = true; }
             else if (option == "--candidate-manifest") manifest = argument;
-            else if (option == "--stage-at") stage_at = number(argument);
+            else if (option == "--sensor-trace") {
+                if (argument.empty()) throw std::invalid_argument("sensor trace path is empty");
+                trace_path = argument;
+            } else if (option == "--stage-at") stage_at = number(argument);
             else if (option == "--samples") samples = number(argument);
             else if (option == "--period-ms") period_ms = number(argument);
             else if (option == "--deadline-ms") deadline_ms = number(argument);
@@ -146,6 +194,7 @@ int main(int argc, char** argv) {
         } else if (scenario == "baseline-failure") baseline_mode = "crash";
         else if (scenario == "post-commit-failure") { candidate_mode = "crash"; fault_after = qualify + probation + 2; }
         else throw std::invalid_argument("Unknown scenario");
+        const auto trace = trace_path.empty() ? std::vector<double>{} : load_sensor_trace(trace_path, samples);
         std::signal(SIGPIPE, SIG_IGN);
         std::signal(SIGINT, stop); std::signal(SIGTERM, stop);
         auto baseline = std::make_unique<WorkerProcess>(worker, baseline_mode, fault_after);
@@ -156,13 +205,17 @@ int main(int argc, char** argv) {
         Commands commands;
         unsigned generation = 0;
         StagingStatus staging_status;
+        const auto run_stamp_ns = monotonic_ns();
         std::cout << std::setprecision(10);
         std::cout << "{\"type\":\"meta\",\"schema\":" << (live ? 2 : 1) << ",\"backend\":\"" << WorkerProcess::backend()
                   << "\",\"scenario\":\"" << scenario << "\",\"baseline_pid\":" << baseline->pid()
                   << ",\"candidate_pid\":" << (candidate ? candidate->pid() : -1) << ",\"period_ms\":" << period_ms
                   << ",\"deadline_ms\":" << deadline_ms << ",\"ipc_budget_ms\":" << deadline_ms * 0.75
                   << ",\"qualification_samples\":" << qualify
-                  << ",\"probation_samples\":" << probation << ",\"position_unit\":\"m\"}" << std::endl;
+                  << ",\"probation_samples\":" << probation << ",\"position_unit\":\"m\"";
+        std::cout << ",\"producer_run_id\":\"" << baseline->pid() << "-" << run_stamp_ns << "\"";
+        if (!trace.empty()) std::cout << ",\"input_source\":\"sensor-trace-mm\"";
+        std::cout << "}" << std::endl;
         const auto period_ns = static_cast<std::uint64_t>(period_ms) * 1000000;
         const auto start = monotonic_ns();
         auto next_release = start;
@@ -213,7 +266,7 @@ int main(int argc, char** argv) {
             sample.sequence = i; sample.acquired_ns = monotonic_ns();
             const double seconds = static_cast<double>(sample.acquired_ns - start) / 1e9;
             const double truth = 10 + 0.5 * seconds + std::sin(seconds * 0.6);
-            sample.position_m = truth + 0.08 * std::sin(static_cast<double>(i) * 1.7);
+            sample.position_m = trace.empty() ? truth + 0.08 * std::sin(static_cast<double>(i) * 1.7) : trace[i - 1];
             history.push_back(sample);
             if (history.size() > history_capacity) history.pop_front();
             if (stager && supervisor.phase() == Phase::warming) stager->enqueue(sample);
@@ -240,7 +293,9 @@ int main(int argc, char** argv) {
             if (decision.output) ++outputs;
             ++emitted;
             std::cout << "{\"type\":\"sample\",\"sequence\":" << i << ",\"time_s\":" << seconds
-                      << ",\"truth\":" << truth << ",\"input\":" << sample.position_m << ",\"baseline\":";
+                      << ",\"truth\":";
+            if (trace.empty()) value(truth); else std::cout << "null";
+            std::cout << ",\"input\":" << sample.position_m << ",\"baseline\":";
             observation(b, sample); std::cout << ",\"candidate\":"; observation(c, sample);
             std::cout << ",\"phase\":\"" << name(decision.phase) << "\",\"source\":\"" << name(decision.source)
                       << "\",\"output\":";

@@ -14,7 +14,7 @@ const descriptions = {
   "post-commit-failure": "The candidate fails after the standby has been retired. The broker stops; it cannot roll back."
 };
 let records = [], samples = [], running = false, count = 0, missing = 0;
-let redrawPending = false;
+let redrawPending = false, watchingBoard = false;
 const pretty = value => String(value || "").replaceAll("_", " ");
 function requestDraw() {
   if (!redrawPending) { redrawPending = true; requestAnimationFrame(() => { redrawPending = false; draw(); }); }
@@ -22,6 +22,8 @@ function requestDraw() {
 function reset() {
   records = []; samples = []; count = 0; missing = 0;
   $("events").replaceChildren(); $("error").hidden = true; $("empty").hidden = false;
+  $("reference-label").textContent = "Reference";
+  $("backend").textContent = "Waiting for run metadata";
   $("phase").textContent = "Starting"; $("phase").className = "phase";
   $("owner").textContent = "—"; $("outputs").textContent = "0"; $("missing").textContent = "0";
   $("latency").textContent = "—"; $("sample-count").textContent = "0 samples";
@@ -36,16 +38,20 @@ function addEvent(row) {
   text.textContent = pretty(row.event); reason.textContent = pretty(row.reason);
   text.append(reason); item.append(sequence, text); $("events").prepend(item);
 }
-function accept(row, replay = false) {
+function accept(row, replay = false, board = null) {
   if (!row || typeof row !== "object") throw new Error("Invalid recording row");
   records.push(row);
   if (row.type === "meta") {
     if (![1, 2].includes(row.schema) || !["host-posix-pipes", "qnx-native-ipc"].includes(row.backend)) throw new Error("Unsupported recording schema or backend");
-    $("backend").textContent = `${replay ? "Recorded" : "Live"} ${row.backend === "qnx-native-ipc" ? "QNX native IPC" : "host POSIX process run"} · baseline PID ${row.baseline_pid} · ${row.candidate_pid > 0 ? `candidate PID ${row.candidate_pid}` : "candidate not attached"}`;
+    $("backend").textContent = `${board ? board.source : replay ? "Recorded" : "Live"} ${row.backend === "qnx-native-ipc" ? "QNX native IPC" : "host POSIX process run"} · baseline PID ${row.baseline_pid} · ${row.candidate_pid > 0 ? `candidate PID ${row.candidate_pid}` : "candidate not attached"}`;
+    if (row.input_source === "sensor-trace-mm") {
+      $("reference-label").textContent = "Sensor input";
+      $("backend").textContent += " · sensor trace";
+    }
     $("deadline").textContent = `${row.deadline_ms} ms`; $("qualification").textContent = `${row.qualification_samples} samples`;
     $("probation").textContent = `${row.probation_samples} samples`;
   } else if (row.type === "sample") {
-    if (!Number.isFinite(row.sequence) || !Number.isFinite(row.time_s) || !Number.isFinite(row.truth)) throw new Error("Invalid sample record");
+    if (!Number.isFinite(row.sequence) || !Number.isFinite(row.time_s) || (row.truth !== null && !Number.isFinite(row.truth))) throw new Error("Invalid sample record");
     if (samples.length && row.sequence <= samples[samples.length - 1].sequence) throw new Error("Recording sequences must increase");
     samples.push(row); $("empty").hidden = true;
     if (row.output === null) ++missing; else ++count;
@@ -64,15 +70,15 @@ function accept(row, replay = false) {
     addEvent(row);
     if (row.candidate_pid > 0) {
       const meta = records[0];
-      $("backend").textContent = `${replay ? "Recorded" : "Live"} ${meta.backend === "qnx-native-ipc" ? "QNX native IPC" : "host POSIX process run"} · baseline PID ${meta.baseline_pid} · candidate PID ${row.candidate_pid} · generation ${row.generation}`;
+      $("backend").textContent = `${board ? board.source : replay ? "Recorded" : "Live"} ${meta.backend === "qnx-native-ipc" ? "QNX native IPC" : "host POSIX process run"} · baseline PID ${meta.baseline_pid} · candidate PID ${row.candidate_pid} · generation ${row.generation}`;
     }
   } else if (row.type === "error") throw new Error(row.message);
   else if (row.type !== "summary") throw new Error("Unknown record type");
 }
 async function run() {
-  if (running) return;
-  running = true; $("run").disabled = true; $("recording").disabled = true; $("scenario").disabled = true;
-  reset(); $("connection").textContent = "Demonstration running";
+  if (running || watchingBoard) return;
+  running = true; $("watch-board").disabled = true; $("run").disabled = true; $("recording").disabled = true; $("scenario").disabled = true;
+  reset(); $("board-status").hidden = true; $("connection").textContent = "Demonstration running";
   try {
     const response = await fetch("/api/run", {method: "POST", headers: {"Content-Type": "application/json"}, body: JSON.stringify({scenario: $("scenario").value})});
     if (!response.ok) throw new Error(`Run could not start (HTTP ${response.status}). Check the server and build output.`);
@@ -88,7 +94,61 @@ async function run() {
     if (records[records.length - 1]?.type !== "summary") throw new Error("The run ended without a summary. Evidence is incomplete.");
     $("connection").textContent = "Run complete";
   } catch (error) { failure(error.message); $("connection").textContent = "Run interrupted"; }
-  finally { running = false; $("run").disabled = false; $("recording").disabled = false; $("scenario").disabled = false; $("download").disabled = !records.length; }
+  finally { running = false; $("watch-board").disabled = false; $("run").disabled = false; $("recording").disabled = false; $("scenario").disabled = false; $("download").disabled = !records.length; }
+}
+async function watchBoard() {
+  const button = $("watch-board"), status = $("board-status");
+  if (watchingBoard) {
+    watchingBoard = false;
+    button.disabled = true;
+    return;
+  }
+  if (running) return;
+  watchingBoard = true;
+  button.textContent = "Stop watching board";
+  $("run").disabled = true; $("recording").disabled = true;
+  reset();
+  status.hidden = false;
+  status.textContent = "Waiting for the board relay";
+  try {
+    let previous = "";
+    while (watchingBoard) {
+      const response = await fetch("/api/board", {cache: "no-store"});
+      if (!watchingBoard) break;
+      if (!response.ok) {
+        if (response.status === 503) {
+          await new Promise(resolve => setTimeout(resolve, 1000));
+          continue;
+        }
+        throw new Error("Start the workbench with --board-stdin to view board telemetry.");
+      }
+      const board = await response.json();
+      if (!watchingBoard) break;
+      const signature = JSON.stringify(board);
+      if (signature !== previous) {
+        previous = signature;
+        status.textContent = `${board.source} · upstream ${board.upstream} · ${board.sequence_gaps} missing samples · ${board.evicted} older rows evicted · ${board.malformed} malformed · ${board.oversize} oversized`;
+        $("connection").textContent = board.complete ? "Board run complete" : board.upstream === "connected" ? "Board stream connected" : "Board stream disconnected";
+        reset();
+        if (board.meta) {
+          accept(board.meta, false, board);
+          for (const row of board.rows) accept(row, false, board);
+          const id = board.meta.producer_run_id || board.run_id;
+          $("backend").textContent += ` · run ${id}`;
+          $("download").disabled = !board.complete || board.evicted > 0 || board.sequence_gaps > 0;
+        }
+      }
+      await new Promise(resolve => setTimeout(resolve, 500));
+    }
+  } catch (error) {
+    failure(error.message);
+    $("connection").textContent = "Board view unavailable";
+  } finally {
+    watchingBoard = false;
+    button.textContent = "Watch board stream";
+    button.disabled = false;
+    $("run").disabled = false; $("recording").disabled = false;
+  }
 }
 function draw() {
   const canvas = $("chart"), box = canvas.getBoundingClientRect(), scale = window.devicePixelRatio || 1;
@@ -96,8 +156,8 @@ function draw() {
   const ctx = canvas.getContext("2d"); ctx.scale(scale, scale);
   const w = box.width, h = box.height, left = 50, top = 24, right = w - 20, bottom = h - 35;
   const shown = samples.slice(-240);
-  let lo = shown.length ? Math.min(...shown.map(r => r.truth)) - 0.4 : 9.5;
-  let hi = shown.length ? Math.max(...shown.map(r => r.truth)) + 0.4 : 11.5;
+  let lo = shown.length ? Math.min(...shown.map(r => r.truth ?? r.input)) - 0.4 : 9.5;
+  let hi = shown.length ? Math.max(...shown.map(r => r.truth ?? r.input)) + 0.4 : 11.5;
   if (hi - lo < 1) { lo -= .3; hi += .3; }
   const t0 = shown[0]?.time_s || 0, t1 = Math.max(t0 + .5, shown[shown.length - 1]?.time_s || 4);
   const x = t => left + (t - t0) / (t1 - t0) * (right - left), y = v => bottom - (v - lo) / (hi - lo) * (bottom - top);
@@ -109,14 +169,16 @@ function draw() {
   }
   ctx.fillText("m", 14, 15);
   function line(get, color, width, dash) {
-    ctx.strokeStyle = color; ctx.lineWidth = width; ctx.setLineDash(dash); ctx.beginPath(); let connected = false;
+    ctx.strokeStyle = color; ctx.lineWidth = width; ctx.setLineDash(dash); ctx.beginPath(); let connected = false, previousSequence = null;
     for (const row of shown) {
+      if (previousSequence !== null && row.sequence !== previousSequence + 1) connected = false;
+      previousSequence = row.sequence;
       const v = get(row); if (v === null || !Number.isFinite(v) || v < lo || v > hi) { connected = false; continue; }
       if (connected) ctx.lineTo(x(row.time_s), y(v)); else ctx.moveTo(x(row.time_s), y(v)); connected = true;
     }
     ctx.stroke(); ctx.setLineDash([]);
   }
-  line(r => r.truth, "#91a1ad", 1.5, []);
+  line(r => r.truth ?? r.input, "#91a1ad", 1.5, []);
   line(r => r.candidate?.position ?? null, "#b96913", 2, [5, 4]);
   line(r => r.output, "#176b89", 2.5, []);
   for (const row of shown.filter(r => r.event)) {
@@ -126,13 +188,14 @@ function draw() {
 $("scenario").addEventListener("change", () => { $("description").textContent = descriptions[$("scenario").value]; });
 $("description").textContent = descriptions[$("scenario").value];
 $("run").addEventListener("click", run);
+$("watch-board").addEventListener("click", watchBoard);
 $("download").addEventListener("click", () => {
   const blob = new Blob([records.map(row => JSON.stringify(row)).join("\n") + "\n"], {type: "application/x-ndjson"});
   const url = URL.createObjectURL(blob), link = document.createElement("a"); link.href = url; link.download = `shadow-deploy-${records[0]?.scenario || "run"}.jsonl`; link.click(); setTimeout(() => URL.revokeObjectURL(url), 1000);
 });
 $("recording").addEventListener("change", async event => {
-  const file = event.target.files[0]; if (!file || running) return;
-  reset();
+  const file = event.target.files[0]; if (!file || running || watchingBoard) return;
+  reset(); $("board-status").hidden = true;
   try {
     if (file.size > 10 * 1024 * 1024) throw new Error("Recordings must be smaller than 10 MB.");
     const rows = (await file.text()).trim().split("\n").map(line => JSON.parse(line));

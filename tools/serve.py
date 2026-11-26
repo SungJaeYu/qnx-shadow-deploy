@@ -6,8 +6,12 @@ import json
 import os
 from pathlib import Path
 import signal
+import socket
 import subprocess
+import sys
 import threading
+
+from board_relay import BoardRelay
 
 ROOT = Path(__file__).resolve().parents[1]
 SCENARIOS = {"promote", "reject-units", "reject-delay", "reject-nan", "reject-stale",
@@ -38,6 +42,24 @@ class Handler(BaseHTTPRequestHandler):
     def do_GET(self):
         if not self.allowed():
             self.send_error(403)
+            return
+        if self.path == "/api/board":
+            relay = self.server.board_relay
+            if relay is None:
+                self.send_error(404, "Board input is disabled")
+                return
+            if not self.server.board_observers.acquire(blocking=False):
+                self.send_error(503, "Too many board observers")
+                return
+            try:
+                self.connection.settimeout(2)
+                payload = json.dumps(relay.snapshot(), ensure_ascii=True, allow_nan=False).encode()
+                self.respond(200, "application/json; charset=utf-8")
+                self.wfile.write(payload)
+            except (BrokenPipeError, ConnectionResetError, socket.timeout):
+                pass
+            finally:
+                self.server.board_observers.release()
             return
         files = {"/": ("index.html", "text/html; charset=utf-8"),
                  "/app.js": ("app.js", "text/javascript; charset=utf-8"),
@@ -125,13 +147,25 @@ def main():
     parser.add_argument("--samples", type=int, default=180)
     parser.add_argument("--period-ms", type=int, default=20)
     parser.add_argument("--deadline-ms", type=int, default=10)
+    parser.add_argument("--sensor-trace", type=Path, help="Read validated millimetre samples for local runs")
+    parser.add_argument("--board-stdin", metavar="SOURCE", help="Relay broker JSONL from stdin under this source label")
     args = parser.parse_args()
+    if args.board_stdin is not None and not (1 <= len(args.board_stdin) <= 64 and args.board_stdin.isascii()
+                                            and all(c.isalnum() or c in "-_." for c in args.board_stdin)):
+        parser.error("Board source must be 1..64 ASCII letters, digits, dots, underscores or hyphens")
     if not 0 < args.samples <= 1000 or not 0 < args.deadline_ms < args.period_ms <= 1000:
         parser.error("Require 1..1000 samples and 0 < deadline-ms < period-ms <= 1000")
     server = ThreadingHTTPServer(("127.0.0.1", args.port), Handler)
     server.build_dir = args.build_dir.resolve()
     server.demo_options = ["--samples", str(args.samples), "--period-ms", str(args.period_ms),
                            "--deadline-ms", str(args.deadline_ms)]
+    if args.sensor_trace is not None:
+        server.demo_options += ["--sensor-trace", str(args.sensor_trace.resolve())]
+    server.board_relay = None
+    server.board_observers = threading.BoundedSemaphore(8)
+    if args.board_stdin:
+        server.board_relay = BoardRelay(args.board_stdin)
+        threading.Thread(target=server.board_relay.consume, args=(sys.stdin.buffer,), daemon=True).start()
     print(f"ShadowDeploy workbench: http://127.0.0.1:{server.server_port}", flush=True)
     try:
         server.serve_forever()

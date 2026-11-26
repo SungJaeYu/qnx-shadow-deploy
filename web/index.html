@@ -29,6 +29,8 @@
       </select>
       <button id="run" class="primary">Run demonstration</button>
       <p id="description" class="hint"></p>
+      <button id="watch-board" type="button">Watch board stream</button>
+      <p id="board-status" class="hint" aria-live="polite" hidden></p>
       <div class="contract">
         <h2>Output contract</h2>
         <dl><div><dt>Decision deadline</dt><dd id="deadline">10 ms</dd></div>
@@ -48,11 +50,11 @@
         <article class="version baseline"><div><h3>Baseline <span>v1</span></h3><strong id="baseline-role">Waiting</strong></div><p id="baseline-check">No samples received</p></article>
         <article class="version candidate"><div><h3>Candidate <span>v2</span></h3><strong id="candidate-role">Waiting</strong></div><p id="candidate-check">No samples received</p></article>
       </div>
-      <div class="plot-heading"><h3>Position stream</h3><div class="legend"><span class="truth">Reference</span><span class="candidate-line">Candidate</span><span class="output-line">Published output</span></div></div>
+      <div class="plot-heading"><h3>Position stream</h3><div class="legend"><span id="reference-label" class="truth">Reference</span><span class="candidate-line">Candidate</span><span class="output-line">Published output</span></div></div>
       <div class="chart"><canvas id="chart" aria-label="Position in meters over time" role="img"></canvas><p id="empty">Run a scenario to see measured outputs.</p></div>
       <div class="metrics"><div><span>Output owner</span><strong id="owner">—</strong></div><div><span>Selected outputs</span><strong id="outputs">0</strong></div><div><span>Missing outputs</span><strong id="missing">0</strong></div><div><span>Latest decision</span><strong id="latency">—</strong></div></div>
       <section class="events"><div class="events-heading"><h3>Deployment decisions</h3><span id="sample-count">0 samples</span></div><ol id="events" aria-live="polite"><li class="placeholder">Decisions will appear here with their input sequence and reason.</li></ol></section>
-      <p class="footnote">Synthetic position data. Host runs validate behavior; QNX execution and target timing require separate evidence. The fallback window ends when the candidate is committed.</p>
+      <p class="footnote">Host runs validate behavior. QNX execution and target timing require separate evidence. The fallback window ends when the candidate is committed.</p>
       <p id="error" class="error" role="alert" hidden></p>
     </section>
   </main>

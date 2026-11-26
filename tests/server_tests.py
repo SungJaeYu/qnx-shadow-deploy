@@ -10,6 +10,7 @@ import unittest
 ROOT = Path(__file__).resolve().parents[1]
 BUILD = Path(sys.argv[1]).resolve()
 sys.argv = [sys.argv[0]]
+sys.path.insert(0, str(ROOT / "tools"))
 spec = importlib.util.spec_from_file_location("workbench_server", ROOT / "tools" / "serve.py")
 server_module = importlib.util.module_from_spec(spec)
 spec.loader.exec_module(server_module)
