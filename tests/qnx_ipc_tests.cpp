@@ -393,6 +393,33 @@ int attempt(const std::string& receiver, const std::string& dir, const Case& tes
     }
 }
 
+void clean_attempt_group(pid_t child, const std::string& dir, const char* reason) {
+    const int result = kill(-child, SIGKILL);
+    const int error = result < 0 ? errno : 0;
+    std::cout << reason << " directory=" << dir << " kill_result=" << result
+              << " kill_errno=" << error << std::endl;
+    if (result < 0) kill(child, SIGKILL);
+    for (const auto& prefix : {dir, dir + "/recovery"}) {
+        for (const auto* name : {"/commands", "/events"}) {
+            const auto path = prefix + name;
+            if (unlink(path.c_str()) < 0 && errno != ENOENT)
+                std::cerr << "fifo_cleanup_failure path=" << path << " errno=" << errno << std::endl;
+        }
+    }
+}
+
+int reap_attempt(pid_t child) {
+    const auto deadline = shadow::monotonic_ns() + second_ns;
+    int status = 0;
+    while (shadow::monotonic_ns() < deadline) {
+        const auto waited = waitpid(child, &status, WNOHANG);
+        if (waited == child) return status;
+        require(waited == 0 || errno == EINTR, "watchdog reap failed");
+        std::this_thread::sleep_for(2ms);
+    }
+    throw std::runtime_error("watchdog could not reap attempt within cleanup bound");
+}
+
 int supervise(const std::string& receiver, const std::string& dir, const Case& test, std::uint64_t budget_ns) {
     require(mkdir(dir.c_str(), 0700) == 0, "create attempt directory failed");
     Fd output(dir + "/stdout.txt", O_WRONLY | O_CREAT | O_EXCL);
@@ -408,32 +435,34 @@ int supervise(const std::string& receiver, const std::string& dir, const Case& t
     }
     // Establish the group on both sides of fork to cover child startup races.
     if (setpgid(child, child) < 0 && errno != ESRCH && getpgid(child) != child) {
-        kill(child, SIGKILL);
-        waitpid(child, nullptr, 0);
+        clean_attempt_group(child, dir, "watchdog_group_setup_failure");
+        reap_attempt(child);
         throw std::runtime_error("watchdog could not establish attempt process group");
     }
     const auto limit = shadow::monotonic_ns() + attempt_watchdog_seconds * second_ns;
-    int status = 0;
     while (shadow::monotonic_ns() < limit) {
-        const auto waited = waitpid(child, &status, WNOHANG);
-        if (waited == child) {
+        siginfo_t info{};
+        // Retain the leader's PID until group cleanup has addressed its descendants.
+        if (waitid(P_PID, child, &info, WEXITED | WNOHANG | WNOWAIT) < 0) {
+            if (errno == EINTR) continue;
+            if (errno != ECHILD) {
+                clean_attempt_group(child, dir, "watchdog_wait_failure");
+                reap_attempt(child);
+            }
+            throw std::runtime_error("watchdog waitid failed");
+        }
+        if (info.si_pid == child) {
+            if (info.si_code != CLD_EXITED)
+                clean_attempt_group(child, dir, "watchdog_abnormal_exit");
+            const int status = reap_attempt(child);
             std::cout << "attempt_wait_status=" << status << " directory=" << dir << std::endl;
             return WIFEXITED(status) ? WEXITSTATUS(status) : 1;
         }
-        require(waited >= 0 || errno == EINTR, "watchdog waitpid failed");
         std::this_thread::sleep_for(2ms);
     }
-    const int killed = kill(-child, SIGKILL);
-    const int kill_error = killed < 0 ? errno : 0;
-    // Also cover a child that died before joining its dedicated group.
-    if (killed < 0) kill(child, SIGKILL);
-    while (waitpid(child, &status, 0) < 0 && errno == EINTR) {}
-    for (const auto& prefix : {dir, dir + "/recovery"}) {
-        unlink((prefix + "/commands").c_str());
-        unlink((prefix + "/events").c_str());
-    }
-    std::cout << "watchdog_timeout directory=" << dir << " kill_result=" << killed
-              << " kill_errno=" << kill_error << " wait_status=" << status << std::endl;
+    clean_attempt_group(child, dir, "watchdog_timeout");
+    const int status = reap_attempt(child);
+    std::cout << "attempt_wait_status=" << status << " directory=" << dir << std::endl;
     return 1;
 }
 

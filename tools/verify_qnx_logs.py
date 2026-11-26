@@ -218,7 +218,8 @@ def verify_pi4(root):
     verify_live(traces, (("functional-live", 1), ("cancel-retry", 2), ("replay-retry", 7)), board=True)
     verify_lifecycle(lifecycle, traces)
     final_processes = (root / "final.processes").read_text()
-    check(not re.search(r"shadow-(?:demo|worker|candidate)", final_processes), "Final process leak")
+    check(not re.search(r"shadow-(?:demo|worker|candidate)|qnx-ipc-(?:tests|receiver)", final_processes),
+          "Final process leak")
     observations = verify_timeout(lifecycle, traces, ("stopped", "reply-observed"), board=True)
     print(json.dumps({"functional_scenarios_passed": len(expected), "live_runs_passed": 3,
                       "legacy_timeout_behavior_passed": 2,
@@ -234,7 +235,8 @@ def verify(root):
                          ("cancel-retry", 2), ("replay-retry", 7)))
     verify_lifecycle(root, traces)
     final_processes = (root / "final.processes").read_text()
-    check(not re.search(r"shadow-(?:demo|worker|candidate)", final_processes), "Final process leak")
+    check(not re.search(r"shadow-(?:demo|worker|candidate)|qnx-ipc-(?:tests|receiver)", final_processes),
+          "Final process leak")
     verify_timeout(root, traces, ("send", "reply", "stopped", "reply-observed"))
     report = {"native_trace_count": len(traces), "functional_scenarios_passed": len(expected),
               "live_and_lifecycle_checks_passed": 4,
