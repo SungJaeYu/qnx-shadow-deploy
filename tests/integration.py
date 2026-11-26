@@ -86,6 +86,8 @@ class ProcessIntegration(unittest.TestCase):
         rows = self.run_scenario("promote", "committed", "candidate_committed")
         promotion = next(row for row in rows if row.get("event") == "candidate_promoted")
         self.assertEqual(promotion["sequence"], 4)
+        self.assertEqual(rows[-1]["worker_retirement_samples"], 1)
+        self.assertGreaterEqual(rows[-1]["max_worker_retirement_ns"], 0)
 
     def test_rejections(self):
         expected = {"units": "position_out_of_range", "delay": "deadline_exceeded",
@@ -98,7 +100,14 @@ class ProcessIntegration(unittest.TestCase):
                 self.assertEqual(event["reason"], reason)
 
     def test_rollback(self):
-        self.run_scenario("rollback", "rolled_back", "candidate_rolled_back")
+        rows = self.run_scenario("rollback", "rolled_back", "candidate_rolled_back")
+        self.assertEqual(rows[-1]["worker_retirement_samples"], 1)
+        self.assertGreaterEqual(rows[-1]["max_worker_retirement_ns"], 0)
+
+    def test_shutdown_only_cleanup_is_excluded(self):
+        rows = self.run_scenario("promote", "probation", "candidate_promoted", probation=40)
+        self.assertEqual(rows[-1]["worker_retirement_samples"], 0)
+        self.assertIsNone(rows[-1]["max_worker_retirement_ns"])
 
     def test_frozen_candidate_rolls_back_on_a_moving_trace(self):
         with tempfile.TemporaryDirectory() as directory:

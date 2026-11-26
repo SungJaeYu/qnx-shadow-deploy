@@ -4,6 +4,7 @@
 #include "shadow/process.hpp"
 #include "shadow/schedule.hpp"
 #include "shadow/staging.hpp"
+#include <algorithm>
 #include <charconv>
 #include <chrono>
 #include <cmath>
@@ -229,6 +230,8 @@ int main(int argc, char** argv) {
         const auto start = monotonic_ns();
         auto next_release = start;
         ServiceContinuity continuity(start, contract.period_ns);
+        unsigned worker_retirement_samples = 0;
+        std::uint64_t max_worker_retirement_ns = 0;
         for (unsigned i = 1; i <= samples && !interrupted; ++i) {
             const auto now = monotonic_ns();
             if (now < next_release) std::this_thread::sleep_for(std::chrono::nanoseconds(next_release - now));
@@ -332,8 +335,16 @@ int main(int argc, char** argv) {
             milliseconds(timing.acquisition_interval_ns);
             std::cout << "}" << std::endl;
             // Retire children after the decision. They cannot publish directly.
-            if (!supervisor.needs_candidate()) candidate.reset();
-            if (!supervisor.needs_baseline()) baseline.reset();
+            const bool retire_candidate = candidate && !supervisor.needs_candidate();
+            const bool retire_baseline = baseline && !supervisor.needs_baseline();
+            if (retire_candidate || retire_baseline) {
+                const auto retirement_start_ns = monotonic_ns();
+                if (retire_candidate) candidate.reset();
+                if (retire_baseline) baseline.reset();
+                const auto retirement_ns = monotonic_ns() - retirement_start_ns;
+                ++worker_retirement_samples;
+                max_worker_retirement_ns = std::max(max_worker_retirement_ns, retirement_ns);
+            }
             if (decision.phase == Phase::failed) break;
             // Rebase on actual acquisition, not the old nominal release grid.
             next_release = next_release_ns(sample.acquired_ns, monotonic_ns(), contract.period_ns);
@@ -368,6 +379,10 @@ int main(int argc, char** argv) {
         std::cout << ",\"effective_selected_rate_hz\":";
         if (continuity.selected_span_ns)
             std::cout << (continuity.selected - 1) * 1e9 / static_cast<double>(continuity.selected_span_ns);
+        else std::cout << "null";
+        std::cout << ",\"worker_retirement_samples\":" << worker_retirement_samples
+                  << ",\"max_worker_retirement_ns\":";
+        if (worker_retirement_samples) std::cout << max_worker_retirement_ns;
         else std::cout << "null";
         std::cout << ",\"external_delivery\":\"unmeasured\"}" << std::endl;
         return interrupted ? 130 : (supervisor.phase() == Phase::failed ? 3 : 0);
