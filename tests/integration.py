@@ -85,6 +85,9 @@ class ProcessIntegration(unittest.TestCase):
             self.assertEqual(record["ipc_deadline_ns"] - record["acquired_ns"], 56_250_000)
             self.assertLessEqual(record["selected_ns"], record["flush_start_ns"])
             self.assertLessEqual(record["flush_start_ns"], record["flush_end_ns"])
+            self.assertIsNone(record["authority_write_start_ns"])
+            self.assertIsNone(record["authority_write_end_ns"])
+            self.assertIsNone(record["authority_write_outcome"])
             for worker in (record["baseline"], record["candidate"]):
                 if worker is None:
                     continue

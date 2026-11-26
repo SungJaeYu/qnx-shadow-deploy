@@ -45,9 +45,24 @@ class OutputDelivery(unittest.TestCase):
         return subprocess.run(command + ["--output-fd", str(fd), *extra], pass_fds=(fd,),
                               stdin=subprocess.DEVNULL, stdout=stdout, stderr=subprocess.PIPE, timeout=5)
 
+    def check_write_phases(self, stderr, outcomes):
+        phases = [json.loads(line) for line in stderr.splitlines() if line.startswith(b'{"type":"phase_timing"')]
+        self.assertEqual([row["sequence"] for row in phases], list(range(1, len(outcomes) + 1)))
+        self.assertEqual([row["authority_write_outcome"] for row in phases], outcomes)
+        for row, outcome in zip(phases, outcomes):
+            start, end = row["authority_write_start_ns"], row["authority_write_end_ns"]
+            if outcome is None:
+                self.assertIsNone(start)
+                self.assertIsNone(end)
+            else:
+                self.assertLessEqual(row["selected_ns"], start)
+                self.assertLessEqual(start, end)
+                self.assertLessEqual(end, row["flush_start_ns"])
+        return phases
+
     def test_delivers_exactly_the_selected_sources_through_rollback(self):
         with pipe() as (source, sink):
-            result = self.run_demo(sink)
+            result = self.run_demo(sink, extra=("--phase-timing",))
             sink.close()
             authority = records(source.read())
         self.assertEqual(result.returncode, 0, result.stderr)
@@ -68,11 +83,14 @@ class OutputDelivery(unittest.TestCase):
         self.assertEqual(telemetry[-1]["selected_outputs"], 8)
         self.assertEqual(telemetry[-1]["delivered_outputs"], 8)
         self.assertEqual(telemetry[-1]["telemetry_records_dropped"], 0)
+        phases = self.check_write_phases(result.stderr, ["accepted"] * 8)
+        for timing, output in zip(phases, authority):
+            self.assertLessEqual(timing["authority_write_end_ns"], output["deadline_ns"])
 
     def test_full_authority_pipe_stops_after_the_first_attempt(self):
         with pipe() as (source, sink):
             fill(sink)
-            result = self.run_demo(sink)
+            result = self.run_demo(sink, extra=("--phase-timing",))
             sink.close()
             self.assertEqual(set(source.read()), {ord("x")})
         self.assertEqual(result.returncode, 4, result.stderr)
@@ -82,11 +100,12 @@ class OutputDelivery(unittest.TestCase):
         self.assertEqual(summary["unprocessed_inputs"], 7)
         self.assertIn(b"output_pipe_full", result.stderr)
         self.assertIn(b"last_selected_sequence=1 last_delivered_sequence=0", result.stderr)
+        self.check_write_phases(result.stderr, ["rejected"])
 
     def test_closed_authority_pipe_stops_after_preceding_delivery(self):
         with pipe() as (source, sink):
             fd = sink.fileno()
-            with subprocess.Popen(COMMAND + ["--output-fd", str(fd)], pass_fds=(fd,),
+            with subprocess.Popen(COMMAND + ["--output-fd", str(fd), "--phase-timing"], pass_fds=(fd,),
                                   stdin=subprocess.DEVNULL, stdout=subprocess.PIPE,
                                   stderr=subprocess.PIPE) as process:
                 sink.close()
@@ -99,6 +118,7 @@ class OutputDelivery(unittest.TestCase):
         self.assertEqual(records(stdout)[-1]["delivered_outputs"], 1)
         self.assertIn(b"output_reader_disconnected", stderr)
         self.assertIn(b"last_selected_sequence=2 last_delivered_sequence=1", stderr)
+        self.check_write_phases(stderr, ["accepted", "rejected"])
 
     def test_full_or_closed_telemetry_pipe_does_not_stall_authority(self):
         for closed in (False, True):
@@ -107,11 +127,12 @@ class OutputDelivery(unittest.TestCase):
                     log.close()
                 else:
                     fill(log_sink)
-                result = self.run_demo(sink, stdout=log_sink)
+                result = self.run_demo(sink, extra=("--phase-timing",), stdout=log_sink)
                 sink.close()
                 self.assertEqual(result.returncode, 0, result.stderr)
                 self.assertEqual([row["sequence"] for row in records(source.read())], list(range(1, 9)))
                 self.assertIn(b"telemetry_records_dropped=10", result.stderr)
+                self.check_write_phases(result.stderr, ["accepted"] * 8)
 
     def test_telemetry_reader_resumes_without_malformed_rows(self):
         with pipe() as (source, sink), pipe() as (log, log_sink):
@@ -198,11 +219,12 @@ class OutputDelivery(unittest.TestCase):
             rejected = self.run_demo(sink, stdout=log)
             self.assertEqual(rejected.returncode, 2, rejected.stderr)
             self.assertIn(b"--no-telemetry", rejected.stderr)
-            delivered = self.run_demo(sink, extra=("--no-telemetry",), stdout=log)
+            delivered = self.run_demo(sink, extra=("--no-telemetry", "--phase-timing"), stdout=log)
             sink.close()
             self.assertEqual(delivered.returncode, 0, delivered.stderr)
             self.assertEqual(len(records(source.read())), 8)
             self.assertEqual(log.tell(), 0)
+            self.check_write_phases(delivered.stderr, ["accepted"] * 8)
 
     def test_authority_writer_is_closed_before_worker_execution(self):
         with tempfile.TemporaryDirectory() as directory, pipe() as (source, sink):
@@ -246,7 +268,7 @@ class OutputDelivery(unittest.TestCase):
             worker.chmod(0o755)
             command = [DEMO, "--worker", str(worker), "--control-stdin", "--samples", "3",
                        "--period-ms", "200", "--deadline-ms", "100"]
-            result = self.run_demo(sink, command=command)
+            result = self.run_demo(sink, command=command, extra=("--phase-timing",))
             sink.close()
             self.assertEqual(source.read(), b"")
         self.assertEqual(result.returncode, 3, result.stderr)
@@ -256,6 +278,7 @@ class OutputDelivery(unittest.TestCase):
         self.assertFalse(telemetry[1]["output_delivered"])
         self.assertEqual(telemetry[-1]["selected_outputs"], 0)
         self.assertEqual(telemetry[-1]["delivered_outputs"], 0)
+        self.check_write_phases(result.stderr, [None])
 
 
 if __name__ == "__main__":

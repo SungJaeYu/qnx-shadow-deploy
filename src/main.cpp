@@ -109,6 +109,12 @@ OutputAliases output_aliases(int argc, char** argv) {
 
 constexpr std::uint64_t telemetry_shutdown_grace_ns = 20'000'000;
 
+struct AuthorityWriteTiming {
+    std::uint64_t start_ns = 0;
+    std::uint64_t end_ns = 0;
+    const char* outcome = nullptr;
+};
+
 struct AtomicPipe {
     int fd;
     std::size_t record_limit;
@@ -124,13 +130,19 @@ struct AtomicPipe {
         return {fd, static_cast<std::size_t>(limit)};
     }
 
-    const char* write_record(const std::string& record) const {
+    const char* write_record(const std::string& record, AuthorityWriteTiming* timing) const {
         if (record.size() > record_limit) return "output_record_too_large";
+        if (timing) timing->start_ns = shadow::monotonic_ns();
         const auto count = ::write(fd, record.data(), record.size());
+        const int error = count < 0 ? errno : 0;
+        if (timing) {
+            timing->end_ns = shadow::monotonic_ns();
+            timing->outcome = count == static_cast<ssize_t>(record.size()) ? "accepted" : "rejected";
+        }
         if (count == static_cast<ssize_t>(record.size())) return nullptr;
-        if (count < 0 && (errno == EAGAIN || errno == EWOULDBLOCK)) return "output_pipe_full";
-        if (count < 0 && errno == EPIPE) return "output_reader_disconnected";
-        if (count < 0 && errno == EINTR) return "output_write_interrupted";
+        if (error == EAGAIN || error == EWOULDBLOCK) return "output_pipe_full";
+        if (error == EPIPE) return "output_reader_disconnected";
+        if (error == EINTR) return "output_write_interrupted";
         return "output_write_failed";
     }
 };
@@ -231,6 +243,7 @@ struct PhaseTiming {
     std::uint64_t acquired_ns = 0;
     std::uint64_t ipc_deadline_ns = 0;
     std::uint64_t selected_ns = 0;
+    AuthorityWriteTiming authority_write;
     std::uint64_t flush_start_ns = 0;
     std::uint64_t flush_end_ns = 0;
     WorkerPhaseTiming baseline;
@@ -261,6 +274,11 @@ void emit_phase_timing(const PhaseTiming& timing, unsigned sequence) {
     timestamp("acquired_ns", timing.acquired_ns);
     timestamp("ipc_deadline_ns", timing.ipc_deadline_ns);
     timestamp("selected_ns", timing.selected_ns);
+    timestamp("authority_write_start_ns", timing.authority_write.start_ns);
+    timestamp("authority_write_end_ns", timing.authority_write.end_ns);
+    std::clog << ",\"authority_write_outcome\":";
+    if (timing.authority_write.outcome) std::clog << '"' << timing.authority_write.outcome << '"';
+    else std::clog << "null";
     timestamp("flush_start_ns", timing.flush_start_ns);
     timestamp("flush_end_ns", timing.flush_end_ns);
     std::clog << ",\"baseline\":";
@@ -578,12 +596,16 @@ int main(int argc, char** argv) {
                 if (monotonic_ns() > deadline) {
                     delivery_error = "output_write_deadline_exceeded";
                 } else {
-                    delivery_error = authority.write_record(bytes);
+                    delivery_error = authority.write_record(bytes, phase ? &phase->authority_write : nullptr);
                     if (!delivery_error) {
                         output_delivered = true;
                         last_delivered_sequence = i;
                         ++delivered_outputs;
-                        if (monotonic_ns() > deadline) delivery_error = "output_write_returned_after_deadline";
+                        const auto write_end_ns = phase ? phase->authority_write.end_ns : monotonic_ns();
+                        if (write_end_ns > deadline) {
+                            delivery_error = "output_write_returned_after_deadline";
+                            if (phase) phase->authority_write.outcome = "accepted_late";
+                        }
                     }
                 }
                 if (delivery_error) supervisor.stop_output(delivery_error);

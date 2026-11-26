@@ -52,8 +52,17 @@ the IPC deadline, selection and the sample telemetry emission attempt.
 `flush_start_ns` and `flush_end_ns` bracket the stdout write and flush in
 default mode. With `--output-fd`, they bracket the telemetry emission step,
 which can resume a pending row, drop a row, or skip the write when telemetry
-is disabled. The authoritative pipe write happens earlier and has no
-separate interval in this trace.
+is disabled.
+
+`authority_write_start_ns` and `authority_write_end_ns` surround the
+dedicated nonblocking pipe write call, which happens before telemetry
+emission. `authority_write_outcome` is `accepted` for a complete write,
+`accepted_late` when the recorded write end exceeds the decision deadline, or
+`rejected` for an unsuccessful write attempt. All three fields are null
+when the broker does not call write on the dedicated pipe, such as when
+the pre-write deadline check suppresses the attempt, no output is selected,
+or the dedicated pipe is disabled. Acceptance means the kernel accepted
+the record into the pipe. Consumer receipt requires a separate observation.
 
 Each submitted worker has timestamps for submission, dispatch, IPC, receipt
 completion, the beginning and return of the broker's future get, and
