@@ -77,13 +77,16 @@ public:
         std::cout << "gate_written command=" << command << " written_ns=" << shadow::monotonic_ns() << std::endl;
     }
 
+    Event next_event() {
+        const auto event = receive<Event>(events_.get());
+        log_event(std::cout, event);
+        return event;
+    }
+
     Event event(EventKind expected) {
-        const auto ev = receive<Event>(events_.get());
-        std::cout << "receiver_event kind=" << static_cast<int>(ev.kind) << " sequence=" << ev.sequence
-                  << " acquired_ns=" << ev.acquired_ns << " time_ns=" << ev.timestamp_ns
-                  << " result=" << ev.result << " errno=" << ev.error << std::endl;
-        require(ev.kind == expected, "unexpected receiver event");
-        return ev;
+        const auto event = next_event();
+        require(event.kind == expected, "unexpected receiver event");
+        return event;
     }
 
 private:
@@ -195,6 +198,8 @@ const char* status_name(TransportStatus status) {
 struct Exchange {
     shadow::Sample sample{};
     std::uint64_t deadline;
+    std::uint64_t submit_started_ns;
+    std::uint64_t submit_ended_ns;
     std::future<shadow::Observation> pending;
 
     Exchange(shadow::WorkerProcess& worker, std::uint64_t sequence, std::uint64_t budget_ns) {
@@ -202,9 +207,12 @@ struct Exchange {
         sample.acquired_ns = shadow::monotonic_ns();
         sample.position_m = static_cast<double>(sequence);
         deadline = sample.acquired_ns + budget_ns;
-        std::cout << "submit sequence=" << sequence << " acquired_ns=" << sample.acquired_ns
-                  << " deadline_ns=" << deadline << std::endl;
+        submit_started_ns = shadow::monotonic_ns();
         pending = worker.submit(sample, deadline);
+        submit_ended_ns = shadow::monotonic_ns();
+        std::cout << "submit sequence=" << sequence << " acquired_ns=" << sample.acquired_ns
+                  << " deadline_ns=" << deadline << " started_ns=" << submit_started_ns
+                  << " ended_ns=" << submit_ended_ns << std::endl;
     }
 
     shadow::Observation result() {
@@ -216,10 +224,10 @@ struct Exchange {
         return out;
     }
 
-    void sample_event(Control& control) const {
-        const auto event = control.event(EventKind::sample);
-        require(event.result > 0 && event.sequence == sample.sequence &&
-                event.acquired_ns == sample.acquired_ns, "receiver got unexpected sample");
+    void check_sample(const Event& event) const {
+        require(event.kind == EventKind::sample && event.result > 0 &&
+                event.sequence == sample.sequence && event.acquired_ns == sample.acquired_ns,
+                "receiver got unexpected sample");
     }
 
     void check_release(Control& control) {
@@ -237,13 +245,15 @@ bool run_exchange(const std::string& dir, const Case& test, Control& control,
     const bool wait_for_timeout = test.action == Action::timeout;
     if (test.receive_first) control.gate('R');
     Exchange exchange(worker, 1, budget_ns);
-    // The first pidin query is independently matched to this receiver; a sample
-    // event is checked before opening the reply gate.
     const bool observed = observe(dir, test, worker.pid(), exchange.deadline);
+    bool sample_received = observed && test.receive_first;
+    if (sample_received) exchange.check_sample(control.event(EventKind::sample));
 
     if (observed && test.action == Action::release && shadow::monotonic_ns() < exchange.deadline) {
-        if (!test.receive_first) control.gate('R');
-        exchange.sample_event(control);
+        if (!test.receive_first) {
+            control.gate('R');
+            exchange.check_sample(control.event(EventKind::sample));
+        }
         control.gate('Y');
         exchange.check_release(control);
         return true;
@@ -269,20 +279,36 @@ bool run_exchange(const std::string& dir, const Case& test, Control& control,
                 "exchange did not time out at the requested gate");
     }
 
-    if (!receiver_killed && test.receive_first && observed) {
-        exchange.sample_event(control);
+    if (!receiver_killed && test.receive_first && !sample_received) {
+        // A missed state snapshot does not imply the receiver saw no sample.
+        // Read the outcome of the already-open gate before destroying it.
+        const auto event = control.next_event();
+        if (event.kind == EventKind::sample) {
+            exchange.check_sample(event);
+            sample_received = true;
+        } else {
+            require(event.kind == EventKind::receive_timeout, "first receive did not end cleanly");
+        }
+    }
+    if (!receiver_killed && sample_received) {
         control.gate('Y');
         const auto reply = control.event(EventKind::reply);
         require(reply.sequence == exchange.sample.sequence &&
                 reply.acquired_ns == exchange.sample.acquired_ns &&
                 reply.timestamp_ns >= out.completed_ns, "late reply event did not match the timed-out sample");
     }
-    // Without REPLY evidence, the receiver might still be waiting on the
-    // first receive. In that case only the unavailable result is checked.
-    const bool can_probe_receive = !receiver_killed && (!test.receive_first || observed);
-    if (can_probe_receive) control.gate('P');
+    if (!receiver_killed) {
+        control.gate('P');
+        control.event(EventKind::probe_ready);
+        std::this_thread::sleep_for(1ms);
+    }
     Exchange probe(worker, 2, 2 * probe_ns);
-    if (can_probe_receive) control.event(EventKind::receive_timeout);
+    if (!receiver_killed) {
+        const auto idle = control.event(EventKind::receive_timeout);
+        require(idle.receive_started_ns <= probe.submit_started_ns &&
+                probe.submit_ended_ns < idle.timestamp_ns,
+                "receive probe did not overlap the second submission");
+    }
     const auto after = probe.result();
     require(after.status == TransportStatus::unavailable && after.completed_ns < probe.deadline,
             "failed worker did not return unavailable within a fresh deadline");
@@ -292,7 +318,7 @@ bool run_exchange(const std::string& dir, const Case& test, Control& control,
 void run_recovery(Control& control, shadow::WorkerProcess& worker) {
     control.gate('R');
     Exchange exchange(worker, 3, second_ns);
-    exchange.sample_event(control);
+    exchange.check_sample(control.event(EventKind::sample));
     control.gate('Y');
     exchange.check_release(control);
 }
@@ -431,7 +457,12 @@ int main(int argc, char** argv) {
         for (const auto& test : cases) {
             for (int i = 1; i <= attempts; ++i) {
                 const auto dir = std::string(root) + "/" + test.name + "-" + std::to_string(i);
-                const int code = supervise(argv[1], dir, test, std::stoull(budget));
+                int code = 1;
+                try {
+                    code = supervise(argv[1], dir, test, std::stoull(budget));
+                } catch (const std::exception& error) {
+                    std::cerr << "attempt_setup_failure directory=" << dir << " error=" << error.what() << std::endl;
+                }
                 std::cout << "verdict case=" << test.name << " attempt=" << i
                           << " result=" << (code == 0 ? "PASS" : code == 77 ? "INCONCLUSIVE" : "FAIL")
                           << " exit_code=" << code << " directory=" << dir << std::endl;

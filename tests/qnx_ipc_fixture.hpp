@@ -3,6 +3,7 @@
 #include "shadow/io.hpp"
 #include <cstdint>
 #include <fcntl.h>
+#include <ostream>
 #include <stdexcept>
 #include <string>
 #include <unistd.h>
@@ -12,7 +13,7 @@ namespace fixture {
 constexpr std::uint64_t second_ns = 1000000000ULL;
 constexpr std::uint64_t probe_ns = 50000000ULL;
 
-enum class EventKind { ready, sample, reply, receive_timeout, receive_error };
+enum class EventKind { ready, sample, reply, receive_timeout, receive_error, probe_ready };
 struct Event {
     EventKind kind;
     std::int64_t result;
@@ -20,7 +21,15 @@ struct Event {
     std::uint64_t timestamp_ns;
     std::uint64_t sequence;
     std::uint64_t acquired_ns;
+    std::uint64_t receive_started_ns;
 };
+
+inline void log_event(std::ostream& log, const Event& event) {
+    log << "receiver_event kind=" << static_cast<int>(event.kind) << " sequence=" << event.sequence
+        << " acquired_ns=" << event.acquired_ns << " time_ns=" << event.timestamp_ns
+        << " receive_started_ns=" << event.receive_started_ns
+        << " result=" << event.result << " errno=" << event.error << std::endl;
+}
 
 class Fd {
 public:

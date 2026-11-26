@@ -13,9 +13,13 @@ int main(int argc, char** argv) {
         const std::string dir = argv[1];
         Fd commands(dir + "/commands", O_RDONLY | O_NONBLOCK);
         Fd events(dir + "/events", O_WRONLY | O_NONBLOCK);
-        auto report = [&](EventKind kind, std::int64_t result, int error, const shadow::Sample& sample) {
-            send(events.get(), Event{kind, result, error, shadow::monotonic_ns(),
-                                     sample.sequence, sample.acquired_ns});
+        auto report = [&](EventKind kind, std::int64_t result, int error, const shadow::Sample& sample,
+                          std::uint64_t receive_started_ns = 0, std::uint64_t receive_ended_ns = 0) {
+            const Event event{kind, result, error,
+                              receive_ended_ns ? receive_ended_ns : shadow::monotonic_ns(),
+                              sample.sequence, sample.acquired_ns, receive_started_ns};
+            log_event(std::cerr, event);
+            send(events.get(), event);
         };
         shadow::Hello hello;
         hello.channel = ChannelCreate(0);
@@ -28,19 +32,23 @@ int main(int argc, char** argv) {
             if (gate != 'R' && gate != 'P') throw std::runtime_error("expected receive or probe");
             shadow::Sample sample{};
             const auto receive_ns = gate == 'P' ? probe_ns : 2 * second_ns;
+            if (gate == 'P') report(EventKind::probe_ready, 0, 0, {});
+            const auto receive_started_ns = shadow::monotonic_ns();
             if (TimerTimeout(CLOCK_MONOTONIC, _NTO_TIMEOUT_RECEIVE, nullptr, &receive_ns, nullptr) < 0)
                 throw std::runtime_error("receive timer failed");
             const auto rcvid = MsgReceive(hello.channel, &sample, sizeof(sample), nullptr);
             const int receive_error = rcvid < 0 ? errno : 0;
-            if (rcvid < 0 && gate == 'P' && receive_error == ETIMEDOUT) {
-                report(EventKind::receive_timeout, rcvid, receive_error, {});
+            const auto receive_ended_ns = shadow::monotonic_ns();
+            if (rcvid < 0 && receive_error == ETIMEDOUT) {
+                report(EventKind::receive_timeout, rcvid, receive_error, {},
+                       receive_started_ns, receive_ended_ns);
                 continue;
             }
             if (rcvid <= 0 || !shadow::valid_header(sample.header, shadow::Kind::sample)) {
-                report(EventKind::receive_error, rcvid, receive_error, sample);
+                report(EventKind::receive_error, rcvid, receive_error, sample, receive_started_ns, receive_ended_ns);
                 throw std::runtime_error("unexpected native receive");
             }
-            report(EventKind::sample, rcvid, 0, sample);
+            report(EventKind::sample, rcvid, 0, sample, receive_started_ns, receive_ended_ns);
             if (receive<char>(commands.get()) != 'Y') throw std::runtime_error("expected reply");
             shadow::Estimate estimate;
             estimate.sequence = sample.sequence;

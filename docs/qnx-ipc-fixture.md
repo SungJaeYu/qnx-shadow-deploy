@@ -29,9 +29,12 @@ Each configuration runs two fresh attempts per case. Each attempt has a
 12-second outer watchdog that kills the attempt's process group if needed.
 The raw `pidin` output, stderr, command and receiver events, snapshot
 timestamps, result timestamps and cleanup records are retained under the run
-directory. The `receiver_event` kind values are 0 for ready, 1 for sample, 2
-for reply, 3 for receive timeout and 4 for receive error. Gate commands are
-`R` for receive, `Y` for reply and `P` for the bounded receive probe.
+directory. The receiver writes each event to stderr before sending it on the
+control FIFO, so events survive observation failures. The `receiver_event`
+kind values are 0 for ready, 1 for sample, 2 for reply, 3 for receive timeout,
+4 for receive error and 5 for probe ready. Gate commands are `R` for receive,
+`Y` for reply and `P` for the bounded receive probe. A per-attempt setup
+failure is recorded with its directory and verdict before continuing.
 
 ## Interpret
 
@@ -41,7 +44,7 @@ for reply, 3 for receive timeout and 4 for receive error. Gate commands are
 | SEND exit | Sender observed in SEND with receive gate closed | Disconnected by the deadline after receiver termination |
 | SEND timeout | Sender observed in SEND with receive gate closed | Timeout and no sample when receive is subsequently probed |
 | REPLY release | Sender observed in REPLY with reply gate closed | Matching estimate before the deadline |
-| REPLY exit | Sender observed in REPLY with reply gate closed | Disconnected by the deadline after receiver termination |
+| REPLY exit | Sender observed in REPLY with reply gate closed and receiver recorded the matching sample and positive receive ID | Disconnected by the deadline after receiver termination |
 | REPLY timeout and late reply | Sender observed in REPLY with reply gate closed | Timeout, followed by a recorded late reply attempt |
 
 The state parser requires the harness PID, a non-main thread ID, the named
@@ -54,8 +57,10 @@ result is a failure. The late-reply result and errno are evidence, and the
 failed transport must reject the later sample independently of that result.
 
 For a failed exchange the harness expects a different sequence to return
-`unavailable` by a fresh deadline. The surviving receiver's gated receive
-probe must time out when the original gate is known. The harness checks
+`unavailable` by a fresh deadline. Any first receive on a surviving receiver
+is accounted for even when REPLY observation was inconclusive. The
+subsequent receive probe must time out, with its recorded receive interval
+covering the full call to submit the second sequence. The harness checks
 descriptor counts, the original side-channel ID, child reaping and child
 absence after each worker is destroyed. A separate worker runs a recovery
 exchange with a distinct sequence and a one-second fixture budget.
