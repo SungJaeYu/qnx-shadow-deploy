@@ -48,7 +48,7 @@ target_link_libraries(shadow_control PUBLIC shadow_transport)
 if(CMAKE_SYSTEM_NAME STREQUAL "QNX")
   target_link_libraries(shadow_control PUBLIC socket)
 endif()
-add_executable(shadow-demo src/main.cpp)
+add_executable(shadow-demo src/main.cpp src/live_range.cpp)
 target_link_libraries(shadow-demo PRIVATE shadow_staging shadow_control)
 add_executable(shadowctl src/shadowctl.cpp)
 target_link_libraries(shadowctl PRIVATE shadow_control)
@@ -87,6 +87,9 @@ if(BUILD_TESTING)
       ${CMAKE_CURRENT_SOURCE_DIR}/tests/integration.py $<TARGET_FILE:shadow-demo>
       $<TARGET_FILE:shadow-worker>)
     set_tests_properties(process-integration PROPERTIES TIMEOUT 60)
+    add_test(NAME live-range-input COMMAND ${Python3_EXECUTABLE}
+      ${CMAKE_CURRENT_SOURCE_DIR}/tests/live_range.py $<TARGET_FILE_DIR:shadow-demo>)
+    set_tests_properties(live-range-input PROPERTIES TIMEOUT 20)
     add_test(NAME output-delivery COMMAND ${Python3_EXECUTABLE}
       ${CMAKE_CURRENT_SOURCE_DIR}/tests/output_delivery.py $<TARGET_FILE:shadow-demo>
       $<TARGET_FILE:shadow-worker>)

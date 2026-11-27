@@ -22,11 +22,13 @@ public:
     AcquisitionTiming acquire(std::uint64_t acquired_ns, std::uint64_t scheduled_ns) {
         const auto offset = acquired_ns - origin_ns_;
         const auto slot = offset / period_ns_;
-        AcquisitionTiming timing{slot, 0, offset % period_ns_, offset - acquired * period_ns_,
-                                 acquired_ns - scheduled_ns, {}};
+        const auto nominal_offset = acquired * period_ns_;
+        AcquisitionTiming timing{slot, 0, offset % period_ns_, offset > nominal_offset ? offset - nominal_offset : 0,
+                                 acquired_ns > scheduled_ns ? acquired_ns - scheduled_ns : 0, {}};
         if (last_nominal_slot) {
             timing.acquisition_interval_ns = acquired_ns - last_acquired_ns_;
-            timing.skipped_slots = slot - *last_nominal_slot - 1;
+            if (slot > *last_nominal_slot)
+                timing.skipped_slots = slot - *last_nominal_slot - 1;
             update_max(max_acquisition_interval_ns, *timing.acquisition_interval_ns);
         } else {
             initial_unoccupied_slots = slot;
