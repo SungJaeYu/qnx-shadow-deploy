@@ -1,8 +1,15 @@
 #!/bin/sh
 # Run one broker and keep fresh trace and child retirement observations.
 set -eu
+profile=
+if [ "${1-}" = --qnx-guest-profile ]; then
+    profile=$1
+    shift
+fi
+native=false
+if [ "$(uname -s)" = QNX ]; then native=true; fi
 [ "$#" -eq 2 ] || [ "$#" -eq 3 ] || {
-    echo 'usage: sh cancel_retry_cycles.sh BIN_DIR NEW_ABSOLUTE_OUTPUT_DIR [640|10000]' >&2
+    echo 'usage: sh cancel_retry_cycles.sh [--qnx-guest-profile] BIN_DIR NEW_ABSOLUTE_OUTPUT_DIR [640|10000]' >&2
     exit 2
 }
 samples=${3-640}
@@ -27,7 +34,26 @@ broker=
 controller=
 
 owned_by() {
-    [ "$(ps -p "$1" -o ppid= | tr -d '[:space:]')" = "$2" ]
+    if "$native"; then
+        parent=$(pidin -p "$1" -F '%e' | awk '$1 ~ /^[0-9]+$/ {print $1; exit}')
+    else
+        parent=$(ps -p "$1" -o ppid= | tr -d '[:space:]')
+    fi
+    [ "$parent" = "$2" ]
+}
+
+child_pids() {
+    if "$native"; then
+        pidin -F '%a %e'
+    else
+        ps -A -o pid= -o ppid=
+    fi | awk -v parent="$1" '$2 == parent {print $1}'
+}
+
+snapshot_fds() {
+    if "$native" && [ -n "$profile" ]; then
+        pidin -p "$broker" fds > "$out/$1.fds"
+    fi
 }
 
 stop_child() {
@@ -42,8 +68,7 @@ stop_child() {
     if owned_by "$pid" "$$"; then
         if [ "$pid" = "$broker" ]; then
             echo 'Broker did not stop after TERM; terminating its remaining children.' >&2
-            ps -A -o pid= -o ppid= |
-                awk -v parent="$pid" '$2 == parent {print $1}' |
+            child_pids "$pid" |
                 while read -r child; do
                     if owned_by "$pid" "$$" && owned_by "$child" "$pid"; then
                         kill -KILL "$child" 2>/dev/null || :
@@ -129,6 +154,7 @@ control() {
     baseline=$(child_pid "$meta" baseline_pid)
     wait_row '"sequence":20,' >/dev/null
 
+    snapshot_fds initial
     generation=1
     while [ "$generation" -le 21 ]; do
         printf 'stage %s/candidate.manifest\n' "$out" >&3
@@ -137,6 +163,7 @@ control() {
             committed=$(wait_row '"generation":21,.*"event":"candidate_committed"' 500)
             final=$(child_pid "$committed" candidate_pid)
             wait_retired "$baseline"
+            snapshot_fds committed
             kill -0 "$broker" && kill -0 "$final" || fail 'broker or final candidate missing after commit'
             printf 'baseline %s\n' "$baseline" >> "$out/retirement"
         else
@@ -149,6 +176,7 @@ control() {
             printf 'cancel\n' >&3
             wait_row "\"generation\":$generation,.*\"event\":\"candidate_cancelled\"" >/dev/null
             wait_retired "$candidate"
+            snapshot_fds "cancel-$generation"
             kill -0 "$broker" && kill -0 "$baseline" || fail 'broker or baseline missing after cancellation'
             printf 'cancelled %s %s\n' "$generation" "$candidate" >> "$out/retirement"
         fi
@@ -177,7 +205,7 @@ control() {
 }
 
 mkfifo "$fifo"
-./shadow-demo --worker ./shadow-worker --control-stdin --samples "$samples" \
+./shadow-demo ${profile:+"$profile"} --worker ./shadow-worker --control-stdin --samples "$samples" \
     --period-ms "$period_ms" --deadline-ms "${SHADOW_DEADLINE_MS:-10}" \
     > "$log" 2> "$out/stderr" < "$fifo" &
 broker=$!

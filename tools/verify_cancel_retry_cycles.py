@@ -50,11 +50,15 @@ def verify_timing(meta, summary, samples):
             "service timing summary disagrees with samples")
 
 
-def verify(directory, expected_samples=640):
+def verify(directory, expected_samples=640, *, require_qnx_guest_profile=False):
     rows = [json.loads(line) for line in (directory / "cycles.jsonl").read_text().splitlines()]
     require(len(rows) >= 2 and rows[0]["type"] == "meta" and rows[-1]["type"] == "summary",
             "missing trace envelope")
     meta, summary = rows[0], rows[-1]
+    if require_qnx_guest_profile:
+        require(meta.get("backend") == "qnx-native-ipc", "expected qnx-native-ipc backend")
+        require(meta.get("candidate_launch_profile") == "qnx-guest-16-mib",
+                "expected qnx-guest-16-mib candidate launch profile")
     require([row["type"] for row in rows if row["type"] in ("meta", "summary")] == ["meta", "summary"],
             "multiple trace envelopes")
     require(meta["scenario"] == "live-deployment" and meta["schema"] == 2 and meta["candidate_pid"] == -1,
@@ -176,9 +180,14 @@ def main():
     parser.add_argument("--samples", type=int, choices=(640, 10000), default=640,
                         help="expected number of live samples (default: 640)")
     parser.add_argument("--require-timing", action="store_true", help="also require zero empty nominal slots and decision misses")
+    parser.add_argument("--qnx-guest-profile", action="store_true",
+                        help="require the native QNX backend and locked guest candidate profile")
     args = parser.parse_args()
     try:
-        meta, summary, commit = verify(args.fresh_trace_dir, args.samples)
+        meta, summary, commit = verify(args.fresh_trace_dir, args.samples,
+                                       require_qnx_guest_profile=args.qnx_guest_profile)
+        if args.qnx_guest_profile:
+            print(f"Candidate launch profile: {meta['candidate_launch_profile']}")
         print(f"PASS functional: backend={meta['backend']} cancellations=20 commit_sample={commit} "
               f"selected_outputs={summary['outputs']} all workers retired")
         skipped, misses = summary["skipped_nominal_slots"], summary["decision_deadline_misses"]

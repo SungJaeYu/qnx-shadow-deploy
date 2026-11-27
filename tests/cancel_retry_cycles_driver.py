@@ -11,13 +11,14 @@ import time
 DRIVER = Path(__file__).resolve().parents[1] / "tools" / "cancel_retry_cycles.sh"
 
 
-def main():
+def check_interrupted_cleanup(profile_args):
     with tempfile.TemporaryDirectory() as directory:
         root = Path(directory)
         out = root / "run"
         broker = root / "shadow-demo"
         broker.write_text(
             "#!/bin/sh\n"
+            'printf "%s\\n" "$@" > "$SHADOW_TEST_BROKER_ARGS"\n'
             'exec "$SHADOW_TEST_PYTHON" -c \'\n'
             "import signal, time\n"
             "signal.signal(signal.SIGTERM, signal.SIG_IGN)\n"
@@ -28,8 +29,9 @@ def main():
         broker.chmod(0o755)
         (root / "candidate.manifest").write_text("executable=unused\n")
         with subprocess.Popen(
-            ["sh", str(DRIVER), str(root), str(out)],
-            env={**os.environ, "SHADOW_TEST_PYTHON": sys.executable},
+            ["sh", str(DRIVER), *profile_args, str(root), str(out)],
+            env={**os.environ, "SHADOW_TEST_PYTHON": sys.executable,
+                 "SHADOW_TEST_BROKER_ARGS": str(root / "broker-args")},
             stdout=subprocess.PIPE,
             stderr=subprocess.PIPE,
             text=True,
@@ -50,6 +52,8 @@ def main():
                         detail = broker_stderr.read_text() if broker_stderr.exists() else "stderr file absent"
                         raise AssertionError(f"stub broker did not reach FIFO rendezvous: {detail}")
                     time.sleep(0.02)
+                args = (root / "broker-args").read_text().splitlines()
+                assert ("--qnx-guest-profile" in args) == bool(profile_args), args
                 driver.send_signal(signal.SIGTERM)
                 stdout, stderr = driver.communicate(timeout=10)
                 assert driver.returncode == 130, (stdout, stderr, driver.returncode)
@@ -69,4 +73,5 @@ def main():
 
 
 if __name__ == "__main__":
-    main()
+    check_interrupted_cleanup([])
+    check_interrupted_cleanup(["--qnx-guest-profile"])
