@@ -52,7 +52,8 @@ std::vector<double> load_sensor_trace(const std::string& path, unsigned samples)
         ::close(fd);
         throw std::invalid_argument("sensor trace must be a regular file");
     }
-    std::unique_ptr<std::FILE, decltype(&std::fclose)> stream(::fdopen(fd, "rb"), std::fclose);
+    const auto close_file = [](std::FILE* file) { std::fclose(file); };
+    std::unique_ptr<std::FILE, decltype(close_file)> stream(::fdopen(fd, "rb"), close_file);
     if (!stream) {
         ::close(fd);
         throw std::invalid_argument("cannot read sensor trace");
