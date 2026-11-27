@@ -28,7 +28,16 @@ Use `--qnx-guest-profile` on the QNX 8.0.6 x86-64 QEMU image configured with
   --qualify 80 --probation 60 --samples 240 --period-ms 20 --deadline-ms 10
 ```
 
-The broker launches each candidate with
+Before spawning a candidate, the broker reads a single bounded snapshot of
+[QNX system VM counters](https://qnx.com/developers/docs/8.0/com.qnx.doc.neutrino.sys_arch/topic/vmstat.html).
+Both physical free pages (`pages_free`) and unreserved allocation pages
+(`vmem_avail`) must cover 32 MiB at the guest's page size. The threshold budgets
+16 MiB for the candidate and 16 MiB of spare capacity for the incumbent
+adapter. Low headroom and invalid or unavailable counters each produce a
+preparation failure. During live staging this check runs in the staging
+thread, and the incumbent retains authority after refusal.
+
+The broker launches each admitted candidate with
 `/proc/boot/on -L 6:16777216:16777216 -A rlimit,deny,lock,all,inherit`.
 QNX resource 6 is `RLIMIT_AS`. The soft and hard limits are both 16 MiB, in
 bytes. The launcher applies the cap and locks the ability to raise it before
@@ -47,8 +56,9 @@ launch control verified rejection of an attempt to raise the hard limit.
 The profile is for one trusted, non-forking candidate adapter. The ceiling
 is per-process virtual address space. Physical memory remains
 shared with the broker, baseline, kernel and other processes. The profile
-provides neither an aggregate reservation nor a guarantee of free memory or
-isolation from unrelated work. On the supported guest the operator controls
+uses a point-in-time admission decision. Other allocations can change
+headroom between the snapshot and candidate execution, and the check creates
+no physical memory reservation. On the supported guest the operator controls
 background work and keeps it below authority-capable work. The measured
 configuration used two CPU-bound round-robin workers at priority 5 and observed
 the broker and authority-capable workers at priority 10 round-robin. Equal

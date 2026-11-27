@@ -1,4 +1,5 @@
 #include "shadow/process.hpp"
+#include "shadow/guest_headroom.hpp"
 #include "shadow/io.hpp"
 #include <cerrno>
 #include <condition_variable>
@@ -28,6 +29,27 @@ constexpr char guest_launcher[] = "/proc/boot/on";
 static_assert(RLIMIT_AS == 6);
 constexpr char guest_address_space_limit[] = "6:16777216:16777216";
 constexpr char guest_limit_ability[] = "rlimit,deny,lock,all,inherit";
+
+void require_guest_headroom() {
+    const long page_size = sysconf(_SC_PAGESIZE);
+    const int fd = open("/proc/vm/stats", O_RDONLY | O_CLOEXEC);
+    auto headroom = GuestHeadroom::invalid;
+    if (fd >= 0) {
+        // QNX emits the snapshot in one read and truncates it to the requested size.
+        char snapshot[4096];
+        const auto count = read(fd, snapshot, sizeof(snapshot));
+        close(fd);
+        if (page_size > 0 && count > 0 && count < static_cast<ssize_t>(sizeof(snapshot))) {
+            headroom = classify_guest_headroom(
+                std::string_view(snapshot, static_cast<std::size_t>(count)),
+                static_cast<std::uint64_t>(page_size));
+        }
+    }
+    if (headroom == GuestHeadroom::invalid)
+        throw std::runtime_error("QNX guest candidate admission: invalid VM counters");
+    if (headroom == GuestHeadroom::insufficient)
+        throw std::runtime_error("QNX guest candidate admission: insufficient memory headroom");
+}
 #endif
 
 struct Pipe {
@@ -203,6 +225,7 @@ WorkerProcess::WorkerProcess(const std::string& executable, const std::string& m
         char* guest_args[]{const_cast<char*>(guest_launcher), limit_option,
                           const_cast<char*>(guest_address_space_limit), ability_option,
                           const_cast<char*>(guest_limit_ability), target.data(), args[1], args[2], nullptr};
+        require_guest_headroom();
         error = posix_spawn(&impl_->child, guest_launcher, &actions.value, nullptr, guest_args, environ);
 #else
         throw std::logic_error("QNX guest launcher unavailable");
