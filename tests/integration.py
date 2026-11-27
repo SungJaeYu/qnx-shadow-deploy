@@ -91,12 +91,21 @@ class ProcessIntegration(unittest.TestCase):
             for worker in (record["baseline"], record["candidate"]):
                 if worker is None:
                     continue
-                sequence = [record["acquired_ns"], worker["submit_ns"], worker["dispatch_ns"],
-                            worker["ipc_start_ns"], worker["ipc_end_ns"], worker["completed_ns"],
-                            worker["future_return_ns"], record["selected_ns"]]
+                direct = timed_rows[0]["backend"] == "qnx-native-ipc" and record["candidate"] is None
+                if direct:
+                    exchange_starts = [worker["direct_start_ns"]]
+                    collection = []
+                    for key in ("submit_ns", "dispatch_ns", "future_wait_ns", "future_return_ns"):
+                        self.assertIsNone(worker[key])
+                else:
+                    self.assertIsNone(worker["direct_start_ns"])
+                    exchange_starts = [worker["submit_ns"], worker["dispatch_ns"]]
+                    collection = [worker["future_return_ns"]]
+                    self.assertLessEqual(worker["submit_ns"], worker["future_wait_ns"])
+                    self.assertLessEqual(worker["future_wait_ns"], worker["future_return_ns"])
+                sequence = [record["acquired_ns"], *exchange_starts, worker["ipc_start_ns"],
+                            worker["ipc_end_ns"], worker["completed_ns"], *collection, record["selected_ns"]]
                 self.assertEqual(sequence, sorted(sequence))
-                self.assertLessEqual(worker["submit_ns"], worker["future_wait_ns"])
-                self.assertLessEqual(worker["future_wait_ns"], worker["future_return_ns"])
                 self.assertIsNone(worker["pre_expiry_ns"])
             self.assertIsNone(record["baseline"]["retirement_start_ns"])
         for record in phases:

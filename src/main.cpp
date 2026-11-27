@@ -282,9 +282,12 @@ void timestamp(const char* key, std::uint64_t ns) {
 }
 void worker_phase_timing(const WorkerPhaseTiming& timing) {
     const auto& exchange = timing.exchange;
-    if (!exchange.submit_ns) { std::clog << "null"; return; }
-    std::clog << "{\"submit_ns\":" << exchange.submit_ns;
+    if (!exchange.submit_ns && !exchange.direct_start_ns) { std::clog << "null"; return; }
+    std::clog << "{\"submit_ns\":";
+    if (exchange.submit_ns) std::clog << exchange.submit_ns;
+    else std::clog << "null";
     timestamp("dispatch_ns", exchange.dispatch_ns);
+    timestamp("direct_start_ns", exchange.direct_start_ns);
     timestamp("ipc_start_ns", exchange.ipc_start_ns);
     timestamp("ipc_end_ns", exchange.ipc_end_ns);
     timestamp("pre_expiry_ns", exchange.pre_expiry_ns);
@@ -681,11 +684,22 @@ int main(int argc, char** argv) {
                 phase->ipc_deadline_ns = ipc_deadline;
             }
             std::future<Observation> bf, cf;
-            if (baseline) bf = baseline->submit(sample, ipc_deadline,
-                                                baseline_timing ? &baseline_timing->exchange : nullptr);
-            if (candidate) cf = candidate->submit(sample, ipc_deadline,
-                                                  candidate_timing ? &candidate_timing->exchange : nullptr);
             Observation b, c;
+#ifdef __QNXNTO__
+            if (baseline && !candidate) {
+                b = baseline->exchange_direct(sample, ipc_deadline,
+                                              baseline_timing ? &baseline_timing->exchange : nullptr);
+            } else if (candidate && !baseline) {
+                c = candidate->exchange_direct(sample, ipc_deadline,
+                                               candidate_timing ? &candidate_timing->exchange : nullptr);
+            } else
+#endif
+            {
+                if (baseline) bf = baseline->submit(sample, ipc_deadline,
+                                                    baseline_timing ? &baseline_timing->exchange : nullptr);
+                if (candidate) cf = candidate->submit(sample, ipc_deadline,
+                                                      candidate_timing ? &candidate_timing->exchange : nullptr);
+            }
             if (bf.valid()) b = collect(bf, baseline_timing);
             const bool candidate_pending = split_output && supervisor.phase() == Phase::shadowing && cf.valid()
                 && cf.wait_for(std::chrono::nanoseconds::zero()) == std::future_status::timeout;

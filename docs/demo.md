@@ -80,12 +80,21 @@ next acquisition, and the rule does not provide CPU isolation. Probation,
 committed service and invocations without `--output-fd` keep their existing
 worker collection rules.
 
-Each submitted worker has timestamps for submission, dispatch, IPC, receipt
-completion, the beginning and return of the broker's future get, and
-retirement if it occurs within that sample. A worker without a submission
-is represented by null. Null timestamps mark phases that were not reached.
-A pre-expiry timestamp identifies a deadline already reached at the dispatch
-check before entering transport.
+Each participating worker has timestamps for IPC, receipt completion and
+retirement if it occurs within that sample. A dispatched exchange records
+submission, dispatch and the beginning and return of the broker's future get.
+For a QNX sample with a single participating worker, the broker calls the same
+native exchange on its own thread and records `direct_start_ns`. Submission,
+dispatch and future timestamps are null for this path. An absent worker is
+represented by null. A pre-expiry timestamp identifies a deadline already
+reached at the check before entering transport.
+
+The direct call removes the dispatch wakeup before IPC and the future handoff
+after IPC in the single-worker path. The
+[sequence-one guest trace](evidence/qnx-qualification-follow-up.md#guest-scheduler-state-during-one-missed-decision)
+observed 9.536 ms across three guest broker READY-to-RUNNING intervals.
+Returning from native IPC still depends on scheduling the caller. Host vCPU
+residency requires separate, time-correlated host evidence.
 
 On QNX the IPC interval starts just before arming `TimerTimeout` and ends
 just after `MsgSend` returns. The start is recorded only when `MsgSend`

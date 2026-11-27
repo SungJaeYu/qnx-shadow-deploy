@@ -10,6 +10,7 @@ namespace shadow {
 struct WorkerExchangeTiming {
     std::uint64_t submit_ns = 0;
     std::uint64_t dispatch_ns = 0;
+    std::uint64_t direct_start_ns = 0;
     std::uint64_t ipc_start_ns = 0;
     std::uint64_t ipc_end_ns = 0;
     std::uint64_t pre_expiry_ns = 0;
@@ -24,6 +25,11 @@ public:
     WorkerProcess& operator=(const WorkerProcess&) = delete;
     std::future<Observation> submit(Sample sample, std::uint64_t absolute_deadline_ns,
                                     WorkerExchangeTiming* timing = nullptr);
+#ifdef __QNXNTO__
+    // A side-channel connection belongs to the process and can be used by the broker thread.
+    Observation exchange_direct(const Sample& sample, std::uint64_t absolute_deadline_ns,
+                                WorkerExchangeTiming* timing = nullptr);
+#endif
     int pid() const;
     static const char* backend();
 private:

@@ -83,6 +83,9 @@ struct WorkerProcess::Impl {
             while (waitpid(child, nullptr, 0) < 0 && errno == EINTR) {}
         }
     }
+    void require_idle() const {
+        if (busy || stopping) throw std::logic_error("Worker already has an outstanding sample");
+    }
     Observation exchange(const Sample& sample, std::uint64_t deadline, WorkerExchangeTiming* timing) {
         Observation o;
         if (!usable) { o.completed_ns = monotonic_ns(); return o; }
@@ -194,12 +197,33 @@ std::future<Observation> WorkerProcess::submit(Sample sample, std::uint64_t dead
                                                WorkerExchangeTiming* timing) {
     if (timing) timing->submit_ns = monotonic_ns();
     std::lock_guard<std::mutex> lock(impl_->mutex);
-    if (impl_->busy || impl_->stopping) throw std::logic_error("Worker already has an outstanding sample");
+    impl_->require_idle();
     Impl::Task task{sample, deadline, {}, timing};
     auto future = task.promise.get_future();
     impl_->busy = true; impl_->task = std::move(task); impl_->cv.notify_one();
     return future;
 }
+#ifdef __QNXNTO__
+Observation WorkerProcess::exchange_direct(const Sample& sample, std::uint64_t deadline,
+                                           WorkerExchangeTiming* timing) {
+    {
+        std::lock_guard<std::mutex> lock(impl_->mutex);
+        impl_->require_idle();
+        impl_->busy = true;
+    }
+    struct Release {
+        Impl& impl;
+        ~Release() {
+            std::lock_guard<std::mutex> lock(impl.mutex);
+            impl.busy = false;
+        }
+    } release{*impl_};
+    if (timing) timing->direct_start_ns = monotonic_ns();
+    const auto result = impl_->exchange(sample, deadline, timing);
+    if (timing) timing->completed_ns = result.completed_ns;
+    return result;
+}
+#endif
 int WorkerProcess::pid() const { return impl_->child; }
 const char* WorkerProcess::backend() {
 #ifdef __QNXNTO__
