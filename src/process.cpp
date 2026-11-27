@@ -16,11 +16,20 @@
 #ifdef __QNXNTO__
 #include <sys/neutrino.h>
 #include <sys/netmgr.h>
+#include <sys/resource.h>
 #endif
 
 extern char** environ;
 namespace shadow {
 namespace {
+#if defined(__QNXNTO__) && defined(__x86_64__)
+constexpr char guest_launcher[] = "/proc/boot/on";
+// QNX on -L accepts resource:soft:hard, with RLIMIT_AS limits in bytes.
+static_assert(RLIMIT_AS == 6);
+constexpr char guest_address_space_limit[] = "6:16777216:16777216";
+constexpr char guest_limit_ability[] = "rlimit,deny,lock,all,inherit";
+#endif
+
 struct Pipe {
     int fd[2]{-1, -1};
     Pipe() {
@@ -163,7 +172,17 @@ struct WorkerProcess::Impl {
         }
     }
 };
-WorkerProcess::WorkerProcess(const std::string& executable, const std::string& mode, unsigned fault_after)
+void validate_qnx_guest_profile() {
+#if defined(__QNXNTO__) && defined(__x86_64__)
+    if (access(guest_launcher, X_OK) != 0)
+        throw std::runtime_error("--qnx-guest-profile requires executable /proc/boot/on");
+#else
+    throw std::invalid_argument("--qnx-guest-profile requires the QNX x86-64 guest");
+#endif
+}
+
+WorkerProcess::WorkerProcess(const std::string& executable, const std::string& mode, unsigned fault_after,
+                             WorkerLaunch launch)
     : impl_(std::make_unique<Impl>()) {
     Pipe to_child, from_child;
     SpawnActions actions;
@@ -172,7 +191,25 @@ WorkerProcess::WorkerProcess(const std::string& executable, const std::string& m
     for (int fd : {to_child.fd[0], to_child.fd[1], from_child.fd[0], from_child.fd[1]}) actions.close_fd(fd);
     std::string count = std::to_string(fault_after);
     char* args[]{const_cast<char*>(executable.c_str()), const_cast<char*>(mode.c_str()), count.data(), nullptr};
-    const int error = posix_spawn(&impl_->child, executable.c_str(), &actions.value, nullptr, args, environ);
+    int error;
+    if (launch == WorkerLaunch::qnx_guest_candidate) {
+        validate_qnx_guest_profile();
+#if defined(__QNXNTO__) && defined(__x86_64__)
+        // on applies the limit and locks the rlimit ability before exec, in this same child.
+        // Make relative paths explicit so on never interprets the path as an option or searches PATH.
+        std::string target = executable.compare(0, 1, "/") == 0 ? executable : "./" + executable;
+        char limit_option[] = "-L";
+        char ability_option[] = "-A";
+        char* guest_args[]{const_cast<char*>(guest_launcher), limit_option,
+                          const_cast<char*>(guest_address_space_limit), ability_option,
+                          const_cast<char*>(guest_limit_ability), target.data(), args[1], args[2], nullptr};
+        error = posix_spawn(&impl_->child, guest_launcher, &actions.value, nullptr, guest_args, environ);
+#else
+        throw std::logic_error("QNX guest launcher unavailable");
+#endif
+    } else {
+        error = posix_spawn(&impl_->child, executable.c_str(), &actions.value, nullptr, args, environ);
+    }
     if (error) { impl_->child = -1; throw std::runtime_error("Cannot start worker: " + std::string(std::strerror(error))); }
     // Close child ends before reading the handshake so an early exit produces EOF.
     close(to_child.release(0)); close(from_child.release(1));

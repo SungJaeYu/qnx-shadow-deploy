@@ -408,7 +408,7 @@ int main(int argc, char** argv) {
         std::string worker = "./build/shadow-worker", scenario = "rollback";
         std::string manifest, trace_path, control_socket;
         bool control_stdin = false, scenario_set = false, phase_timing = false;
-        bool no_telemetry = false;
+        bool no_telemetry = false, qnx_guest_profile = false;
         int output_fd = -1, live_range_fd = -1;
         unsigned stage_at = 20;
         unsigned samples = 180, period_ms = 20, deadline_ms = 10, qualify = 20, probation = 40;
@@ -419,6 +419,7 @@ int main(int argc, char** argv) {
                              "  [--period-ms N] [--deadline-ms N] [--qualify N] [--probation N]\n"
                              "  [--candidate-manifest PATH --stage-at N] [--control-stdin] [--control-socket PATH]\n"
                              "  [--output-fd FD [--no-telemetry]] (dedicated pipe writer)\n"
+                             "  [--qnx-guest-profile] (16 MiB virtual address space per candidate)\n"
                              "  [--phase-timing] (up to 4096 samples on stderr after the run)\n"
                              "  [--sensor-trace PATH] (one integer millimetre value per sample)\n"
                              "  [--live-range-fd FD] (dedicated pipe reader for live millimetre records)\n"
@@ -430,6 +431,7 @@ int main(int argc, char** argv) {
                              "JSON Lines are written to stdout; diagnostics go to stderr.\n";
                 return 0;
             }
+            if (option == "--qnx-guest-profile") { qnx_guest_profile = true; continue; }
             if (option == "--no-telemetry") { no_telemetry = true; continue; }
             if (option == "--phase-timing") { phase_timing = true; continue; }
             if (option == "--control-stdin") { control_stdin = true; continue; }
@@ -463,6 +465,8 @@ int main(int argc, char** argv) {
             else if (option == "--probation") probation = number(argument);
             else throw std::invalid_argument("Unknown option: " + option);
         }
+        if (qnx_guest_profile) validate_qnx_guest_profile();
+        const auto candidate_launch = qnx_guest_profile ? WorkerLaunch::qnx_guest_candidate : WorkerLaunch::standard;
         const bool split_output = output_fd != -1;
         if (split_output) {
             std::signal(SIGPIPE, SIG_IGN);
@@ -537,7 +541,7 @@ int main(int argc, char** argv) {
         std::vector<PhaseTiming> phase_records(phase_timing ? std::min(samples, phase_timing_capacity) : 0);
         auto baseline = std::make_unique<WorkerProcess>(worker, baseline_mode, fault_after);
         std::unique_ptr<WorkerProcess> candidate;
-        if (!live) candidate = std::make_unique<WorkerProcess>(worker, candidate_mode, fault_after);
+        if (!live) candidate = std::make_unique<WorkerProcess>(worker, candidate_mode, fault_after, candidate_launch);
         std::unique_ptr<CandidateStager> stager;
         std::deque<Sample> history;
         Commands commands;
@@ -556,7 +560,7 @@ int main(int argc, char** argv) {
             ++generation;
             staging_status = {};
             stager = std::make_unique<CandidateStager>(path,
-                std::vector<Sample>(history.begin(), history.end()), contract);
+                std::vector<Sample>(history.begin(), history.end()), contract, candidate_launch);
             control_event(telemetry, generation, after_sequence, "stage_requested", "manifest_validation_pending");
             return true;
         };
@@ -582,6 +586,7 @@ int main(int argc, char** argv) {
         out << ",\"producer_run_id\":\"" << producer_run_id << "\"";
         out << ",\"requested_inputs\":" << samples
             << ",\"release_policy\":\"" << (range_input ? "acquisition-relative" : "fixed-grid") << '\"';
+        if (qnx_guest_profile) out << ",\"candidate_launch_profile\":\"qnx-guest-16-mib\"";
         if (!trace.empty()) out << ",\"input_source\":\"sensor-trace-mm\"";
         if (range_input) out << ",\"input_source\":\"live-range-mm\"";
         out << "}\n";

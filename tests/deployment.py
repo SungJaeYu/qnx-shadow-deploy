@@ -32,6 +32,15 @@ class DeploymentIntegration(unittest.TestCase):
         path.write_text("".join(f"{key}={value}\n" for key, value in entries.items()))
         return path
 
+    def test_qnx_guest_profile_is_rejected_on_host_before_worker_start(self):
+        result = subprocess.run(
+            [str(BUILD / "shadow-demo"), "--qnx-guest-profile", "--worker", str(self.root / "missing")],
+            capture_output=True, text=True, timeout=4,
+        )
+        self.assertEqual(result.returncode, 2)
+        self.assertEqual(result.stdout, "")
+        self.assertIn("--qnx-guest-profile requires the QNX x86-64 guest", result.stderr)
+
     def run_live(self, manifest=None, samples=30, respond=None):
         args = [str(BUILD / "shadow-demo"), "--worker", str(BUILD / "shadow-worker"),
                 "--samples", str(samples), "--period-ms", "200", "--deadline-ms", "150",

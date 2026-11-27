@@ -114,12 +114,14 @@ struct CandidateStager::Impl {
     std::uint64_t enqueued = 0;
     std::thread thread;
 
-    void run(const std::string& path, const std::vector<Sample>& history, const Contract& contract) {
+    void run(const std::string& path, const std::vector<Sample>& history, const Contract& contract,
+             WorkerLaunch launch) {
         try {
             const auto start = monotonic_ns();
             const auto manifest = read_manifest(path);
             if (history.size() < manifest.replay_samples) throw std::runtime_error("insufficient_replay_history");
-            auto started = std::make_unique<WorkerProcess>(manifest.executable, manifest.mode, manifest.fault_after);
+            auto started = std::make_unique<WorkerProcess>(manifest.executable, manifest.mode,
+                                                           manifest.fault_after, launch);
             {
                 std::lock_guard<std::mutex> lock(mutex);
                 state.pid = started->pid(); state.artifact = manifest.artifact;
@@ -166,11 +168,12 @@ struct CandidateStager::Impl {
         state.done = true;
     }
 };
-CandidateStager::CandidateStager(std::string manifest, std::vector<Sample> history, Contract contract)
+CandidateStager::CandidateStager(std::string manifest, std::vector<Sample> history, Contract contract,
+                                 WorkerLaunch launch)
     : impl_(std::make_unique<Impl>()) {
     if (!history.empty()) impl_->enqueued = history.back().sequence;
-    impl_->thread = std::thread([this, manifest = std::move(manifest), history = std::move(history), contract] {
-        impl_->run(manifest, history, contract);
+    impl_->thread = std::thread([this, manifest = std::move(manifest), history = std::move(history), contract, launch] {
+        impl_->run(manifest, history, contract, launch);
     });
 }
 CandidateStager::~CandidateStager() {
