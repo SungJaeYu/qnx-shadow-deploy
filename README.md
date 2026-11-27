@@ -35,6 +35,8 @@ python3 tools/serve.py
 
 Open <http://127.0.0.1:8765>. Select **Attach a candidate to a running baseline** and click **Run demonstration**. The broker attaches the candidate after 20 inputs. Watch **Deployment decisions** for replay completion, promotion, and commit. **Output owner** switches to the candidate during probation, and the baseline retires at commit. Inspect **Missing outputs** and save the trace with **Download JSONL**.
 
+Use [the local deployment hook](docs/deployment-hook.md) to attach a candidate from an installer while the broker is running.
+
 <details>
 <summary>Operator-controlled staging and cancellation</summary>
 

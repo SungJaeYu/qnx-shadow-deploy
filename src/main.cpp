@@ -1,4 +1,5 @@
 #include "shadow/continuity.hpp"
+#include "shadow/control.hpp"
 #include "shadow/io.hpp"
 #include "shadow/policy.hpp"
 #include "shadow/process.hpp"
@@ -318,6 +319,20 @@ void json_string(std::ostream& out, const std::string& text) {
     }
     out << '"';
 }
+std::string control_result(const char* outcome, unsigned generation, const std::string& reason,
+                           shadow::Source owner) {
+    std::ostringstream out;
+    out << "{\"outcome\":\"" << outcome << "\",\"generation\":";
+    if (generation) out << generation;
+    else out << "null";
+    out << ",\"reason\":";
+    json_string(out, reason);
+    out << ",\"active_owner\":";
+    if (owner == shadow::Source::none) out << "null";
+    else out << '"' << shadow::name(owner) << '"';
+    out << '}';
+    return out.str();
+}
 void control_event(Telemetry& telemetry, unsigned generation, std::uint64_t after, const std::string& event,
                    const std::string& reason, const shadow::StagingStatus& status = {}) {
     auto& out = telemetry.stream;
@@ -362,7 +377,7 @@ int main(int argc, char** argv) {
     }
     try {
         std::string worker = "./build/shadow-worker", scenario = "rollback";
-        std::string manifest, trace_path;
+        std::string manifest, trace_path, control_socket;
         bool control_stdin = false, scenario_set = false, phase_timing = false;
         bool no_telemetry = false;
         int output_fd = -1;
@@ -373,12 +388,12 @@ int main(int argc, char** argv) {
             if (option == "--help") {
                 std::cout << "Usage: shadow-demo [--worker PATH] [--scenario NAME] [--samples N]\n"
                              "  [--period-ms N] [--deadline-ms N] [--qualify N] [--probation N]\n"
-                             "  [--candidate-manifest PATH --stage-at N] [--control-stdin]\n"
+                             "  [--candidate-manifest PATH --stage-at N] [--control-stdin] [--control-socket PATH]\n"
                              "  [--output-fd FD [--no-telemetry]] (dedicated pipe writer)\n"
                              "  [--phase-timing] (up to 4096 samples on stderr after the run)\n"
                              "  [--sensor-trace PATH] (one integer millimetre value per sample)\n"
                              "Live mode starts baseline only. Stage after N completed inputs or send\n"
-                             "  stage PATH / cancel commands on stdin. Promotion follows qualification.\n"
+                             "  stage PATH / cancel commands on stdin, or submit using shadowctl.\n"
                              "Scenarios: promote, reject-units, reject-delay, reject-nan, reject-stale,\n"
                              "  reject-protocol, reject-switch, rollback, baseline-failure, no-fallback,\n"
                              "  post-commit-failure, semantic-bias, semantic-freeze\n"
@@ -393,7 +408,10 @@ int main(int argc, char** argv) {
             if (option == "--worker") worker = argument;
             else if (option == "--scenario") { scenario = argument; scenario_set = true; }
             else if (option == "--candidate-manifest") manifest = argument;
-            else if (option == "--sensor-trace") {
+            else if (option == "--control-socket") {
+                if (argument.empty()) throw std::invalid_argument("control socket path is empty");
+                control_socket = argument;
+            } else if (option == "--sensor-trace") {
                 if (argument.empty()) throw std::invalid_argument("sensor trace path is empty");
                 trace_path = argument;
             } else if (option == "--stage-at") stage_at = number(argument);
@@ -421,7 +439,7 @@ int main(int argc, char** argv) {
         contract.deadline_ns = static_cast<std::uint64_t>(deadline_ms) * 1000000;
         contract.period_ns = static_cast<std::uint64_t>(period_ms) * 1000000;
         contract.qualification_samples = qualify; contract.probation_samples = probation;
-        const bool live = control_stdin || !manifest.empty();
+        const bool live = control_stdin || !manifest.empty() || !control_socket.empty();
         if (live && scenario_set) throw std::invalid_argument("Live deployment and scenario modes are separate");
         if (!manifest.empty() && (!stage_at || stage_at >= samples))
             throw std::invalid_argument("Require 0 < stage-at < samples");
@@ -465,7 +483,9 @@ int main(int argc, char** argv) {
                     throw std::invalid_argument("split output requires a writable stdout pipe or --no-telemetry");
             }
         }
-        Telemetry telemetry(split_output, no_telemetry);
+        const bool bounded_telemetry = split_output ||
+            (!control_socket.empty() && AtomicPipe::prepare(STDOUT_FILENO).record_limit);
+        Telemetry telemetry(bounded_telemetry, no_telemetry);
         auto& out = telemetry.stream;
         const auto trace = trace_path.empty() ? std::vector<double>{} : load_sensor_trace(trace_path, samples);
         std::signal(SIGPIPE, SIG_IGN);
@@ -480,6 +500,26 @@ int main(int argc, char** argv) {
         Commands commands;
         unsigned generation = 0;
         StagingStatus staging_status;
+        std::optional<DeploymentControl> control;
+        if (!control_socket.empty()) control.emplace(control_socket);
+        Source active_owner = Source::none;
+        unsigned hook_exit_code = 0;
+        std::string hook_result;
+        const auto begin_stage = [&](const std::string& path, unsigned after_sequence) {
+            if (stager || candidate || !supervisor.begin_staging()) return false;
+            ++generation;
+            staging_status = {};
+            stager = std::make_unique<CandidateStager>(path,
+                std::vector<Sample>(history.begin(), history.end()), contract);
+            control_event(telemetry, generation, after_sequence, "stage_requested", "manifest_validation_pending");
+            return true;
+        };
+        const auto finish_hook = [&]() {
+            if (!hook_result.empty() && !stager) {
+                control->finish(hook_exit_code, hook_result);
+                hook_result.clear();
+            }
+        };
         const auto producer_run_id = std::to_string(baseline->pid()) + "-" + std::to_string(monotonic_ns());
         const char* delivery_error = nullptr;
         unsigned delivered_outputs = 0;
@@ -527,23 +567,30 @@ int main(int argc, char** argv) {
                 }
                 if (staging_status.done) stager.reset();
             }
+            finish_hook();
             std::optional<std::string> command;
             if (!manifest.empty() && i == stage_at + 1) command = "stage " + manifest;
             else if (control_stdin) command = commands.poll_line();
             if (command) {
                 if (command->rfind("stage ", 0) == 0 && command->size() > 6) {
-                    if (stager || candidate || !supervisor.begin_staging()) {
+                    if (!begin_stage(command->substr(6), i - 1))
                         control_event(telemetry, generation, i - 1, "command_rejected", "deployment_busy_or_committed");
-                    } else {
-                        ++generation; staging_status = {};
-                        stager = std::make_unique<CandidateStager>(command->substr(6),
-                            std::vector<Sample>(history.begin(), history.end()), contract);
-                        control_event(telemetry, generation, i - 1, "stage_requested", "manifest_validation_pending");
-                    }
                 } else if (*command == "cancel" && supervisor.request_cancel()) {
                     if (stager) stager->cancel();
                     control_event(telemetry, generation, i - 1, "cancel_requested", "operator_cancelled");
                 } else control_event(telemetry, generation, i - 1, "command_rejected", "invalid_command_or_phase");
+            }
+            if (control) {
+                const auto request = control->request();
+                if (request) {
+                    if (supervisor.phase() == Phase::committed) {
+                        control->refuse(control_result("refused", 0, "deployment_already_committed", active_owner));
+                    } else if (begin_stage(*request, i - 1)) {
+                        control->accept(generation);
+                    } else {
+                        control->refuse(control_result("refused", 0, "deployment_busy", active_owner));
+                    }
+                }
             }
             Sample sample{};
             sample.sequence = i; sample.acquired_ns = monotonic_ns();
@@ -620,6 +667,19 @@ int main(int argc, char** argv) {
                 shadow_qualification_omitted = supervisor.finish_pending_candidate(sample, c, decision);
                 if (shadow_qualification_omitted) ++shadow_qualification_omissions;
             }
+            if (control) {
+                active_owner = supervisor.phase() == Phase::failed ? Source::none : decision.source;
+                if (control->awaiting_result() && hook_result.empty()) {
+                    const auto state = supervisor.phase();
+                    const auto* reason = delivery_error ? delivery_error : decision.reason.c_str();
+                    if (state == Phase::committed || state == Phase::rejected ||
+                        state == Phase::rolled_back || state == Phase::failed) {
+                        hook_exit_code = state == Phase::committed ? 0 :
+                            state == Phase::rejected ? 2 : state == Phase::rolled_back ? 3 : 6;
+                        hook_result = control_result(name(state), generation, reason, active_owner);
+                    }
+                }
+            }
             out << "{\"type\":\"sample\",\"sequence\":" << i << ",\"time_s\":" << seconds
                       << ",\"truth\":";
             if (trace.empty()) value(out, truth); else out << "null";
@@ -671,13 +731,19 @@ int main(int argc, char** argv) {
                 ++worker_retirement_samples;
                 max_worker_retirement_ns = std::max(max_worker_retirement_ns, retirement_ns);
             }
+            finish_hook();
             if (supervisor.phase() == Phase::failed) break;
             // Rebase on actual acquisition, not the old nominal release grid.
             next_release = next_release_ns(sample.acquired_ns, monotonic_ns(), contract.period_ns);
         }
+        if (control) {
+            stager.reset();
+            finish_hook();
+            control.reset();
+        }
         std::uint64_t telemetry_deadline_ns = 0;
-        if (split_output) {
-            ::close(output_fd);
+        if (split_output) ::close(output_fd);
+        if (bounded_telemetry) {
             telemetry_deadline_ns = monotonic_ns() + telemetry_shutdown_grace_ns;
             telemetry.drain(telemetry_deadline_ns);
         }
@@ -721,14 +787,14 @@ int main(int argc, char** argv) {
             out << ",\"delivered_outputs\":" << delivered_outputs
                 << ",\"last_selected_sequence\":" << last_selected_sequence
                 << ",\"last_delivered_sequence\":" << last_delivered_sequence
-                << ",\"telemetry_records_dropped\":" << telemetry.dropped
                 << ",\"output_delivery_error\":";
             if (delivery_error) json_string(out, delivery_error);
             else out << "null";
         }
+        if (bounded_telemetry) out << ",\"telemetry_records_dropped\":" << telemetry.dropped;
         out << ",\"external_delivery\":\"unmeasured\"}\n";
         telemetry.emit();
-        if (split_output) telemetry.drain(telemetry_deadline_ns);
+        if (bounded_telemetry) telemetry.drain(telemetry_deadline_ns);
         if (delivery_error) {
             std::ostringstream error;
             error << "shadow-demo: " << delivery_error
