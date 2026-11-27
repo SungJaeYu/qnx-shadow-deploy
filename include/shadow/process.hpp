@@ -20,6 +20,10 @@ struct WorkerExchangeTiming {
 enum class WorkerLaunch { standard, qnx_guest_candidate };
 
 void validate_qnx_guest_profile();
+#if defined(__QNXNTO__) && defined(__x86_64__)
+inline constexpr char qnx_candidate_exec_option[] = "--internal-qnx-candidate-exec";
+[[noreturn]] void exec_qnx_guest_candidate(char** worker_args);
+#endif
 
 // One persistent dispatch thread and at most one outstanding sample per child.
 class WorkerProcess {

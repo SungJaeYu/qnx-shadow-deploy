@@ -405,6 +405,12 @@ int main(int argc, char** argv) {
         return 2;
     }
     try {
+#if defined(__QNXNTO__) && defined(__x86_64__)
+        if (argc > 1 && std::string_view(argv[1]) == qnx_candidate_exec_option) {
+            if (argc != 5) throw std::invalid_argument("Invalid QNX candidate launcher arguments");
+            exec_qnx_guest_candidate(argv + 2);
+        }
+#endif
         std::string worker = "./build/shadow-worker", scenario = "rollback";
         std::string manifest, trace_path, control_socket;
         bool control_stdin = false, scenario_set = false, phase_timing = false;

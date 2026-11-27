@@ -1,6 +1,7 @@
 #include "shadow/process.hpp"
 #include "shadow/guest_headroom.hpp"
 #include "shadow/io.hpp"
+#include <algorithm>
 #include <cerrno>
 #include <condition_variable>
 #include <cstring>
@@ -15,8 +16,10 @@
 #include <time.h>
 #include <unistd.h>
 #ifdef __QNXNTO__
+#include <process.h>
 #include <sys/neutrino.h>
 #include <sys/netmgr.h>
+#include <sys/procmgr.h>
 #include <sys/resource.h>
 #endif
 
@@ -24,11 +27,14 @@ extern char** environ;
 namespace shadow {
 namespace {
 #if defined(__QNXNTO__) && defined(__x86_64__)
-constexpr char guest_launcher[] = "/proc/boot/on";
-// QNX on -L accepts resource:soft:hard, with RLIMIT_AS limits in bytes.
-static_assert(RLIMIT_AS == 6);
-constexpr char guest_address_space_limit[] = "6:16777216:16777216";
-constexpr char guest_limit_ability[] = "rlimit,deny,lock,all,inherit";
+constexpr rlim_t guest_address_space_bytes = 16 * 1024 * 1024;
+
+const char* guest_launcher_path() {
+    const char* path = _cmdname(nullptr);
+    if (!path || path[0] != '/' || access(path, X_OK) != 0)
+        throw std::runtime_error("--qnx-guest-profile cannot resolve the broker executable");
+    return path;
+}
 
 void require_guest_headroom() {
     const long page_size = sysconf(_SC_PAGESIZE);
@@ -196,12 +202,35 @@ struct WorkerProcess::Impl {
 };
 void validate_qnx_guest_profile() {
 #if defined(__QNXNTO__) && defined(__x86_64__)
-    if (access(guest_launcher, X_OK) != 0)
-        throw std::runtime_error("--qnx-guest-profile requires executable /proc/boot/on");
+    guest_launcher_path();
 #else
     throw std::invalid_argument("--qnx-guest-profile requires the QNX x86-64 guest");
 #endif
 }
+
+#if defined(__QNXNTO__) && defined(__x86_64__)
+[[noreturn]] void exec_qnx_guest_candidate(char** worker_args) {
+    rlimit limits{};
+    if (getrlimit(RLIMIT_AS, &limits) == -1)
+        throw std::runtime_error("Cannot read QNX candidate address-space limit: " + std::string(std::strerror(errno)));
+    // Preserve any tighter limits inherited from the broker.
+    limits.rlim_cur = std::min(limits.rlim_cur, guest_address_space_bytes);
+    limits.rlim_max = std::min(limits.rlim_max, guest_address_space_bytes);
+    if (setrlimit(RLIMIT_AS, &limits) == -1)
+        throw std::runtime_error("Cannot set QNX candidate address-space limit: " + std::string(std::strerror(errno)));
+
+    // Modify only this process and deny raising limits after exec in either credential domain.
+    const int ability_error = procmgr_ability(0, PROCMGR_ADN_ROOT | PROCMGR_ADN_NONROOT |
+        PROCMGR_AOP_DENY | PROCMGR_AOP_LOCK | PROCMGR_AOP_INHERIT_YES | PROCMGR_AID_RLIMIT,
+        PROCMGR_AID_EOL);
+    if (ability_error != 0)
+        throw std::runtime_error("Cannot lock QNX candidate limit ability: " + std::string(std::strerror(ability_error)));
+
+    // The candidate replaces this owned child. Its Hello and native channel belong to that PID.
+    execv(worker_args[0], worker_args);
+    throw std::runtime_error("Cannot execute QNX candidate: " + std::string(std::strerror(errno)));
+}
+#endif
 
 WorkerProcess::WorkerProcess(const std::string& executable, const std::string& mode, unsigned fault_after,
                              WorkerLaunch launch)
@@ -215,20 +244,14 @@ WorkerProcess::WorkerProcess(const std::string& executable, const std::string& m
     char* args[]{const_cast<char*>(executable.c_str()), const_cast<char*>(mode.c_str()), count.data(), nullptr};
     int error;
     if (launch == WorkerLaunch::qnx_guest_candidate) {
-        validate_qnx_guest_profile();
 #if defined(__QNXNTO__) && defined(__x86_64__)
-        // on applies the limit and locks the rlimit ability before exec, in this same child.
-        // Make relative paths explicit so on never interprets the path as an option or searches PATH.
-        std::string target = executable.compare(0, 1, "/") == 0 ? executable : "./" + executable;
-        char limit_option[] = "-L";
-        char ability_option[] = "-A";
-        char* guest_args[]{const_cast<char*>(guest_launcher), limit_option,
-                          const_cast<char*>(guest_address_space_limit), ability_option,
-                          const_cast<char*>(guest_limit_ability), target.data(), args[1], args[2], nullptr};
         require_guest_headroom();
-        error = posix_spawn(&impl_->child, guest_launcher, &actions.value, nullptr, guest_args, environ);
+        const char* launcher = guest_launcher_path();
+        char* guest_args[]{const_cast<char*>(launcher), const_cast<char*>(qnx_candidate_exec_option),
+                          args[0], args[1], args[2], nullptr};
+        error = posix_spawn(&impl_->child, launcher, &actions.value, nullptr, guest_args, environ);
 #else
-        throw std::logic_error("QNX guest launcher unavailable");
+        throw std::invalid_argument("--qnx-guest-profile requires the QNX x86-64 guest");
 #endif
     } else {
         error = posix_spawn(&impl_->child, executable.c_str(), &actions.value, nullptr, args, environ);
@@ -244,7 +267,12 @@ WorkerProcess::WorkerProcess(const std::string& executable, const std::string& m
 #ifdef __QNXNTO__
     if (hello.channel < 0) throw std::runtime_error("Worker has no QNX channel");
     impl_->connection = ConnectAttach(ND_LOCAL_NODE, impl_->child, hello.channel, _NTO_SIDE_CHANNEL, 0);
-    if (impl_->connection == -1) throw std::runtime_error("ConnectAttach failed");
+    if (impl_->connection == -1) {
+        const int attach_error = errno;
+        throw std::runtime_error("ConnectAttach failed for worker " + std::to_string(impl_->child) +
+                                 ", channel " + std::to_string(hello.channel) + ": " +
+                                 std::strerror(attach_error) + " (errno " + std::to_string(attach_error) + ")");
+    }
 #else
     if (hello.channel != -1) throw std::runtime_error("Unexpected worker transport");
 #endif
