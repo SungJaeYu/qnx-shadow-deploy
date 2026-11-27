@@ -506,7 +506,10 @@ int main(int argc, char** argv) {
         unsigned hook_exit_code = 0;
         std::string hook_result;
         const auto begin_stage = [&](const std::string& path, unsigned after_sequence) {
-            if (stager || candidate || !supervisor.begin_staging()) return false;
+            // An asynchronous preparation failure can reach rejected before step()
+            // reports the terminal decision. Reserve the generation until that reply.
+            if ((control && control->awaiting_result()) || stager || candidate || !supervisor.begin_staging())
+                return false;
             ++generation;
             staging_status = {};
             stager = std::make_unique<CandidateStager>(path,
