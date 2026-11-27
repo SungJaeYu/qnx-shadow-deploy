@@ -17,7 +17,7 @@ case "$project_dir$QNX_TARGET" in
         printf 'Image source paths must not contain whitespace, quotes, # or =.\n' >&2
         exit 2 ;;
 esac
-targets=(shadow-demo shadow-worker shadow-candidate policy-tests staging-tests)
+targets=(shadow-demo shadow-worker shadow-candidate shadowctl policy-tests staging-tests)
 for name in "${targets[@]}"; do
     if [ ! -f "$build_dir/$name" ] ||
        ! file "$build_dir/$name" | grep -q 'interpreter /usr/lib/ldqnx-64.so.2'; then
@@ -48,6 +48,7 @@ mkdir -p "$vm_dir/local/snippets"
             "$name" "$build_dir" "$name"
     done
     printf '[uid=0 gid=0 perms=444] bin/shadowdeploy/candidate.manifest=%s/candidate.manifest\n' "$build_dir"
+    printf '[uid=0 gid=0 perms=555] bin/shadowdeploy/deployment_hook_example.sh=%s/tools/deployment_hook_example.sh\n' "$project_dir"
     # Explicitly require the C++ runtime also listed by the standard image.
     printf '[uid=0 gid=0 perms=555] lib/libc++.so.2=%s\n' "$cxx_runtime"
     printf '[+optional]\n'

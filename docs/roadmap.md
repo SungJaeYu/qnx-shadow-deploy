@@ -21,6 +21,8 @@
 - [x] Validate an artifact manifest for OS/architecture, protocol, entrypoint and contract.
 - [x] Add bounded input replay for the example filter; reject gaps, overflow and invalid replay.
 - [x] Add local stage/cancel controls, deployment generations and retry after rejection/rollback.
+- [x] Accept a local post-install hook and return a per-request deployment result.
+- [ ] Support a v2-to-v3 deployment after v2 has committed in the same broker.
 - [x] Keep historical replay separate from fresh qualification and automatic promotion.
 - [ ] Add an optional operator approval gate before promotion if required by the final workflow.
 - [ ] Make the selected output channel independent of stdout telemetry and shadow waits.

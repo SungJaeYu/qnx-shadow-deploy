@@ -66,7 +66,7 @@ cmake --build build-qnx --parallel 2
 
 Confirm that `q++ -V` lists the configured compiler variant. The environment preflight only checks tool discovery. A successful compiler invocation is still required to verify the installation and license.
 
-The build produces `shadow-demo`, `shadow-worker`, `shadow-candidate`, `candidate.manifest`, `policy-tests` and `staging-tests`. Cross builds do not run these binaries on the host and do not register the host-only Python integration tests.
+The build produces `shadow-demo`, `shadow-worker`, `shadow-candidate`, `shadowctl`, `candidate.manifest`, `policy-tests` and `staging-tests`. Cross builds do not run these binaries on the host and do not register the host-only Python integration tests.
 
 ## Create and run a guest
 
@@ -78,7 +78,7 @@ bash tools/qnx_container.sh image
 bash tools/qnx_container.sh vm-image
 ```
 
-This action uses the installed SDK's `mkqnximage` with x86-64 QEMU, 2 CPUs and 1 GiB RAM. It writes to ignored `build-qnx-vm/` and adds `/system/bin/shadowdeploy/` containing all five executables and `candidate.manifest`. It explicitly requires `libc++.so.2`, which is also present in the generated standard library list. The standard image supplies libc, libm and libgcc_s. The helper owns `local/snippets/system_files.shadowdeploy`; it preserves other local snippets. Regenerating the image rebuilds its partitions, so export guest logs first.
+This action uses the installed SDK's `mkqnximage` with x86-64 QEMU, 2 CPUs and 1 GiB RAM. It writes to ignored `build-qnx-vm/` and adds `/system/bin/shadowdeploy/` containing the six executables, `candidate.manifest` and the local deployment hook example. It explicitly requires `libc++.so.2`, which is also present in the generated standard library list. The standard image supplies libc, libm and libgcc_s. The helper owns `local/snippets/system_files.shadowdeploy`; it preserves other local snippets. Regenerating the image rebuilds its partitions, so export guest logs first.
 
 **Image generation and subsequent boot passed on 2026-11-23.** The outputs are `build-qnx-vm/output/ifs.bin`, a 278,589,952-byte raw `disk-qemu`, and `disk-qemu.vmdk`. The small VMDK file is a descriptor referencing the raw disk, not a standalone disk image. The [image evidence](evidence/qnx-image-build.json) records hashes and the generated partition layout. The native run reused these exact images. Generated images contain development accounts and must not be exposed on a public interface.
 
@@ -105,6 +105,8 @@ The image generator operates on its current directory. Consult `mkqnximage --hel
 For that manual image, provide the project's target binaries, generated manifest and required C++ runtime libraries using the image's documented transfer mechanism. Guest address, login and transfer configuration are environment-specific; no credentials are assumed by this repository.
 
 ## Run on the target
+
+See [the local deployment hook](deployment-hook.md) for `shadowctl` setup and the guest functional example.
 
 Place the binaries and generated manifest in one executable directory. For the container-generated image, use `cd /system/bin/shadowdeploy`. The staging tests require a writable `/tmp`. The system partition may be read-only; save logs in `/data` or another writable location. Then run:
 
