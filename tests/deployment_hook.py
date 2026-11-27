@@ -11,6 +11,7 @@ import unittest
 
 
 BUILD = Path(sys.argv.pop(1)).resolve()
+DEFAULT_HOOK_TIMEOUT_MS = 4000
 
 
 class DeploymentHook(unittest.TestCase):
@@ -32,10 +33,10 @@ class DeploymentHook(unittest.TestCase):
         path.write_text("".join(f"{key}={value}\n" for key, value in fields.items()))
         return path
 
-    def broker(self, stdout=None, control_stdin=False):
+    def broker(self, stdout=None, control_stdin=False, *, period_ms=50, deadline_ms=40):
         command = [str(BUILD / "shadow-demo"), "--worker", str(BUILD / "shadow-worker"),
-                   "--control-socket", str(self.endpoint), "--samples", "240", "--period-ms", "50",
-                   "--deadline-ms", "40", "--qualify", "3", "--probation", "20"]
+                   "--control-socket", str(self.endpoint), "--samples", "240", "--period-ms", str(period_ms),
+                   "--deadline-ms", str(deadline_ms), "--qualify", "3", "--probation", "20"]
         if control_stdin:
             command += ["--control-stdin"]
         broker = subprocess.Popen(command, stdin=subprocess.PIPE if control_stdin else subprocess.DEVNULL,
@@ -72,29 +73,32 @@ class DeploymentHook(unittest.TestCase):
                     time.sleep(0.01)
         self.fail("broker did not reach the expected event")
 
-    def hook(self, path, timeout_ms=4000):
+    def hook(self, path, timeout_ms=DEFAULT_HOOK_TIMEOUT_MS):
         env = dict(os.environ, SHADOW_CONTROL_SOCKET=str(self.endpoint))
         return subprocess.Popen([str(BUILD / "shadowctl"), "deploy", str(path), "--wait",
                                  "--timeout-ms", str(timeout_ms)],
                                 env=env, stdin=subprocess.DEVNULL, stdout=subprocess.PIPE, text=True)
 
     def outcome(self, process, code, outcome, generation, reason, owner):
-        stdout, _ = process.communicate(timeout=6)
+        stdout, _ = process.communicate(timeout=10)
         self.assertEqual(process.returncode, code, stdout)
         self.assertEqual(json.loads(stdout), dict(outcome=outcome, generation=generation,
                                                   reason=reason, active_owner=owner))
 
     def test_reject_rollback_retry_commit_and_refusal(self):
-        self.broker()
+        # Give sanitized workers headroom on shared CI hosts so this tests
+        # crash rollback without a competing IPC timeout.
+        self.broker(period_ms=200, deadline_ms=150)
+        lifecycle_timeout_ms = 8000
         bad = self.manifest("bad protocol.manifest", protocol=1)
         crash = self.manifest("crash.manifest", mode="crash", fault_after=25)
         good = self.manifest("good.manifest")
         self.outcome(self.hook(bad), 2, "rejected", 1, "manifest_protocol_mismatch", "baseline")
-        with self.hook(crash) as pending:
+        with self.hook(crash, lifecycle_timeout_ms) as pending:
             self.wait_for(lambda r: r.get("generation") == 2 and r.get("event") == "candidate_promoted")
             self.outcome(self.hook(good), 4, "refused", None, "deployment_busy", "candidate")
             self.outcome(pending, 3, "rolled_back", 2, "worker_disconnected", "baseline")
-        self.outcome(self.hook(good), 0, "committed", 3, "probation_passed", "candidate")
+        self.outcome(self.hook(good, lifecycle_timeout_ms), 0, "committed", 3, "probation_passed", "candidate")
         self.outcome(self.hook(bad), 4, "refused", None, "deployment_already_committed", "candidate")
         self.assertFalse(any(json.loads(line).get("generation") == 4
                              for line in self.log.read_text().splitlines() if line.endswith("}")))
@@ -178,6 +182,8 @@ class DeploymentHook(unittest.TestCase):
             with client.makefile("rb") as replies:
                 self.assertEqual(replies.readline(), b"a 1\n")
                 self.outcome(self.hook(good), 4, "refused", None, "deployment_busy", "baseline")
+                # Terminal commit follows replay, qualification and 20 probation samples.
+                client.settimeout(DEFAULT_HOOK_TIMEOUT_MS / 1000)
                 self.assertEqual(replies.readline().split(maxsplit=1)[0], b"0")
 
 

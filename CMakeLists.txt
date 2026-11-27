@@ -100,7 +100,7 @@ if(BUILD_TESTING)
     set_tests_properties(live-deployment PROPERTIES TIMEOUT 150)
     add_test(NAME deployment-hook COMMAND ${Python3_EXECUTABLE}
       ${CMAKE_CURRENT_SOURCE_DIR}/tests/deployment_hook.py $<TARGET_FILE_DIR:shadow-demo>)
-    set_tests_properties(deployment-hook PROPERTIES TIMEOUT 30)
+    set_tests_properties(deployment-hook PROPERTIES TIMEOUT 45)
     add_test(NAME workbench-api COMMAND ${Python3_EXECUTABLE}
       ${CMAKE_CURRENT_SOURCE_DIR}/tests/server_tests.py $<TARGET_FILE_DIR:shadow-demo>)
     set_tests_properties(workbench-api PROPERTIES TIMEOUT 30)
