@@ -195,7 +195,12 @@ class DeploymentIntegration(unittest.TestCase):
 
         rows = [json.loads(line) for line in original_trace.splitlines()]
         rows[0]["backend"] = "qnx-native-ipc"
+        rows[0].pop("candidate_launch_profile", None)
         trace.write_text("".join(json.dumps(row) + "\n" for row in rows))
+        profile_result = subprocess.run([*command, "--qnx-guest-profile"],
+                                        capture_output=True, text=True, timeout=5)
+        self.assertEqual(profile_result.returncode, 1, profile_result.stdout + profile_result.stderr)
+        self.assertIn("expected qnx-guest-16-mib", profile_result.stderr)
         broker = int((synthetic / "broker-pid").read_text())
         baseline = rows[0]["baseline_pid"]
         first, second = [row["candidate_pid"] for row in rows if row.get("event") == "candidate_promoted"]
