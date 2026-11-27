@@ -1,5 +1,6 @@
 #include "shadow/control.hpp"
 #include "shadow/io.hpp"
+#include <cassert>
 #include <cerrno>
 #include <cstddef>
 #include <cstring>
@@ -104,6 +105,7 @@ std::optional<std::string> DeploymentControl::request() {
 }
 
 void DeploymentControl::accept(unsigned generation) {
+    assert(reader_ != -1 && !awaiting_result());
     waiter_ = reader_;
     reader_ = -1;
     if (!send_record(waiter_, "a " + std::to_string(generation) + "\n")) close_fd(waiter_);

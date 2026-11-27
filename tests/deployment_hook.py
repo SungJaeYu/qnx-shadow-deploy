@@ -32,11 +32,16 @@ class DeploymentHook(unittest.TestCase):
         path.write_text("".join(f"{key}={value}\n" for key, value in fields.items()))
         return path
 
-    def broker(self, stdout=None):
+    def broker(self, stdout=None, control_stdin=False):
         command = [str(BUILD / "shadow-demo"), "--worker", str(BUILD / "shadow-worker"),
                    "--control-socket", str(self.endpoint), "--samples", "240", "--period-ms", "50",
                    "--deadline-ms", "40", "--qualify", "3", "--probation", "20"]
-        broker = subprocess.Popen(command, stdin=subprocess.DEVNULL, stdout=self.output if stdout is None else stdout)
+        if control_stdin:
+            command += ["--control-stdin"]
+        broker = subprocess.Popen(command, stdin=subprocess.PIPE if control_stdin else subprocess.DEVNULL,
+                                  stdout=self.output if stdout is None else stdout)
+        if broker.stdin:
+            self.addCleanup(broker.stdin.close)
         self.addCleanup(self.stop, broker)
         if stdout is None:
             self.wait_for(lambda r: r.get("sequence") == 8)
@@ -130,6 +135,35 @@ class DeploymentHook(unittest.TestCase):
         time.sleep(0.4)
         self.outcome(self.hook(self.manifest("good.manifest")), 0, "committed", 1,
                      "probation_passed", "candidate")
+
+    def test_completed_preparation_rejection_reserves_generation_until_reported(self):
+        broker = self.broker(control_stdin=True)
+        bad = self.manifest("bad.manifest", protocol=1)
+        good = self.manifest("good.manifest")
+        with socket.socket(socket.AF_UNIX, socket.SOCK_STREAM) as first:
+            first.settimeout(2)
+            first.connect(str(self.endpoint))
+            first.sendall(os.fsencode(bad) + b"\n")
+            with first.makefile("rb") as replies:
+                self.assertEqual(replies.readline(), b"a 1\n")
+                # Both ingress paths reach the next boundary after the quick manifest failure.
+                with socket.socket(socket.AF_UNIX, socket.SOCK_STREAM) as second:
+                    second.settimeout(2)
+                    second.connect(str(self.endpoint))
+                    second.sendall(os.fsencode(good) + b"\n")
+                    broker.stdin.write(b"stage " + os.fsencode(good) + b"\n")
+                    broker.stdin.flush()
+                    with second.makefile("rb") as next_replies:
+                        code, result = next_replies.readline().split(maxsplit=1)
+                        self.assertEqual(code, b"4")
+                        self.assertEqual(json.loads(result), dict(outcome="refused", generation=None,
+                                                                  reason="deployment_busy", active_owner="baseline"))
+                code, result = replies.readline().split(maxsplit=1)
+                self.assertEqual(code, b"2")
+                self.assertEqual(json.loads(result), dict(outcome="rejected", generation=1,
+                                                          reason="manifest_protocol_mismatch", active_owner="baseline"))
+        self.wait_for(lambda r: r.get("event") == "command_rejected" and r.get("generation") == 1)
+        self.outcome(self.hook(good), 0, "committed", 2, "probation_passed", "candidate")
 
     def test_fragmented_request_isolated_from_next_client(self):
         self.broker()
