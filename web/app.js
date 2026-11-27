@@ -61,15 +61,21 @@ function addEvent(row) {
   text.textContent = pretty(row.event); reason.textContent = pretty(row.reason);
   text.append(reason); item.append(sequence, text); $("events").prepend(item);
 }
+function inputSourceLabel(source) {
+  if (source === "sensor-trace-mm") return " · sensor trace";
+  if (source === "live-range-mm") return " · live range";
+  return "";
+}
 function accept(row, replay = false, board = null) {
   if (!row || typeof row !== "object") throw new Error("Invalid recording row");
   records.push(row);
   if (row.type === "meta") {
     if (![1, 2].includes(row.schema) || !["host-posix-pipes", "qnx-native-ipc"].includes(row.backend)) throw new Error("Unsupported recording schema or backend");
     $("backend").textContent = `${board ? board.source : replay ? "Recorded" : "Live"} ${row.backend === "qnx-native-ipc" ? "QNX native IPC" : "host POSIX process run"} · baseline PID ${row.baseline_pid} · ${row.candidate_pid > 0 ? `candidate PID ${row.candidate_pid}` : "candidate not attached"}`;
-    if (row.input_source === "sensor-trace-mm") {
+    const sourceLabel = inputSourceLabel(row.input_source);
+    if (sourceLabel) {
       $("reference-label").textContent = "Sensor input";
-      $("backend").textContent += " · sensor trace";
+      $("backend").textContent += sourceLabel;
     }
     if (board) labelOutputs(" (relay window)");
     $("deadline").textContent = `${row.deadline_ms} ms`; $("qualification").textContent = `${row.qualification_samples} samples`;
@@ -95,11 +101,20 @@ function accept(row, replay = false, board = null) {
     addEvent(row);
     if (row.candidate_pid > 0) {
       const meta = records[0];
-      $("backend").textContent = `${board ? board.source : replay ? "Recorded" : "Live"} ${meta.backend === "qnx-native-ipc" ? "QNX native IPC" : "host POSIX process run"} · baseline PID ${meta.baseline_pid} · candidate PID ${row.candidate_pid} · generation ${row.generation}`;
+      $("backend").textContent = `${board ? board.source : replay ? "Recorded" : "Live"} ${meta.backend === "qnx-native-ipc" ? "QNX native IPC" : "host POSIX process run"} · baseline PID ${meta.baseline_pid} · candidate PID ${row.candidate_pid} · generation ${row.generation}${inputSourceLabel(meta.input_source)}`;
     }
   } else if (row.type === "summary") {
     const latest = samples[samples.length - 1];
     showContinuity(board && latest?.sequence !== row.samples ? null : latest, row);
+    if (row.input_error) {
+      $("phase").textContent = "Failed";
+      $("phase").className = "phase bad";
+      $("owner").textContent = "None";
+      $("baseline-role").textContent = "Stopped";
+      $("candidate-role").textContent = "Stopped";
+      addEvent({type: "deployment", after_sequence: row.samples,
+        event: "live_range_input_stopped", reason: row.input_error});
+    }
     const totalSelected = row.selected_outputs ?? row.outputs;
     const totalMissing = row.missing_selected_outputs ?? row.missing_outputs;
     if (Number.isFinite(totalSelected) && Number.isFinite(totalMissing)) {

@@ -1,6 +1,7 @@
 #include "shadow/continuity.hpp"
 #include "shadow/control.hpp"
 #include "shadow/io.hpp"
+#include "shadow/live_range.hpp"
 #include "shadow/policy.hpp"
 #include "shadow/process.hpp"
 #include "shadow/schedule.hpp"
@@ -29,6 +30,9 @@
 #include <thread>
 #include <unistd.h>
 #include <vector>
+#ifdef __APPLE__
+#include <libproc.h>
+#endif
 
 namespace {
 volatile std::sig_atomic_t interrupted = 0;
@@ -88,23 +92,43 @@ bool same_pipe(int first, int second) {
            a.st_dev == b.st_dev && a.st_ino == b.st_ino;
 }
 
-struct OutputAliases {
+bool aliases_range_pipe(int reader, int other) {
+    if (reader == other || same_pipe(reader, other)) return true;
+#ifdef __APPLE__
+    // Darwin assigns different stat identities to the ends of an anonymous pipe.
+    pipe_fdinfo input{}, endpoint{};
+    return ::proc_pidfdinfo(::getpid(), reader, PROC_PIDFDPIPEINFO, &input, sizeof(input)) == sizeof(input) &&
+           ::proc_pidfdinfo(::getpid(), other, PROC_PIDFDPIPEINFO, &endpoint, sizeof(endpoint)) == sizeof(endpoint) &&
+           input.pipeinfo.pipe_peerhandle != 0 &&
+           input.pipeinfo.pipe_peerhandle == endpoint.pipeinfo.pipe_handle;
+#else
+    return false;
+#endif
+}
+
+struct PipeAliases {
     bool stdout_pipe = false;
     bool stderr_pipe = false;
 };
 
-OutputAliases output_aliases(int argc, char** argv) {
-    OutputAliases aliases;
+PipeAliases pipe_aliases(int argc, char** argv, bool range_input) {
+    PipeAliases aliases;
+    const std::string_view option = range_input ? "--live-range-fd" : "--output-fd";
     for (int i = 1; i + 1 < argc; ++i) {
-        if (std::string_view(argv[i]) != "--output-fd") continue;
+        if (std::string_view(argv[i]) != option) continue;
         // Check every occurrence before parsing can print help or an error. The
         // decimal prefix protects the pipe even when the actual value is invalid.
         char* end = nullptr;
         const long value = std::strtol(argv[i + 1], &end, 10);
         if (end == argv[i + 1] || value < 0 || value > std::numeric_limits<int>::max()) continue;
         const int fd = static_cast<int>(value);
-        aliases.stdout_pipe |= fd == STDOUT_FILENO || same_pipe(fd, STDOUT_FILENO);
-        aliases.stderr_pipe |= fd == STDERR_FILENO || same_pipe(fd, STDERR_FILENO);
+        if (range_input) {
+            aliases.stdout_pipe |= aliases_range_pipe(fd, STDOUT_FILENO);
+            aliases.stderr_pipe |= aliases_range_pipe(fd, STDERR_FILENO);
+        } else {
+            aliases.stdout_pipe |= fd == STDOUT_FILENO || same_pipe(fd, STDOUT_FILENO);
+            aliases.stderr_pipe |= fd == STDERR_FILENO || same_pipe(fd, STDERR_FILENO);
+        }
     }
     return aliases;
 }
@@ -369,10 +393,12 @@ private:
 } // namespace
 int main(int argc, char** argv) {
     using namespace shadow;
-    const auto aliases = output_aliases(argc, argv);
-    if (aliases.stderr_pipe) return 2;
-    if (aliases.stdout_pipe) {
-        std::cerr << "shadow-demo: --output-fd must be separate from stdout\n";
+    const auto output_aliases = pipe_aliases(argc, argv, false);
+    const auto range_aliases = pipe_aliases(argc, argv, true);
+    if (output_aliases.stderr_pipe || range_aliases.stderr_pipe) return 2;
+    if (output_aliases.stdout_pipe || range_aliases.stdout_pipe) {
+        std::cerr << (range_aliases.stdout_pipe ? "shadow-demo: --live-range-fd must be separate from stdout\n" :
+                                                "shadow-demo: --output-fd must be separate from stdout\n");
         return 2;
     }
     try {
@@ -380,7 +406,7 @@ int main(int argc, char** argv) {
         std::string manifest, trace_path, control_socket;
         bool control_stdin = false, scenario_set = false, phase_timing = false;
         bool no_telemetry = false;
-        int output_fd = -1;
+        int output_fd = -1, live_range_fd = -1;
         unsigned stage_at = 20;
         unsigned samples = 180, period_ms = 20, deadline_ms = 10, qualify = 20, probation = 40;
         for (int i = 1; i < argc; ++i) {
@@ -392,7 +418,8 @@ int main(int argc, char** argv) {
                              "  [--output-fd FD [--no-telemetry]] (dedicated pipe writer)\n"
                              "  [--phase-timing] (up to 4096 samples on stderr after the run)\n"
                              "  [--sensor-trace PATH] (one integer millimetre value per sample)\n"
-                             "Live mode starts baseline only. Stage after N completed inputs or send\n"
+                             "  [--live-range-fd FD] (dedicated pipe reader for live millimetre records)\n"
+                             "Live deployment mode starts baseline only. Stage after N completed inputs or send\n"
                              "  stage PATH / cancel commands on stdin, or submit using shadowctl.\n"
                              "Scenarios: promote, reject-units, reject-delay, reject-nan, reject-stale,\n"
                              "  reject-protocol, reject-switch, rollback, baseline-failure, no-fallback,\n"
@@ -421,6 +448,11 @@ int main(int argc, char** argv) {
                 const auto parsed = std::from_chars(argument.data(), end, output_fd);
                 if (parsed.ec != std::errc{} || parsed.ptr != end || output_fd < 0)
                     throw std::invalid_argument("--output-fd requires an integer descriptor above 2");
+            } else if (option == "--live-range-fd") {
+                if (live_range_fd != -1) throw std::invalid_argument("--live-range-fd must appear only once");
+                live_range_fd = static_cast<int>(number(argument));
+                if (live_range_fd <= STDERR_FILENO)
+                    throw std::invalid_argument("--live-range-fd requires an integer descriptor above 2");
             } else if (option == "--samples") samples = number(argument);
             else if (option == "--period-ms") period_ms = number(argument);
             else if (option == "--deadline-ms") deadline_ms = number(argument);
@@ -483,6 +515,14 @@ int main(int argc, char** argv) {
                     throw std::invalid_argument("split output requires a writable stdout pipe or --no-telemetry");
             }
         }
+        std::optional<LiveRangeInput> range_input;
+        if (live_range_fd != -1) {
+            if (!trace_path.empty())
+                throw std::invalid_argument("--live-range-fd and --sensor-trace are mutually exclusive");
+            if (aliases_range_pipe(live_range_fd, output_fd) || aliases_range_pipe(live_range_fd, STDIN_FILENO))
+                throw std::invalid_argument("--live-range-fd requires a separate input pipe");
+            range_input.emplace(live_range_fd);
+        }
         const bool bounded_telemetry = split_output ||
             (!control_socket.empty() && AtomicPipe::prepare(STDOUT_FILENO).record_limit);
         Telemetry telemetry(bounded_telemetry, no_telemetry);
@@ -539,9 +579,11 @@ int main(int argc, char** argv) {
         out << ",\"producer_run_id\":\"" << producer_run_id << "\"";
         out << ",\"requested_inputs\":" << samples;
         if (!trace.empty()) out << ",\"input_source\":\"sensor-trace-mm\"";
+        if (range_input) out << ",\"input_source\":\"live-range-mm\"";
         out << "}\n";
         telemetry.emit();
-        const auto start = monotonic_ns();
+        const char* input_error = nullptr;
+        auto start = monotonic_ns();
         auto next_release = start;
         ServiceContinuity continuity(start, contract.period_ns);
         unsigned worker_retirement_samples = 0;
@@ -596,16 +638,41 @@ int main(int argc, char** argv) {
                 }
             }
             Sample sample{};
-            sample.sequence = i; sample.acquired_ns = monotonic_ns();
+            const auto ipc_budget_ns = contract.deadline_ns * 3 / 4;
+            if (range_input) {
+                input_error = range_input->receive(i, monotonic_ns() + contract.period_ns, ipc_budget_ns, sample);
+                if (interrupted) { input_error = nullptr; break; }
+                if (input_error) {
+                    supervisor.stop_output(input_error);
+                    active_owner = Source::none;
+                    if (control && control->awaiting_result() && hook_result.empty()) {
+                        hook_exit_code = 6;
+                        hook_result = control_result("failed", generation, input_error, active_owner);
+                    }
+                    break;
+                }
+                if (i == 1 && sample.acquired_ns < start) {
+                    start = sample.acquired_ns;
+                    continuity = ServiceContinuity(start, contract.period_ns);
+                }
+            } else {
+                sample.sequence = i;
+                sample.acquired_ns = monotonic_ns();
+            }
             const double seconds = static_cast<double>(sample.acquired_ns - start) / 1e9;
-            const double truth = 10 + 0.5 * seconds + std::sin(seconds * 0.6);
-            sample.position_m = trace.empty() ? truth + 0.08 * std::sin(static_cast<double>(i) * 1.7) : trace[i - 1];
+            double truth = 0;
+            if (!trace.empty()) {
+                sample.position_m = trace[i - 1];
+            } else if (!range_input) {
+                truth = 10 + 0.5 * seconds + std::sin(seconds * 0.6);
+                sample.position_m = truth + 0.08 * std::sin(static_cast<double>(i) * 1.7);
+            }
             history.push_back(sample);
             if (history.size() > history_capacity) history.pop_front();
             if (stager && supervisor.phase() == Phase::warming) stager->enqueue(sample);
             const auto deadline = sample.acquired_ns + contract.deadline_ns;
             // Reserve a quarter of the decision budget for validation and selection.
-            const auto ipc_deadline = sample.acquired_ns + contract.deadline_ns * 3 / 4;
+            const auto ipc_deadline = sample.acquired_ns + ipc_budget_ns;
             auto* const phase = i <= phase_records.size() ? &phase_records[i - 1] : nullptr;
             auto* const baseline_timing = phase ? &phase->baseline : nullptr;
             auto* const candidate_timing = phase ? &phase->candidate : nullptr;
@@ -685,7 +752,8 @@ int main(int argc, char** argv) {
             }
             out << "{\"type\":\"sample\",\"sequence\":" << i << ",\"time_s\":" << seconds
                       << ",\"truth\":";
-            if (trace.empty()) value(out, truth); else out << "null";
+            if (trace.empty() && !range_input) value(out, truth); else out << "null";
+            if (range_input) out << ",\"acquired_ns\":" << sample.acquired_ns;
             out << ",\"input\":" << sample.position_m << ",\"baseline\":";
             observation(out, b, sample); out << ",\"candidate\":"; observation(out, c, sample);
             out << ",\"phase\":\"" << name(supervisor.phase()) << "\",\"source\":\"" << name(decision.source)
@@ -794,6 +862,10 @@ int main(int argc, char** argv) {
             if (delivery_error) json_string(out, delivery_error);
             else out << "null";
         }
+        if (range_input) {
+            out << ",\"input_error\":";
+            if (input_error) json_string(out, input_error); else out << "null";
+        }
         if (bounded_telemetry) out << ",\"telemetry_records_dropped\":" << telemetry.dropped;
         out << ",\"external_delivery\":\"unmeasured\"}\n";
         telemetry.emit();
@@ -811,6 +883,10 @@ int main(int argc, char** argv) {
             emit_phase_timing(phase_records[i], i + 1);
         if (phase_timing) std::clog.flush();
         if (delivery_error) return 4;
+        if (input_error) {
+            std::cerr << "shadow-demo: " << input_error << " expected_sequence=" << continuity.acquired + 1 << '\n';
+            return 5;
+        }
         return interrupted ? 130 : (supervisor.phase() == Phase::failed ? 3 : 0);
     } catch (const std::exception& error) {
         std::cerr << "shadow-demo: " << error.what() << '\n'; return 2;

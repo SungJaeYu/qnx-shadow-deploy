@@ -1,6 +1,6 @@
 # QNX ShadowDeploy
 
-ShadowDeploy gives a new sensor-processing application the same inputs as the running baseline. A QNX broker checks the candidate's outputs and response times before switching output authority at an input sequence boundary. During probation, the broker keeps the baseline available for fallback. The example uses a synthetic position stream.
+ShadowDeploy gives a new sensor-processing application the same inputs as the running baseline. A QNX broker checks the candidate's outputs and response times before switching output authority at an input sequence boundary. During probation, the broker keeps the baseline available for fallback. The default example uses a synthetic position stream. [Live range adapter contract and host example](docs/live-range-input.md).
 
 - [Same-broker lifecycle · 40 seconds](docs/qnx-lifecycle-demo.mp4) follows replay and qualification through promotion, crash, rollback, retry, and commit in one recorded QNX guest run.
 - [Failure-first demo · 44 seconds](docs/native-qnx-demo.mp4) shows deadline failure and other decisions from separate archived QNX guest runs.
