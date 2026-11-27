@@ -580,7 +580,8 @@ int main(int argc, char** argv) {
                   << ",\"qualification_samples\":" << qualify
                   << ",\"probation_samples\":" << probation << ",\"position_unit\":\"m\"";
         out << ",\"producer_run_id\":\"" << producer_run_id << "\"";
-        out << ",\"requested_inputs\":" << samples;
+        out << ",\"requested_inputs\":" << samples
+            << ",\"release_policy\":\"" << (range_input ? "acquisition-relative" : "fixed-grid") << '\"';
         if (!trace.empty()) out << ",\"input_source\":\"sensor-trace-mm\"";
         if (range_input) out << ",\"input_source\":\"live-range-mm\"";
         out << "}\n";
@@ -818,8 +819,10 @@ int main(int argc, char** argv) {
             }
             finish_hook();
             if (supervisor.phase() == Phase::failed) break;
-            // Rebase on actual acquisition, not the old nominal release grid.
-            next_release = next_release_ns(sample.acquired_ns, monotonic_ns(), contract.period_ns);
+            const auto work_completed = monotonic_ns();
+            next_release = range_input
+                ? next_live_read_ns(sample.acquired_ns, work_completed, contract.period_ns)
+                : next_grid_release_ns(start, sample.acquired_ns, work_completed, contract.period_ns);
         }
         if (control) {
             stager.reset();

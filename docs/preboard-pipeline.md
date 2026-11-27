@@ -61,11 +61,20 @@ To connect hardware, install a target adapter executable and pass `--adapter /ab
 ## Periodic service continuity
 
 The broker measures acquisition and decision timing on its monotonic clock.
-Slot zero begins at the first scheduled release after metadata is written.
-Slot `n` covers the half-open interval `[n × period, (n + 1) × period)` from
-that origin. The scheduler still rebases each next release on actual acquisition
-and completed work. The nominal grid measures cumulative drift and skipped
-slots independently of the rebased schedule.
+For synthetic and file-trace inputs, slot zero begins at the first scheduled
+release after metadata is written. Slot `n` covers the half-open interval
+`[n × period, (n + 1) × period)` from that origin. The actual schedule uses
+this same fixed grid. After processing, the broker chooses the earliest grid
+boundary at or after work completion and at least half a period after the
+actual acquisition. The spacing guard limits short estimator intervals while
+allowing ordinary late wake-ups to recover the original cadence. A long
+oversleep or overrun can jump directly to a later slot. Each release processes
+one input, and continuity counts slots based on actual acquisition timestamps.
+
+Live range FD reads retain producer-relative pacing. If the first accepted
+producer timestamp precedes the initial broker release, that timestamp is
+the nominal slot origin for continuity. See [Live range input](live-range-input.md)
+for acquisition and read deadlines.
 
 The summary horizon ends at the nominal slot containing the last acquisition.
 `initial_unoccupied_slots` counts slots before the first acquisition.
@@ -76,12 +85,15 @@ Remaining requested acquisitions are reported separately as `unprocessed_inputs`
 after an early stop or interruption. The nominal horizon can exceed the request
 count when the broker takes longer than planned to acquire all requested inputs.
 
-- Metadata records `requested_inputs`. Samples record `nominal_slot`,
+- Metadata records `requested_inputs` and `release_policy` (`fixed-grid` or
+  `acquisition-relative`). Earlier traces without the policy field use
+  acquisition-relative scheduling. Samples record `nominal_slot`,
   `acquired_offset_ns`, `scheduled_release_offset_ns` and `decision_offset_ns`.
   The offsets are elapsed nanoseconds from slot zero. The decision timestamp
   covers the selection attempt, including attempts that stop service.
 - Each sample records `release_lateness_ms` relative to its actual scheduled
-  release and `nominal_slot_lateness_ms` relative to the start of its occupied
+  release, clamped to zero when a live measurement precedes the read release,
+  and `nominal_slot_lateness_ms` relative to the start of its occupied
   nominal slot. This second value is the offset within the slot. The slot index
   and skipped-slot counts show drift across slot boundaries.
   `nominal_grid_lateness_ms` measures total drift from the scheduled time of

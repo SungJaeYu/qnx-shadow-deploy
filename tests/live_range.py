@@ -15,6 +15,7 @@ DEADLINE_MS = 100
 
 sys.path.insert(0, str(Path(__file__).resolve().parents[1] / "tools"))
 from live_range_example import monotonic_ns
+from verify_qnx_logs import validate_continuity
 
 
 def frame(sequence, acquired_ns=None, range_mm=10250):
@@ -81,6 +82,25 @@ class LiveRangeTest(unittest.TestCase):
                          [stamp + DEADLINE_MS * 1000000 for stamp in acquired])
         self.assertEqual(summary["delivered_outputs"], 3)
         self.assertIsNone(summary["input_error"])
+
+    def test_fresh_queued_and_sparse_records_keep_producer_timestamps(self):
+        acquired = []
+
+        def produce(writer):
+            for delay in (0, (PERIOD_MS - 30) / 1000, (PERIOD_MS + 40) / 1000):
+                time.sleep(delay)
+                acquired.append(monotonic_ns())
+                writer.write(frame(len(acquired), acquired[-1]))
+
+        code, rows, errors, _ = self.run_broker(produce, split=False)
+        self.assertEqual(code, 0, errors)
+        self.assertEqual([row["acquired_ns"] for row in rows[:-1]], acquired)
+        self.assertGreater(rows[1]["scheduled_release_offset_ns"], rows[1]["acquired_offset_ns"])
+        self.assertEqual(rows[1]["release_lateness_ms"], 0)
+        self.assertGreater(rows[2]["acquired_offset_ns"], rows[2]["scheduled_release_offset_ns"])
+        meta = {"period_ms": PERIOD_MS, "deadline_ms": DEADLINE_MS, "requested_inputs": 3,
+                "input_source": "live-range-mm", "release_policy": "acquisition-relative"}
+        self.assertTrue(validate_continuity(meta, rows[-1], rows[:-1]))
 
     def test_invalid_streams_produce_no_output(self):
         cases = (

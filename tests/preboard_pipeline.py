@@ -75,6 +75,14 @@ class Pipeline(unittest.TestCase):
         with self.assertRaisesRegex(TraceValidationError, "previous decision"):
             validate_continuity(metadata, adjusted, invalid)
 
+        fixed = dict(metadata, release_policy="fixed-grid")
+        self.assertRaisesRegex(TraceValidationError, "outside fixed grid",
+                               validate_continuity, fixed, summary, ticks)
+        fixed_ticks = deepcopy(ticks)
+        fixed_ticks[1].update(scheduled_release_offset_ns=10_000_000, release_lateness_ms=11)
+        self.assertTrue(validate_continuity(fixed, dict(summary, max_scheduling_lateness_ms=11),
+                                            fixed_ticks))
+
         self.assertFalse(validate_continuity({"period_ms": 10}, {}, []))
         self.assertIsNone(trial_continuity({}, {}, 8, 0))
         self.assertFalse(trial_continuity(metadata, summary, 8, 0)["passed"])
@@ -156,6 +164,8 @@ class Pipeline(unittest.TestCase):
             self.assertEqual(result.returncode, 0, result.stderr)
             rows = [json.loads(line) for line in result.stdout.splitlines()]
             self.assertEqual(rows[0]["input_source"], "sensor-trace-mm")
+            self.assertEqual(rows[0]["release_policy"], "fixed-grid")
+            self.assertTrue(validate_continuity(rows[0], rows[-1], rows[1:-1]))
             self.assertIsNone(rows[1]["truth"])
             self.assertEqual(rows[1]["input"], 10.25)
             for row in rows[1:-1]:

@@ -36,6 +36,12 @@ def validate_continuity(meta, summary, ticks):
     deadline_ms = meta["deadline_ms"]
     check(type(deadline_ms) is int and 0 < deadline_ms < period_ms, "invalid continuity deadline")
     deadline_ns = deadline_ms * 1_000_000
+    policy = meta.get("release_policy", "acquisition-relative")
+    live_range = meta.get("input_source") == "live-range-mm"
+    check(policy in ("fixed-grid", "acquisition-relative") and not (live_range and policy == "fixed-grid"),
+          "invalid release policy")
+    fixed_grid = policy == "fixed-grid"
+    minimum_spacing = (period_ns + 1) // 2 if fixed_grid else period_ns
 
     def fields(row, expected):
         for key, value in expected.items():
@@ -55,22 +61,26 @@ def validate_continuity(meta, summary, ticks):
                                          ("acquired_offset_ns", "scheduled_release_offset_ns",
                                           "decision_offset_ns"))
         check(all(type(value) is int for value in (acquired, scheduled, decision))
-              and 0 <= scheduled <= acquired <= decision, "invalid continuity offsets")
+              and 0 <= acquired <= decision and 0 <= scheduled <= decision
+              and (live_range or scheduled <= acquired), "invalid continuity offsets")
+        if fixed_grid:
+            check(scheduled % period_ns == 0, "release outside fixed grid")
         slot, remainder = divmod(acquired, period_ns)
         gap = 0
         interval_ms = None
         if previous_acquired is None:
-            check(scheduled == 0, "first release must be the nominal origin")
+            check(scheduled == 0 or live_range, "first release must be the nominal origin")
             initial = slot
         else:
-            check(scheduled >= previous_acquired + period_ns, "release outside no-burst schedule")
+            check(scheduled >= previous_acquired + minimum_spacing, "release outside no-burst schedule")
+            check(acquired > previous_acquired, "out-of-order acquisitions")
             check(scheduled >= previous_decision, "release precedes previous decision")
             interval_ms = (acquired - previous_acquired) / 1e6
             intervals.append(interval_ms)
-            gap = slot - last_slot - 1
-        scheduling.append((acquired - scheduled) / 1e6)
+            gap = max(0, slot - last_slot - 1)
+        scheduling.append(max(0, acquired - scheduled) / 1e6)
         nominal.append(remainder / 1e6)
-        grid.append((acquired - index * period_ns) / 1e6)
+        grid.append(max(0, acquired - index * period_ns) / 1e6)
         fields(row, {
             "nominal_slot": slot, "skipped_nominal_slots": gap, "acquisition_interval_ms": interval_ms,
             "release_lateness_ms": scheduling[-1], "nominal_slot_lateness_ms": nominal[-1],
