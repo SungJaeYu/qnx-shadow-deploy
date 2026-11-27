@@ -33,6 +33,9 @@ class DeploymentIntegration(unittest.TestCase):
         return path
 
     def test_qnx_guest_profile_is_rejected_on_host_before_worker_start(self):
+        system = os.uname().sysname
+        if system.lower() == "qnx":
+            self.skipTest("QNX guest behavior is verified on the target")
         result = subprocess.run(
             [str(BUILD / "shadow-demo"), "--qnx-guest-profile", "--worker", str(self.root / "missing")],
             capture_output=True, text=True, timeout=4,
