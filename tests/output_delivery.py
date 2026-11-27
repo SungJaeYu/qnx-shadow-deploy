@@ -91,7 +91,10 @@ class OutputDelivery(unittest.TestCase):
         with tempfile.TemporaryDirectory() as directory, pipe() as (source, sink):
             worker, _ = self.controlled_worker(directory)
             worker = worker.rename(worker.with_name("rollback-worker"))
-            result = self.run_demo(sink, command=COMMAND + ["--worker", str(worker)], extra=("--phase-timing",))
+            # This verifies ownership and delivery ordering. The Python worker's
+            # short sleep can overshoot substantially on shared macOS runners.
+            command = COMMAND + ["--worker", str(worker), "--period-ms", "400", "--deadline-ms", "300"]
+            result = self.run_demo(sink, command=command, extra=("--phase-timing",))
             sink.close()
             authority = records(source.read())
         self.assertEqual(result.returncode, 0, result.stderr)

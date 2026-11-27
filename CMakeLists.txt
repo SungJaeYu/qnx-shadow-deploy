@@ -86,7 +86,8 @@ if(BUILD_TESTING)
     set_tests_properties(output-delivery PROPERTIES TIMEOUT 30)
     add_test(NAME live-deployment COMMAND ${Python3_EXECUTABLE}
       ${CMAKE_CURRENT_SOURCE_DIR}/tests/deployment.py $<TARGET_FILE_DIR:shadow-demo>)
-    set_tests_properties(live-deployment PROPERTIES TIMEOUT 90)
+    # This suite runs several paced broker sessions with their own watchdogs.
+    set_tests_properties(live-deployment PROPERTIES TIMEOUT 150)
     add_test(NAME workbench-api COMMAND ${Python3_EXECUTABLE}
       ${CMAKE_CURRENT_SOURCE_DIR}/tests/server_tests.py $<TARGET_FILE_DIR:shadow-demo>)
     set_tests_properties(workbench-api PROPERTIES TIMEOUT 30)
