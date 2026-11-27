@@ -1,4 +1,5 @@
 #include "shadow/staging.hpp"
+#include "shadow/io.hpp"
 #include <cerrno>
 #include <chrono>
 #include <cstdlib>
