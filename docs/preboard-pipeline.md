@@ -64,12 +64,13 @@ The broker measures acquisition and decision timing on its monotonic clock.
 For synthetic and file-trace inputs, slot zero begins at the first scheduled
 release after metadata is written. Slot `n` covers the half-open interval
 `[n × period, (n + 1) × period)` from that origin. The actual schedule uses
-this same fixed grid. After processing, the broker chooses the earliest grid
-boundary at or after work completion and at least half a period after the
-actual acquisition. The spacing guard limits short estimator intervals while
-allowing ordinary late wake-ups to recover the original cadence. A long
-oversleep or overrun can jump directly to a later slot. Each release processes
-one input, and continuity counts slots based on actual acquisition timestamps.
+this same fixed grid. For the next release, the broker uses the latest of
+the boundary after the last occupied slot, work completion, and half a period
+after the actual acquisition. A delayed release can still use the remainder
+of an eligible slot. The next release returns to a grid boundary when the
+spacing and work constraints allow. Each slot can contain at most one
+acquisition, and continuity counts empty slots from actual acquisition
+timestamps.
 
 Live range FD reads retain producer-relative pacing. If the first accepted
 producer timestamp precedes the initial broker release, that timestamp is
@@ -85,8 +86,9 @@ Remaining requested acquisitions are reported separately as `unprocessed_inputs`
 after an early stop or interruption. The nominal horizon can exceed the request
 count when the broker takes longer than planned to acquire all requested inputs.
 
-- Metadata records `requested_inputs` and `release_policy` (`fixed-grid` or
-  `acquisition-relative`). Earlier traces without the policy field use
+- Metadata records `requested_inputs` and `release_policy` (`guarded-fixed-grid`
+  or `acquisition-relative`). Historical `fixed-grid` traces targeted grid
+  boundaries only. Earlier traces without the policy field use
   acquisition-relative scheduling. Samples record `nominal_slot`,
   `acquired_offset_ns`, `scheduled_release_offset_ns` and `decision_offset_ns`.
   The offsets are elapsed nanoseconds from slot zero. The decision timestamp

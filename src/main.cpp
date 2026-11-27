@@ -585,7 +585,7 @@ int main(int argc, char** argv) {
                   << ",\"probation_samples\":" << probation << ",\"position_unit\":\"m\"";
         out << ",\"producer_run_id\":\"" << producer_run_id << "\"";
         out << ",\"requested_inputs\":" << samples
-            << ",\"release_policy\":\"" << (range_input ? "acquisition-relative" : "fixed-grid") << '\"';
+            << ",\"release_policy\":\"" << (range_input ? "acquisition-relative" : "guarded-fixed-grid") << '\"';
         if (qnx_guest_profile) out << ",\"candidate_launch_profile\":\"qnx-guest-16-mib\"";
         if (!trace.empty()) out << ",\"input_source\":\"sensor-trace-mm\"";
         if (range_input) out << ",\"input_source\":\"live-range-mm\"";

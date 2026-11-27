@@ -38,10 +38,9 @@ def validate_continuity(meta, summary, ticks):
     deadline_ns = deadline_ms * 1_000_000
     policy = meta.get("release_policy", "acquisition-relative")
     live_range = meta.get("input_source") == "live-range-mm"
-    check(policy in ("fixed-grid", "acquisition-relative") and not (live_range and policy == "fixed-grid"),
-          "invalid release policy")
-    fixed_grid = policy == "fixed-grid"
-    minimum_spacing = (period_ns + 1) // 2 if fixed_grid else period_ns
+    check(policy in ("guarded-fixed-grid", "fixed-grid", "acquisition-relative")
+          and (not live_range or policy == "acquisition-relative"), "invalid release policy")
+    minimum_spacing = period_ns if policy == "acquisition-relative" else (period_ns + 1) // 2
 
     def fields(row, expected):
         for key, value in expected.items():
@@ -63,7 +62,7 @@ def validate_continuity(meta, summary, ticks):
         check(all(type(value) is int for value in (acquired, scheduled, decision))
               and 0 <= acquired <= decision and 0 <= scheduled <= decision
               and (live_range or scheduled <= acquired), "invalid continuity offsets")
-        if fixed_grid:
+        if policy == "fixed-grid":
             check(scheduled % period_ns == 0, "release outside fixed grid")
         slot, remainder = divmod(acquired, period_ns)
         gap = 0
@@ -75,6 +74,8 @@ def validate_continuity(meta, summary, ticks):
             check(scheduled >= previous_acquired + minimum_spacing, "release outside no-burst schedule")
             check(acquired > previous_acquired, "out-of-order acquisitions")
             check(scheduled >= previous_decision, "release precedes previous decision")
+            if policy == "guarded-fixed-grid":
+                check(scheduled >= (last_slot + 1) * period_ns, "release reuses previous acquisition slot")
             interval_ms = (acquired - previous_acquired) / 1e6
             intervals.append(interval_ms)
             gap = max(0, slot - last_slot - 1)

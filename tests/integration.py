@@ -31,7 +31,7 @@ class ProcessIntegration(unittest.TestCase):
                 os.kill(pid, 0)
         ticks = [row for row in rows if row["type"] == "sample"]
         self.assertEqual([row["sequence"] for row in ticks], list(range(1, len(ticks) + 1)))
-        self.assertEqual(rows[0]["release_policy"], "fixed-grid")
+        self.assertEqual(rows[0]["release_policy"], "guarded-fixed-grid")
         self.assertEqual(rows[-1]["phase"], expected_phase)
         self.assertIn(expected_event, [row["event"] for row in ticks])
         self.assertEqual(rows[-1]["outputs"], sum(row["output"] is not None for row in ticks))

@@ -83,6 +83,13 @@ class Pipeline(unittest.TestCase):
         self.assertTrue(validate_continuity(fixed, dict(summary, max_scheduling_lateness_ms=11),
                                             fixed_ticks))
 
+        guarded = dict(metadata, release_policy="guarded-fixed-grid")
+        self.assertTrue(validate_continuity(guarded, summary, ticks))
+        early = deepcopy(ticks)
+        early[1].update(scheduled_release_offset_ns=7_000_000, release_lateness_ms=14)
+        with self.assertRaisesRegex(TraceValidationError, "reuses previous acquisition slot"):
+            validate_continuity(guarded, dict(summary, max_scheduling_lateness_ms=14), early)
+
         self.assertFalse(validate_continuity({"period_ms": 10}, {}, []))
         self.assertIsNone(trial_continuity({}, {}, 8, 0))
         self.assertFalse(trial_continuity(metadata, summary, 8, 0)["passed"])
@@ -164,7 +171,7 @@ class Pipeline(unittest.TestCase):
             self.assertEqual(result.returncode, 0, result.stderr)
             rows = [json.loads(line) for line in result.stdout.splitlines()]
             self.assertEqual(rows[0]["input_source"], "sensor-trace-mm")
-            self.assertEqual(rows[0]["release_policy"], "fixed-grid")
+            self.assertEqual(rows[0]["release_policy"], "guarded-fixed-grid")
             self.assertTrue(validate_continuity(rows[0], rows[-1], rows[1:-1]))
             self.assertIsNone(rows[1]["truth"])
             self.assertEqual(rows[1]["input"], 10.25)

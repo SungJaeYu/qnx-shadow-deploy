@@ -105,11 +105,28 @@ int main() {
                 CHECK(release - acquired >= 19);
             }
         }},
-        {"near-grid acquisition skips a release that would be too close", [] {
+        {"late acquisition defers the following release within its slot", [] {
             CHECK(next_grid_release_ns(100, 105, 107, 10) == 110);
-            CHECK(next_grid_release_ns(100, 106, 107, 10) == 120);
+            CHECK(next_grid_release_ns(100, 106, 107, 10) == 111);
             CHECK(next_grid_release_ns(100, 100, 110, 10) == 110);
-            CHECK(next_grid_release_ns(100, 100, 111, 10) == 120);
+            CHECK(next_grid_release_ns(100, 100, 111, 10) == 111);
+        }},
+        {"observed QNX jitter preserves the following slot and recovers phase", [] {
+            constexpr std::uint64_t origin = 500'000, period = 20'000'000;
+            ServiceContinuity continuity(origin, period);
+            auto release = origin;
+            for (const auto overshoot_ns : {10'324'000U, 12'474'000U, 11'857'000U}) {
+                const auto acquired = release + overshoot_ns;
+                const auto late = continuity.acquire(acquired, release);
+                CHECK(late.skipped_slots == 0);
+                const auto guarded = next_grid_release_ns(origin, acquired, acquired + 300'000, period);
+                CHECK(guarded == acquired + period / 2);
+                const auto follow = continuity.acquire(guarded, guarded);
+                CHECK(follow.nominal_slot == late.nominal_slot + 1);
+                CHECK(follow.skipped_slots == 0);
+                release = next_grid_release_ns(origin, guarded, guarded + 300'000, period);
+                CHECK(release == origin + (follow.nominal_slot + 1) * period);
+            }
         }},
         {"large oversleep and work overrun advance directly to a viable slot", [] {
             constexpr std::uint64_t origin = 100, period = 30;
@@ -120,9 +137,10 @@ int main() {
             CHECK(late.nominal_slot == 1'000'000'000'000);
             CHECK(late.skipped_slots == 999'999'999'999);
             const auto release = next_grid_release_ns(origin, late_release + 16, late_release + 17, period);
-            CHECK(release == late_release + 2 * period);
-            CHECK(continuity.acquire(release, release).skipped_slots == 1);
-            CHECK(next_grid_release_ns(origin, origin, late_release + 1, period) == late_release + period);
+            CHECK(release == late_release + period + 1);
+            CHECK(continuity.acquire(release, release).skipped_slots == 0);
+            CHECK(next_grid_release_ns(origin, origin, late_release + 1, period) == late_release + 1);
+            CHECK(next_grid_release_ns(origin, origin, late_release, period) == late_release);
         }},
         {"continuity uses fixed slots and separates the early-stop tail", [] {
             ServiceContinuity continuity(100, 10);
