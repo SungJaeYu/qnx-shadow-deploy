@@ -24,15 +24,17 @@ def frame(sequence, acquired_ns=None, range_mm=10250):
 
 
 class LiveRangeTest(unittest.TestCase):
-    def run_broker(self, produce, samples=3):
+    def run_broker(self, produce, samples=3, split=True):
         input_read, input_write = os.pipe()
         output_read, output_write = os.pipe()
+        options = ["--output-fd", str(output_write)] if split else []
+        inherited = (input_read, output_write) if split else (input_read,)
         with subprocess.Popen(
             [BUILD / "shadow-demo", "--worker", BUILD / "shadow-worker",
              "--scenario", "promote", "--samples", str(samples), "--period-ms", str(PERIOD_MS),
              "--deadline-ms", str(DEADLINE_MS), "--phase-timing", "--live-range-fd",
-             str(input_read), "--output-fd", str(output_write)],
-            pass_fds=(input_read, output_write), stdout=subprocess.PIPE, stderr=subprocess.PIPE,
+             str(input_read), *options],
+            pass_fds=inherited, stdout=subprocess.PIPE, stderr=subprocess.PIPE,
         ) as broker:
             os.close(input_read)
             os.close(output_write)
@@ -61,15 +63,20 @@ class LiveRangeTest(unittest.TestCase):
                 if sequence < 3:
                     time.sleep(PERIOD_MS / 1000)
 
-        code, events, errors, authority = self.run_broker(produce)
+        code, events, errors, _ = self.run_broker(produce, split=False)
         self.assertEqual(code, 0, errors)
-        rows, summary = events[:-1], events[-1]
+        rows = events[:-1]
         self.assertEqual([row["sequence"] for row in rows], [1, 2, 3])
         self.assertEqual([row["input"] for row in rows], [10.25, 10.275, 10.3])
         self.assertEqual([row["acquired_ns"] for row in rows], acquired)
         self.assertTrue(all(row["truth"] is None for row in rows))
         self.assertTrue(all(row["baseline"]["position"] is not None and
                             row["candidate"]["position"] is not None for row in rows))
+        acquired.clear()
+        code, events, errors, authority = self.run_broker(produce)
+        self.assertEqual(code, 0, errors)
+        summary = events[-1]
+        self.assertEqual([row["sequence"] for row in authority], [1, 2, 3])
         self.assertEqual([row["deadline_ns"] for row in authority],
                          [stamp + DEADLINE_MS * 1000000 for stamp in acquired])
         self.assertEqual(summary["delivered_outputs"], 3)
@@ -114,6 +121,38 @@ class LiveRangeTest(unittest.TestCase):
         self.assertEqual(rows[-1]["input_error"], "live_range_timestamp_order")
         self.assertEqual(rows[-1]["unprocessed_inputs"], 2)
         self.assertIn("expected_sequence=2", errors)
+
+    def test_rejects_regular_file_and_write_only_descriptors(self):
+        read_fd, write_fd = os.pipe()
+        try:
+            with Path(__file__).open("rb") as regular:
+                for fd in (regular.fileno(), write_fd):
+                    result = subprocess.run(
+                        [BUILD / "shadow-demo", "--live-range-fd", str(fd)],
+                        pass_fds=(fd,), capture_output=True, timeout=3,
+                    )
+                    self.assertEqual(result.returncode, 2)
+                    self.assertIn(b"dedicated read-only pipe", result.stderr)
+        finally:
+            os.close(read_fd)
+            os.close(write_fd)
+
+    def test_rejects_stderr_alias_before_writing(self):
+        read_fd, write_fd = os.pipe()
+        try:
+            for options in ([], ["--help"], ["--invalid-option"]):
+                result = subprocess.run(
+                    [BUILD / "shadow-demo", *options, "--live-range-fd", str(read_fd)],
+                    pass_fds=(read_fd,), stdout=subprocess.PIPE, stderr=write_fd, timeout=3,
+                )
+                self.assertEqual(result.returncode, 2)
+                self.assertEqual(result.stdout, b"")
+            os.set_blocking(read_fd, False)
+            with self.assertRaises(BlockingIOError):
+                os.read(read_fd, 1)
+        finally:
+            os.close(read_fd)
+            os.close(write_fd)
 
     def test_rejects_read_write_alias(self):
         read_fd, write_fd = os.pipe()

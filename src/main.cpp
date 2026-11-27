@@ -106,23 +106,29 @@ bool aliases_range_pipe(int reader, int other) {
 #endif
 }
 
-struct OutputAliases {
+struct PipeAliases {
     bool stdout_pipe = false;
     bool stderr_pipe = false;
 };
 
-OutputAliases output_aliases(int argc, char** argv) {
-    OutputAliases aliases;
+PipeAliases pipe_aliases(int argc, char** argv, bool range_input) {
+    PipeAliases aliases;
+    const std::string_view option = range_input ? "--live-range-fd" : "--output-fd";
     for (int i = 1; i + 1 < argc; ++i) {
-        if (std::string_view(argv[i]) != "--output-fd") continue;
+        if (std::string_view(argv[i]) != option) continue;
         // Check every occurrence before parsing can print help or an error. The
         // decimal prefix protects the pipe even when the actual value is invalid.
         char* end = nullptr;
         const long value = std::strtol(argv[i + 1], &end, 10);
         if (end == argv[i + 1] || value < 0 || value > std::numeric_limits<int>::max()) continue;
         const int fd = static_cast<int>(value);
-        aliases.stdout_pipe |= fd == STDOUT_FILENO || same_pipe(fd, STDOUT_FILENO);
-        aliases.stderr_pipe |= fd == STDERR_FILENO || same_pipe(fd, STDERR_FILENO);
+        if (range_input) {
+            aliases.stdout_pipe |= aliases_range_pipe(fd, STDOUT_FILENO);
+            aliases.stderr_pipe |= aliases_range_pipe(fd, STDERR_FILENO);
+        } else {
+            aliases.stdout_pipe |= fd == STDOUT_FILENO || same_pipe(fd, STDOUT_FILENO);
+            aliases.stderr_pipe |= fd == STDERR_FILENO || same_pipe(fd, STDERR_FILENO);
+        }
     }
     return aliases;
 }
@@ -387,10 +393,12 @@ private:
 } // namespace
 int main(int argc, char** argv) {
     using namespace shadow;
-    const auto aliases = output_aliases(argc, argv);
-    if (aliases.stderr_pipe) return 2;
-    if (aliases.stdout_pipe) {
-        std::cerr << "shadow-demo: --output-fd must be separate from stdout\n";
+    const auto output_aliases = pipe_aliases(argc, argv, false);
+    const auto range_aliases = pipe_aliases(argc, argv, true);
+    if (output_aliases.stderr_pipe || range_aliases.stderr_pipe) return 2;
+    if (output_aliases.stdout_pipe || range_aliases.stdout_pipe) {
+        std::cerr << (range_aliases.stdout_pipe ? "shadow-demo: --live-range-fd must be separate from stdout\n" :
+                                                "shadow-demo: --output-fd must be separate from stdout\n");
         return 2;
     }
     try {
@@ -511,8 +519,7 @@ int main(int argc, char** argv) {
         if (live_range_fd != -1) {
             if (!trace_path.empty())
                 throw std::invalid_argument("--live-range-fd and --sensor-trace are mutually exclusive");
-            if (aliases_range_pipe(live_range_fd, output_fd) || aliases_range_pipe(live_range_fd, STDIN_FILENO) ||
-                aliases_range_pipe(live_range_fd, STDOUT_FILENO) || aliases_range_pipe(live_range_fd, STDERR_FILENO))
+            if (aliases_range_pipe(live_range_fd, output_fd) || aliases_range_pipe(live_range_fd, STDIN_FILENO))
                 throw std::invalid_argument("--live-range-fd requires a separate input pipe");
             range_input.emplace(live_range_fd);
         }
