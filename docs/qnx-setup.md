@@ -33,25 +33,30 @@ Before spawning a candidate, the broker reads a single bounded snapshot of
 Both physical free pages (`pages_free`) and unreserved allocation pages
 (`vmem_avail`) must cover 32 MiB at the guest's page size. The threshold budgets
 16 MiB for the candidate and 16 MiB of spare capacity for the incumbent
-adapter. Low headroom and invalid or unavailable counters each produce a
-preparation failure. During live staging this check runs in the staging
-thread, and the incumbent retains authority after refusal.
+adapter. Low headroom and invalid or unavailable counters each refuse
+admission. In a startup scenario the broker exits before emitting metadata.
+During live staging, the staging thread performs the check. The broker
+reports `preparation_failed` and the running baseline retains authority.
 
-The broker launches each admitted candidate with
-`/proc/boot/on -L 6:16777216:16777216 -A rlimit,deny,lock,all,inherit`.
-QNX resource 6 is `RLIMIT_AS`. The soft and hard limits are both 16 MiB, in
-bytes. The launcher applies the cap and locks the ability to raise it before
-executing the candidate, retaining the broker-owned child PID across exec.
-The broker and baseline use their normal launch settings. The cap follows the
-candidate into promotion and commit. The existing admission gate holds one
-candidate slot through staging, qualification and abort cleanup. After a failed
-launch or handshake, the stager reaps the owned child before releasing the slot.
+The broker spawns its own executable in an internal launcher mode. The
+owned child caps both `RLIMIT_AS` limits at 16 MiB, preserving any tighter
+inherited limit, and denies and locks the ability to raise them across
+exec in both credential domains. It then replaces itself with the
+candidate executable. The child PID, worker handshake and QNX native
+channel belong to the same process. The broker and baseline keep their
+regular launch settings. The cap follows the candidate into promotion
+and commit. The admission gate holds one candidate slot through staging,
+qualification and abort cleanup. After a failed launch or handshake, the
+stager reaps the owned child before releasing the slot.
 
 The stock candidate measured 822 mapped and resident 4 KiB pages (about
 3.21 MiB), and a launch control with the locked 16 MiB limit completed the
 240-output stock promotion run. The allocation control used 400,000 entries with 128-character
 values. It completed uncapped and failed under the locked cap. A privileged
 launch control verified rejection of an attempt to raise the hard limit.
+These external launcher controls preceded the broker-owned launch path.
+See [the guest timing record](qnx-guest-timing-2026-11-27.md) for the
+separate stock and fault-injection results.
 
 The profile is for one trusted, non-forking candidate adapter. The ceiling
 is per-process virtual address space. Physical memory remains

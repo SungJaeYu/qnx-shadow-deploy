@@ -71,7 +71,17 @@ Candidate errors after commit stop output because the baseline has been retired.
 
 ## Process and transport ownership
 
-`WorkerProcess` owns its child PID, IPC resources and one persistent dispatch thread. The input slot allows at most one outstanding sample. Both workers receive a sample before the broker waits for either result. A timed-out or malformed transport is marked unusable, preventing late or partial replies from being reused.
+`WorkerProcess` owns its child PID, IPC resources and a persistent dispatch
+thread. A worker allows at most one outstanding sample. With two workers,
+the broker submits both exchanges before collecting either result. With
+one worker on QNX, the broker runs the native exchange on its own thread.
+This includes baseline service during staging and candidate service after
+baseline retirement. Replay continues to use the dispatch thread. Both
+paths share the outstanding reservation, connection ownership, reply
+validation and the absolute IPC cutoff. Optional phase records use
+`direct_start_ns` for the direct path, with dispatch and future timestamps
+null. A timed-out or malformed transport is marked unusable to prevent
+late or partial replies from being reused.
 
 Children are created with `posix_spawn`. Pipe descriptors are close-on-exec. The handshake read has a three-second budget from the point the parent starts reading, after spawn. The sample worker has no descendants. Production process-group isolation remains outside the C++ runtime.
 
@@ -81,7 +91,7 @@ For per-sample retirement, the broker has already collected both futures. Its de
 
 The run summary records `worker_retirement_samples`, the number of sample boundaries with synchronous worker retirement, and `max_worker_retirement_ns`, the maximum observed time spent destroying those workers on one boundary. The monotonic interval starts after the sample's JSONL write returns and ends after worker destruction returns. If both workers retire on the same boundary, their combined elapsed time contributes one measurement. The maximum is null when no sample retires a worker. The measurement covers per-sample retirement and excludes stager cleanup and shutdown cleanup after the summary.
 
-One design for [issue #4](https://github.com/SungJaeYu/qnx-shadow-deploy/issues/4) is a preallocated retirement slot and an independently scheduled reaper. First revoke authority at a sample boundary, then transfer the owned worker to the slot without waiting for cleanup. Keep its resources charged to the deployment budget until reaping completes and refuse a retry while the slot is occupied. Reserve sufficient capacity for each worker that a decision can retire, including stop when both can retire together. Track time from authority removal to reaper receipt, dispatch exit, detach and reap. A cleanup watchdog would expose overdue work and block new admission while retaining ownership. Validate bounded broker enqueue, reaper scheduling, pending-resource limits and shutdown behavior under contention before changing production cleanup. This design requires review.
+One design for [issue #4](https://github.com/SungJaeYu/qnx-shadow-deploy/issues/4) is a preallocated retirement slot and an independently scheduled reaper. First revoke authority at a sample boundary, then transfer the owned worker to the slot without waiting for cleanup. Keep its resources charged to the deployment budget until reaping completes and refuse new admission when retirement capacity is saturated or cleanup is overdue. Charge two total slots across queued workers, workers being reaped and reservations for live workers. Refuse staging without blocking authority when it would consume the capacity reserved to retire both workers on one stop decision. Track time from authority removal to reaper receipt, dispatch exit, detach and reap. A cleanup watchdog would expose overdue work while the reaper retains ownership. Shutdown would drain all owned workers or report unresolved cleanup. The reviewed design still requires target capacity and watchdog decisions and evidence for bounded enqueue, reaper scheduling and shutdown under contention before implementation. Current production cleanup remains synchronous after output.
 
 | Build | Data path | Timeout |
 | --- | --- | --- |
@@ -94,7 +104,18 @@ Native IPC has run on an x86-64 QNX guest. See [verification](verification.md) f
 
 ## Timing and state preparation
 
-The synthetic source follows a wall-clock schedule and skips missed releases instead of bursting delayed samples. Acquisition, IPC receipt, and decision latency are separate concepts. If selection itself misses the decision budget, the broker stops output. JSON rendering, pipe consumption and browser display happen afterward and are **not** included in that decision latency. In the default mode, a slow stdout consumer can delay future releases.
+Synthetic and file-trace sources acquire on a fixed monotonic release grid.
+The next release is the latest of the boundary after the last occupied
+slot, completion of previous work, and half a period after the previous
+acquisition. The half period is rounded up to a whole nanosecond.
+Continuity uses observed acquisition times. Live range input retains
+producer-relative pacing and producer timestamps. See [Periodic service
+continuity](preboard-pipeline.md#periodic-service-continuity).
+
+Acquisition, IPC receipt, and decision latency are separate intervals.
+The broker stops output when selection misses the decision budget. JSON
+rendering, pipe consumption and browser display occur after selection.
+In the default mode a slow stdout consumer can delay future releases.
 
 ### Dedicated authoritative output
 
@@ -182,11 +203,27 @@ The post-write drain, synchronous retirement and shared CPU and memory can still
 
 ### Owner decisions for deadline isolation
 
-The owner approved dedicated output delivery with fail-closed delivery errors and baseline-first publication during shadowing. The following design decision remains open for [issue #4](https://github.com/SungJaeYu/qnx-shadow-deploy/issues/4).
+The owner approved dedicated output delivery with fail-closed delivery
+errors and baseline-first publication during shadowing. The selected
+x86-64 QEMU guest profile additionally checks 32 MiB of physical and
+unreserved allocation headroom before candidate spawn, then locks the
+candidate's address space to 16 MiB across its lifetime. The snapshot
+does not reserve memory. The configured profile assumes managed
+background work below authority-capable priority. See [QNX setup](qnx-setup.md)
+for the launch contract and [guest timing and admission](qnx-guest-timing-2026-11-27.md)
+for measurements.
 
-- **Admission and retirement.** The owner must identify the target and supported load, the CPU and memory budgets, and what happens when either budget is unavailable or exceeded. Charge preparation and pending cleanup to the budget. Moving retirement off the broker also requires approval of the ownership transfer and shutdown behavior described above.
-
-The baseline-only QNX guest missed the first input deadline under load with phase tracing enabled and disabled. No candidate exchange or per-sample retirement preceded that miss. First verify baseline delivery on the target at the agreed period, budget and load. Then repeat under the same conditions with candidate preparation, qualification, probation and retirement. Compare skipped releases, deadline misses and accepted output records, and check peak resource use and child cleanup against the agreed limits.
+For [issue #4](https://github.com/SungJaeYu/qnx-shadow-deploy/issues/4),
+physical-target CPU and memory budgets, telemetry producer isolation,
+and implementation of the reviewed retirement and shutdown design remain
+open. The [retirement design record](qnx-guest-timing-2026-11-27.md#reviewed-deferred-retirement-design)
+sets guest ownership and saturation rules. Define the authority capacity,
+allowed background workload, preparation and retirement budgets, and
+overflow recovery thresholds for the provisioned target.
+Account for each candidate through final reap. Preserve incumbent output
+through admission refusal and require the no-late-output rule on missed
+decisions. Verify deadline misses, skipped releases, receiver records,
+resource use and child cleanup through repeated deployments and overload.
 
 ## Technical references
 

@@ -16,8 +16,10 @@ the final candidate disappears after broker exit. The verifier independently
 checks generation ordering, stage and cancel acceptance, candidate and baseline
 identities, the retirement observations, and selected-source continuity.
 Candidate identity is scoped to each generation. A PID can be reused after
-its earlier generation has retired. If the controller misses the shadowing
-window, the run fails and preserves the observed transitions.
+its earlier generation has retired. The controller sends cancel as soon as its bounded scan finds replay completion
+and the first valid live shadow sample. It checks the candidate PID and
+retirement afterward. If cancellation takes effect after promotion, the
+verifier fails the requested shadow-phase coverage and preserves the trace.
 
 ## Host
 
@@ -67,6 +69,34 @@ sh tools/cancel_retry_cycles.sh ./build "$run" 10000
 python3 tools/verify_cancel_retry_cycles.py "$run" --samples 10000 --require-timing
 ```
 
+### Profiled QNX guest
+
+Use the [QNX guest candidate profile](qnx-setup.md) on the configured
+x86-64 guest. Run the current driver with the profile option and set the
+campaign timing explicitly.
+
+```sh
+run=/data/shadow-cancel-cycles-profile-$(date +%Y%m%d-%H%M%S)
+SHADOW_PERIOD_MS=20 SHADOW_DEADLINE_MS=10 \
+  sh /data/cancel_retry_cycles.sh --qnx-guest-profile /system/bin/shadowdeploy "$run" 10000
+```
+
+After exporting that directory, verify on the host with both gates:
+
+```sh
+python3 tools/verify_cancel_retry_cycles.py "$exported_run" \
+  --samples 10000 --qnx-guest-profile --require-timing
+```
+
+The profile gate checks the native QNX backend and the
+`qnx-guest-16-mib` launch marker. The driver saves `pidin` descriptor
+snapshots before the first stage, after each candidate exits and after
+the baseline exits. Use the snapshots to check that the initial
+side-channel set returns after each cancellation, then that the final
+candidate replaces the baseline connection after commit. Preserve
+the campaign's workload, timing profile and exact build identity with
+the trace.
+
 ## Verdicts
 
 The verifier prints the configured timing, skipped nominal slots, decision
@@ -74,5 +104,6 @@ misses and maximum acquisition interval separately from the lifecycle verdict.
 Pass `--require-timing` to require zero empty nominal slots and zero decision misses
 in that run. A decision deadline miss that suppresses selected output also
 fails the functional continuity check. The report describes broker-selected
-outputs, process retirement and timing for the recorded run. It does not measure
-external delivery, QNX connection counts or worst-case execution time.
+outputs, process retirement and timing for the recorded run. The optional
+descriptor snapshots provide independent connection evidence. External
+delivery and worst-case execution time require separate measurements.

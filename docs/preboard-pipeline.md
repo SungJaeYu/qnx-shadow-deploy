@@ -125,3 +125,6 @@ acquisition and selection timestamps. A new run passes the continuity check if
 every requested input was acquired and selected, no observed nominal slot in
 the measured horizon was unoccupied, and no unexpected deadline failure occurred.
 Older traces retain their original criteria with continuity marked unavailable.
+
+See the [QNX guest timing and admission record](qnx-guest-timing-2026-11-27.md)
+for stock comparisons and the independent receiver observations.
