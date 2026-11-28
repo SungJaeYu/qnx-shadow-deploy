@@ -119,6 +119,9 @@ if(BUILD_TESTING)
     add_test(NAME pi4-uart-export COMMAND ${Python3_EXECUTABLE}
       ${CMAKE_CURRENT_SOURCE_DIR}/tools/pi4/check-uart-host.py)
     set_tests_properties(pi4-uart-export PROPERTIES TIMEOUT 30)
+    add_test(NAME pi4-image-publication COMMAND ${Python3_EXECUTABLE}
+      ${CMAKE_CURRENT_SOURCE_DIR}/tools/pi4/check-publication.py)
+    set_tests_properties(pi4-image-publication PROPERTIES TIMEOUT 15)
     find_program(SHADOW_NODE_EXECUTABLE node)
     if(SHADOW_NODE_EXECUTABLE)
       add_test(NAME workbench-continuity COMMAND ${SHADOW_NODE_EXECUTABLE}
