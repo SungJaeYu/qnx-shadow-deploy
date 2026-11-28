@@ -116,6 +116,9 @@ if(BUILD_TESTING)
     add_test(NAME issue-5-oracles COMMAND ${Python3_EXECUTABLE}
       ${CMAKE_CURRENT_SOURCE_DIR}/tests/issue_5_oracles.py)
     set_tests_properties(issue-5-oracles PROPERTIES TIMEOUT 10)
+    add_test(NAME pi4-uart-export COMMAND ${Python3_EXECUTABLE}
+      ${CMAKE_CURRENT_SOURCE_DIR}/tools/pi4/check-uart-host.py)
+    set_tests_properties(pi4-uart-export PROPERTIES TIMEOUT 30)
     find_program(SHADOW_NODE_EXECUTABLE node)
     if(SHADOW_NODE_EXECUTABLE)
       add_test(NAME workbench-continuity COMMAND ${SHADOW_NODE_EXECUTABLE}
