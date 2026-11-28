@@ -17,6 +17,69 @@ The SDK's release notes do not support native macOS or ARM development hosts. QN
 
 **Status: the existing image booted and native functional tests passed on 2026-11-23.** QNX Software Center installed the SDK and Linux x86-64 host tools on the development Mac. [Cross-build evidence](evidence/qnx-cross-build.json), [image evidence](evidence/qnx-image-build.json) and [native execution evidence](evidence/qnx-validation-2026-11-23/README.md) distinguish these stages. The [release audit](evidence/qnx-release-audit-2026-11-23/README.md) confirms package membership against the cached 8.0.6 definition and matches inspected guest components. Default-budget timing failures and supported-host installation reproduction remain open.
 
+## Candidate admission profile for the QEMU guest
+
+Use `--qnx-guest-profile` on the QNX 8.0.6 x86-64 QEMU image configured with
+2 vCPUs and 1 GiB RAM. For example, from the installed artifact directory:
+
+```sh
+./shadow-demo --qnx-guest-profile --worker ./shadow-worker \
+  --candidate-manifest ./candidate.manifest --stage-at 50 \
+  --qualify 80 --probation 60 --samples 240 --period-ms 20 --deadline-ms 10
+```
+
+Before spawning a candidate, the broker reads a single bounded snapshot of
+[QNX system VM counters](https://qnx.com/developers/docs/8.0/com.qnx.doc.neutrino.sys_arch/topic/vmstat.html).
+Both physical free pages (`pages_free`) and unreserved allocation pages
+(`vmem_avail`) must cover 32 MiB at the guest's page size. The threshold budgets
+16 MiB for the candidate and 16 MiB of spare capacity for the incumbent
+adapter. Low headroom and invalid or unavailable counters each refuse
+admission. In a startup scenario the broker exits before emitting metadata.
+During live staging, the staging thread performs the check. The broker
+reports `preparation_failed` and the running baseline retains authority.
+
+The broker spawns its own executable in an internal launcher mode. The
+owned child caps both `RLIMIT_AS` limits at 16 MiB, preserving any tighter
+inherited limit, and denies and locks the ability to raise them across
+exec in both credential domains. It then replaces itself with the
+candidate executable. The child PID, worker handshake and QNX native
+channel belong to the same process. The broker and baseline keep their
+regular launch settings. The cap follows the candidate into promotion
+and commit. The admission gate holds one candidate slot through staging,
+qualification and abort cleanup. After a failed launch or handshake, the
+stager reaps the owned child before releasing the slot.
+
+The stock candidate measured 822 mapped and resident 4 KiB pages (about
+3.21 MiB), and a launch control with the locked 16 MiB limit completed the
+240-output stock promotion run. The allocation control used 400,000 entries with 128-character
+values. It completed uncapped and failed under the locked cap. A privileged
+launch control verified rejection of an attempt to raise the hard limit.
+These external launcher controls preceded the broker-owned launch path.
+See [the guest timing record](qnx-guest-timing-2026-11-27.md) for the
+separate stock and fault-injection results.
+
+The profile is for one trusted, non-forking candidate adapter. The ceiling
+is per-process virtual address space. Physical memory remains
+shared with the broker, baseline, kernel and other processes. The profile
+uses a point-in-time admission decision. Other allocations can change
+headroom between the snapshot and candidate execution, and the check creates
+no physical memory reservation. On the supported guest the operator controls
+background work and keeps it below authority-capable work. The measured
+configuration used two CPU-bound round-robin workers at priority 5 and observed
+the broker and authority-capable workers at priority 10 round-robin. Equal
+priority 10 background load is outside this profile. The broker does not
+reconfigure external processes or change the sample period or deadline.
+
+Use the metadata field `candidate_launch_profile` to identify the enabled
+policy. For a guest check, observe the candidate PID through staging and
+promotion with `pidin`, check scheduling priorities under managed load, and
+compare the capped stock run with the uncapped control. A fixture that cannot
+allocate under the cap should exit before its worker handshake. The broker
+should report a preparation failure while baseline output continues. Once the
+failed process is reaped, retry with the stock artifact and check that it
+commits. The CLI rejects the flag on non-QNX-x86-64 builds before launching
+workers.
+
 ## Obtain and activate the SDK
 
 Use [QNX Everywhere](https://qnx.software/en/developers/get-started/qnx-everywhere) and QNX Software Center to obtain and activate an eligible license. In myQNX License Manager, deploy the license to your own myQNX email address; a newly issued license marked **Available** is not yet deployed. Then activate it locally in QNX Software Center. For a supported 8.0.6 installation, use QNX Software Center 2.0.4 or later on a supported x86-64 host and create a new baseline with the Conservative update policy, as specified by the [release notes](https://developers.qnx.com/developers/docs/relnotes8.0/com.qnx.doc.release_notes/topic/8.0.6_prod_release_notes/8.0.6_rn.html). Existing 8.0.x installations cannot currently be upgraded to 8.0.6 using a patch set. Install the complete baseline and matching target components. Do not mix partial SDK/OS update sets. Review and accept applicable terms yourself; never paste serial numbers or passwords into repository issues, scripts or chat.

@@ -9,7 +9,7 @@ sys.path.insert(0, str(Path(__file__).resolve().parents[1] / "tools"))
 from verify_cancel_retry_cycles import verify
 
 
-def mutate_and_reject(original, label, mutate, reason):
+def mutate_and_reject(original, label, mutate, reason, **options):
     with tempfile.TemporaryDirectory() as tmp:
         copy = Path(tmp)
         for name in ("cycles.jsonl", "exit", "retirement"):
@@ -19,7 +19,7 @@ def mutate_and_reject(original, label, mutate, reason):
         mutate(rows)
         trace.write_text("".join(json.dumps(row) + "\n" for row in rows))
         try:
-            verify(copy)
+            verify(copy, **options)
         except ValueError as error:
             if reason not in str(error):
                 raise AssertionError(f"{label}: unexpected rejection: {error}") from error
@@ -34,6 +34,21 @@ def event(rows, name, generation=1):
 
 def main(original):
     verify(original)
+    def remove_profile(rows):
+        rows[0]["backend"] = "qnx-native-ipc"
+        rows[0].pop("candidate_launch_profile", None)
+
+    mutate_and_reject(original, "missing guest profile",
+                      remove_profile,
+                      "expected qnx-guest-16-mib", require_qnx_guest_profile=True)
+    mutate_and_reject(original, "wrong guest profile",
+                      lambda rows: rows[0].update(backend="qnx-native-ipc",
+                                                 candidate_launch_profile="default"),
+                      "expected qnx-guest-16-mib", require_qnx_guest_profile=True)
+    mutate_and_reject(original, "guest profile on another backend",
+                      lambda rows: rows[0].update(backend="posix-pipe",
+                                                 candidate_launch_profile="qnx-guest-16-mib"),
+                      "expected qnx-native-ipc", require_qnx_guest_profile=True)
     try:
         verify(original, expected_samples=10000)
     except ValueError as error:

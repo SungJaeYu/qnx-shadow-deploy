@@ -25,8 +25,11 @@ mm <sequence> <acquired_ns> <range_mm>\n
 - Produce one fresh measurement around each configured period. Buffering
   consumes the acquisition-based IPC budget. At acceptance the age must be
   less than three quarters of the decision deadline. IPC and publication
-  deadlines are still measured from acquisition. The broker's existing
-  periodic schedule rebases on accepted acquisition time and completed work.
+  deadlines are still measured from acquisition. The broker starts its next
+  read at the later of work completion and one period after the preceding
+  acquisition. A queued record can therefore have an acquisition timestamp
+  before the read release. Its original timestamp still governs the age check
+  and continuity. Synthetic and file-trace inputs use a broker-owned fixed grid.
 - The broker waits up to one configured period per input read. The deadline
   covers the entire record, even when writes are fragmented. The wait is
   separate from the acquisition-based decision budget.
@@ -48,8 +51,11 @@ The summary counts the failed input and subsequent inputs as unprocessed.
 `--no-telemetry` still leaves the diagnostic on stderr.
 
 Metadata identifies the input source as `live-range-mm`. For this source each
-sample row includes the supplied `acquired_ns` and uses `truth: null`. The
-authority pipe retains its established record schema.
+sample row includes the supplied `acquired_ns` and uses `truth: null`.
+Metadata reports `release_policy: acquisition-relative`. If the first
+accepted acquisition predates the broker's initial read release, its
+timestamp is the origin of nominal slot zero. The authority pipe retains
+its established record schema.
 
 ## Hardware validation status
 

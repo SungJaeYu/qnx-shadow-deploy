@@ -1,7 +1,20 @@
 #!/bin/sh
 # Run one broker across a late attach, probation crash, rollback and healthy retry.
 set -eu
-[ "$#" -eq 2 ] || { echo 'usage: sh lifecycle_checks.sh BIN_DIR NEW_ABSOLUTE_OUTPUT_DIR' >&2; exit 2; }
+profile=
+samples=90
+period_ms=200
+deadline_ms=150
+probation=24
+if [ "${1-}" = --qnx-guest-profile ]; then
+    profile=$1
+    shift
+    samples=240
+    period_ms=20
+    deadline_ms=10
+    probation=40
+fi
+[ "$#" -eq 2 ] || { echo 'usage: sh lifecycle_checks.sh [--qnx-guest-profile] BIN_DIR NEW_ABSOLUTE_OUTPUT_DIR' >&2; exit 2; }
 cd "$1"
 binary_dir=$(pwd -P)
 out=$2
@@ -63,8 +76,8 @@ SHADOW_CANDIDATE="$binary_dir/shadow-candidate" awk '
     {print}
 ' candidate.manifest > "$out/candidate.manifest"
 mkfifo "$out/control.fifo"
-./shadow-demo --worker ./shadow-worker --control-stdin --samples 90 \
-    --period-ms 200 --deadline-ms 150 --qualify 3 --probation 24 \
+./shadow-demo ${profile:+"$profile"} --worker ./shadow-worker --control-stdin --samples "$samples" \
+    --period-ms "$period_ms" --deadline-ms "$deadline_ms" --qualify 3 --probation "$probation" \
     < "$out/control.fifo" > "$log" 2> "$out/stderr" &
 broker=$!
 printf '%s\n' "$broker" > "$out/broker-pid"

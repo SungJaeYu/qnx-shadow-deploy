@@ -86,21 +86,28 @@ def verify_native(path, broker, baseline, first, second):
     return {phase: sorted(pids) for phase, pids in expected.items()}
 
 
-def verify(path, loaded=False):
+def verify(path, loaded=False, *, require_qnx_guest_profile=False):
     rows = [json.loads(line) for line in (path / "lifecycle.jsonl").read_text().splitlines()]
     meta, summary = rows[0], rows[-1]
     check(meta["type"] == "meta" and meta["schema"] == 2 and summary["type"] == "summary",
           "incomplete live telemetry")
-    check((meta["period_ms"], meta["deadline_ms"], meta["ipc_budget_ms"]) == (200, 150, 112.5),
-          "unexpected lifecycle timing configuration")
-    check((meta["qualification_samples"], meta["probation_samples"]) == (3, 24),
-          "unexpected lifecycle qualification or probation configuration")
     backend = meta["backend"]
+    expected_timing, expected_probation, expected_inputs = (200, 150, 112.5), 24, 90
+    if require_qnx_guest_profile:
+        check(not loaded, "profiled lifecycle requires the descriptor-snapshot driver")
+        check(backend == "qnx-native-ipc", "expected qnx-native-ipc backend")
+        check(meta.get("candidate_launch_profile") == "qnx-guest-16-mib",
+              "expected qnx-guest-16-mib candidate launch profile")
+        expected_timing, expected_probation, expected_inputs = (20, 10, 7.5), 40, 240
+    check((meta["period_ms"], meta["deadline_ms"], meta["ipc_budget_ms"]) == expected_timing,
+          "unexpected lifecycle timing configuration")
+    check((meta["qualification_samples"], meta["probation_samples"]) == (3, expected_probation),
+          "unexpected lifecycle qualification or probation configuration")
     check(backend in ("host-posix-pipes", "qnx-native-ipc"), f"unexpected backend {backend}")
     check((path / "exit").read_text().strip() == "0", "broker failed")
     ticks = [row for row in rows if row["type"] == "sample"]
     requested = meta["requested_inputs"]
-    check(requested == 90 and [tick["sequence"] for tick in ticks] == list(range(1, requested + 1)),
+    check(requested == expected_inputs and [tick["sequence"] for tick in ticks] == list(range(1, requested + 1)),
           "incomplete or missing input sequence")
     check(validate_continuity(meta, summary, ticks) is True,
           "v2 lifecycle requires continuity metrics")
@@ -238,6 +245,8 @@ def verify(path, loaded=False):
         "second_promotion": second_promote["sequence"], "commit": commit["sequence"],
         "max_output_step_m": round(max_output_step, 9), "timing": timing,
     }
+    if require_qnx_guest_profile:
+        evidence["candidate_launch_profile"] = meta["candidate_launch_profile"]
     if loaded:
         evidence["validation_scope"] = "loaded-lifecycle"
         evidence["descriptor_snapshots"] = "not collected"
@@ -256,9 +265,12 @@ def main():
                         help="report nominal-grid timing without gating the host functional check")
     parser.add_argument("--loaded", action="store_true",
                         help="verify the loaded driver and its fixed crash injection without descriptor snapshots")
+    parser.add_argument("--qnx-guest-profile", action="store_true",
+                        help="require the native guest profile and its default-budget lifecycle")
     args = parser.parse_args()
     try:
-        evidence = verify(args.fresh_run_dir, loaded=args.loaded)
+        evidence = verify(args.fresh_run_dir, loaded=args.loaded,
+                          require_qnx_guest_profile=args.qnx_guest_profile)
     except (OSError, ValueError, IndexError, KeyError, TypeError) as error:
         parser.exit(1, f"FAIL {args.fresh_run_dir}: {error}\n")
     print(json.dumps(evidence, indent=2, sort_keys=True))

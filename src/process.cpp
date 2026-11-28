@@ -1,5 +1,7 @@
 #include "shadow/process.hpp"
+#include "shadow/guest_headroom.hpp"
 #include "shadow/io.hpp"
+#include <algorithm>
 #include <cerrno>
 #include <condition_variable>
 #include <cstring>
@@ -14,13 +16,48 @@
 #include <time.h>
 #include <unistd.h>
 #ifdef __QNXNTO__
+#include <process.h>
 #include <sys/neutrino.h>
 #include <sys/netmgr.h>
+#include <sys/procmgr.h>
+#include <sys/resource.h>
 #endif
 
 extern char** environ;
 namespace shadow {
 namespace {
+#if defined(__QNXNTO__) && defined(__x86_64__)
+constexpr rlim_t guest_address_space_bytes = 16 * 1024 * 1024;
+
+const char* guest_launcher_path() {
+    const char* path = _cmdname(nullptr);
+    if (!path || path[0] != '/' || access(path, X_OK) != 0)
+        throw std::runtime_error("--qnx-guest-profile cannot resolve the broker executable");
+    return path;
+}
+
+void require_guest_headroom() {
+    const long page_size = sysconf(_SC_PAGESIZE);
+    const int fd = open("/proc/vm/stats", O_RDONLY | O_CLOEXEC);
+    auto headroom = GuestHeadroom::invalid;
+    if (fd >= 0) {
+        // QNX emits the snapshot in one read and truncates it to the requested size.
+        char snapshot[4096];
+        const auto count = read(fd, snapshot, sizeof(snapshot));
+        close(fd);
+        if (page_size > 0 && count > 0 && count < static_cast<ssize_t>(sizeof(snapshot))) {
+            headroom = classify_guest_headroom(
+                std::string_view(snapshot, static_cast<std::size_t>(count)),
+                static_cast<std::uint64_t>(page_size));
+        }
+    }
+    if (headroom == GuestHeadroom::invalid)
+        throw std::runtime_error("QNX guest candidate admission: invalid VM counters");
+    if (headroom == GuestHeadroom::insufficient)
+        throw std::runtime_error("QNX guest candidate admission: insufficient memory headroom");
+}
+#endif
+
 struct Pipe {
     int fd[2]{-1, -1};
     Pipe() {
@@ -82,6 +119,9 @@ struct WorkerProcess::Impl {
             kill(child, SIGKILL);
             while (waitpid(child, nullptr, 0) < 0 && errno == EINTR) {}
         }
+    }
+    void require_idle() const {
+        if (busy || stopping) throw std::logic_error("Worker already has an outstanding sample");
     }
     Observation exchange(const Sample& sample, std::uint64_t deadline, WorkerExchangeTiming* timing) {
         Observation o;
@@ -160,7 +200,40 @@ struct WorkerProcess::Impl {
         }
     }
 };
-WorkerProcess::WorkerProcess(const std::string& executable, const std::string& mode, unsigned fault_after)
+void validate_qnx_guest_profile() {
+#if defined(__QNXNTO__) && defined(__x86_64__)
+    guest_launcher_path();
+#else
+    throw std::invalid_argument("--qnx-guest-profile requires the QNX x86-64 guest");
+#endif
+}
+
+#if defined(__QNXNTO__) && defined(__x86_64__)
+[[noreturn]] void exec_qnx_guest_candidate(char** worker_args) {
+    rlimit limits{};
+    if (getrlimit(RLIMIT_AS, &limits) == -1)
+        throw std::runtime_error("Cannot read QNX candidate address-space limit: " + std::string(std::strerror(errno)));
+    // Preserve any tighter limits inherited from the broker.
+    limits.rlim_cur = std::min(limits.rlim_cur, guest_address_space_bytes);
+    limits.rlim_max = std::min(limits.rlim_max, guest_address_space_bytes);
+    if (setrlimit(RLIMIT_AS, &limits) == -1)
+        throw std::runtime_error("Cannot set QNX candidate address-space limit: " + std::string(std::strerror(errno)));
+
+    // Modify only this process and deny raising limits after exec in either credential domain.
+    const int ability_error = procmgr_ability(0, PROCMGR_ADN_ROOT | PROCMGR_ADN_NONROOT |
+        PROCMGR_AOP_DENY | PROCMGR_AOP_LOCK | PROCMGR_AOP_INHERIT_YES | PROCMGR_AID_RLIMIT,
+        PROCMGR_AID_EOL);
+    if (ability_error != 0)
+        throw std::runtime_error("Cannot lock QNX candidate limit ability: " + std::string(std::strerror(ability_error)));
+
+    // The candidate replaces this owned child. Its Hello and native channel belong to that PID.
+    execv(worker_args[0], worker_args);
+    throw std::runtime_error("Cannot execute QNX candidate: " + std::string(std::strerror(errno)));
+}
+#endif
+
+WorkerProcess::WorkerProcess(const std::string& executable, const std::string& mode, unsigned fault_after,
+                             WorkerLaunch launch)
     : impl_(std::make_unique<Impl>()) {
     Pipe to_child, from_child;
     SpawnActions actions;
@@ -169,7 +242,20 @@ WorkerProcess::WorkerProcess(const std::string& executable, const std::string& m
     for (int fd : {to_child.fd[0], to_child.fd[1], from_child.fd[0], from_child.fd[1]}) actions.close_fd(fd);
     std::string count = std::to_string(fault_after);
     char* args[]{const_cast<char*>(executable.c_str()), const_cast<char*>(mode.c_str()), count.data(), nullptr};
-    const int error = posix_spawn(&impl_->child, executable.c_str(), &actions.value, nullptr, args, environ);
+    int error;
+    if (launch == WorkerLaunch::qnx_guest_candidate) {
+#if defined(__QNXNTO__) && defined(__x86_64__)
+        require_guest_headroom();
+        const char* launcher = guest_launcher_path();
+        char* guest_args[]{const_cast<char*>(launcher), const_cast<char*>(qnx_candidate_exec_option),
+                          args[0], args[1], args[2], nullptr};
+        error = posix_spawn(&impl_->child, launcher, &actions.value, nullptr, guest_args, environ);
+#else
+        throw std::invalid_argument("--qnx-guest-profile requires the QNX x86-64 guest");
+#endif
+    } else {
+        error = posix_spawn(&impl_->child, executable.c_str(), &actions.value, nullptr, args, environ);
+    }
     if (error) { impl_->child = -1; throw std::runtime_error("Cannot start worker: " + std::string(std::strerror(error))); }
     // Close child ends before reading the handshake so an early exit produces EOF.
     close(to_child.release(0)); close(from_child.release(1));
@@ -181,7 +267,12 @@ WorkerProcess::WorkerProcess(const std::string& executable, const std::string& m
 #ifdef __QNXNTO__
     if (hello.channel < 0) throw std::runtime_error("Worker has no QNX channel");
     impl_->connection = ConnectAttach(ND_LOCAL_NODE, impl_->child, hello.channel, _NTO_SIDE_CHANNEL, 0);
-    if (impl_->connection == -1) throw std::runtime_error("ConnectAttach failed");
+    if (impl_->connection == -1) {
+        const int attach_error = errno;
+        throw std::runtime_error("ConnectAttach failed for worker " + std::to_string(impl_->child) +
+                                 ", channel " + std::to_string(hello.channel) + ": " +
+                                 std::strerror(attach_error) + " (errno " + std::to_string(attach_error) + ")");
+    }
 #else
     if (hello.channel != -1) throw std::runtime_error("Unexpected worker transport");
 #endif
@@ -194,12 +285,33 @@ std::future<Observation> WorkerProcess::submit(Sample sample, std::uint64_t dead
                                                WorkerExchangeTiming* timing) {
     if (timing) timing->submit_ns = monotonic_ns();
     std::lock_guard<std::mutex> lock(impl_->mutex);
-    if (impl_->busy || impl_->stopping) throw std::logic_error("Worker already has an outstanding sample");
+    impl_->require_idle();
     Impl::Task task{sample, deadline, {}, timing};
     auto future = task.promise.get_future();
     impl_->busy = true; impl_->task = std::move(task); impl_->cv.notify_one();
     return future;
 }
+#ifdef __QNXNTO__
+Observation WorkerProcess::exchange_direct(const Sample& sample, std::uint64_t deadline,
+                                           WorkerExchangeTiming* timing) {
+    {
+        std::lock_guard<std::mutex> lock(impl_->mutex);
+        impl_->require_idle();
+        impl_->busy = true;
+    }
+    struct Release {
+        Impl& impl;
+        ~Release() {
+            std::lock_guard<std::mutex> lock(impl.mutex);
+            impl.busy = false;
+        }
+    } release{*impl_};
+    if (timing) timing->direct_start_ns = monotonic_ns();
+    const auto result = impl_->exchange(sample, deadline, timing);
+    if (timing) timing->completed_ns = result.completed_ns;
+    return result;
+}
+#endif
 int WorkerProcess::pid() const { return impl_->child; }
 const char* WorkerProcess::backend() {
 #ifdef __QNXNTO__

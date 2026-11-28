@@ -30,7 +30,8 @@ struct PreparedCandidate {
 // Only one candidate can be staging; the bounded backlog never drops input silently.
 class CandidateStager {
 public:
-    CandidateStager(std::string manifest, std::vector<Sample> history, Contract contract);
+    CandidateStager(std::string manifest, std::vector<Sample> history, Contract contract,
+                    WorkerLaunch launch = WorkerLaunch::standard);
     ~CandidateStager();
     CandidateStager(const CandidateStager&) = delete;
     CandidateStager& operator=(const CandidateStager&) = delete;

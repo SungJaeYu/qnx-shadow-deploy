@@ -32,6 +32,18 @@ class DeploymentIntegration(unittest.TestCase):
         path.write_text("".join(f"{key}={value}\n" for key, value in entries.items()))
         return path
 
+    def test_qnx_guest_profile_is_rejected_on_host_before_worker_start(self):
+        system = os.uname().sysname
+        if system.lower() == "qnx":
+            self.skipTest("QNX guest behavior is verified on the target")
+        result = subprocess.run(
+            [str(BUILD / "shadow-demo"), "--qnx-guest-profile", "--worker", str(self.root / "missing")],
+            capture_output=True, text=True, timeout=4,
+        )
+        self.assertEqual(result.returncode, 2)
+        self.assertEqual(result.stdout, "")
+        self.assertIn("--qnx-guest-profile requires the QNX x86-64 guest", result.stderr)
+
     def run_live(self, manifest=None, samples=30, respond=None):
         args = [str(BUILD / "shadow-demo"), "--worker", str(BUILD / "shadow-worker"),
                 "--samples", str(samples), "--period-ms", "200", "--deadline-ms", "150",
@@ -183,7 +195,12 @@ class DeploymentIntegration(unittest.TestCase):
 
         rows = [json.loads(line) for line in original_trace.splitlines()]
         rows[0]["backend"] = "qnx-native-ipc"
+        rows[0].pop("candidate_launch_profile", None)
         trace.write_text("".join(json.dumps(row) + "\n" for row in rows))
+        profile_result = subprocess.run([*command, "--qnx-guest-profile"],
+                                        capture_output=True, text=True, timeout=5)
+        self.assertEqual(profile_result.returncode, 1, profile_result.stdout + profile_result.stderr)
+        self.assertIn("expected qnx-guest-16-mib", profile_result.stderr)
         broker = int((synthetic / "broker-pid").read_text())
         baseline = rows[0]["baseline_pid"]
         first, second = [row["candidate_pid"] for row in rows if row.get("event") == "candidate_promoted"]
