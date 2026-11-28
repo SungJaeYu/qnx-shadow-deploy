@@ -104,16 +104,16 @@ trap cleanup EXIT
 trap 'exit 130' INT TERM
 
 fail() { echo "FAIL: $*; see $out" >&2; exit 1; }
-wait_row() {
+wait_record() {
+    description=$1
+    limit=$2
+    shift 2
     attempts=0
-    while ! row=$(awk -v pattern="$1" '$0 ~ pattern { print; found = 1; exit } END { if (!found) exit 1 }' "$log"); do
-        if [ "$attempts" -ge "${2:-160}" ]; then
-            fail "waiting for $1"
-        fi
-        if grep -q '"type":"summary"' "$log" || ! kill -0 "$broker" 2>/dev/null; then
+    while ! row=$("$@"); do
+        [ "$attempts" -lt "$limit" ] || fail "waiting for $description"
+        if summary_seen || ! kill -0 "$broker" 2>/dev/null; then
             # Recheck after seeing summary in case the requested row arrived during polling.
-            row=$(awk -v pattern="$1" '$0 ~ pattern { print; exit }' "$log")
-            [ -n "$row" ] || fail "broker finished before $1"
+            row=$("$@") || fail "broker finished before $description"
             break
         fi
         attempts=$((attempts + 1))
@@ -121,6 +121,37 @@ wait_row() {
     done
     printf '%s\n' "$row"
 }
+
+wait_row() {
+    wait_record "$1" "${2:-160}" awk -v pattern="$1" '
+        $0 ~ pattern { print; found = 1; exit }
+        END { if (!found) exit 1 }
+    ' "$log"
+}
+
+wait_live_shadow() {
+    wait_record "generation $1 first valid live shadow sample" 160 awk -v generation="$1" '
+        BEGIN { tag = "\"generation\":" generation "," }
+        !index($0, tag) { next }
+        /"type":"deployment"/ && /"event":"stage_requested"/ { staged = 1 }
+        staged && /"type":"deployment"/ && /"event":"replay_complete"/ {
+            if (!match($0, /"after_sequence":[0-9]+/)) next
+            boundary = substr($0, RSTART, RLENGTH)
+            sub(/"after_sequence":/, "", boundary)
+            sequence = boundary + 1
+            replayed = $0
+            next
+        }
+        replayed && /"type":"sample"/ && /"phase":"shadowing"/ && /"candidate_check":"ok"/ {
+            if (!index($0, "\"sequence\":" sequence ",")) next
+            print replayed
+            found = 1
+            exit
+        }
+        END { if (!found) exit 1 }
+    ' "$log"
+}
+
 child_pid() {
     pid=$(printf '%s\n' "$1" | sed -n "s/.*\"$2\":\([0-9][0-9]*\)[,}].*/\1/p")
     [ -n "$pid" ] && [ "$pid" -gt 1 ] && [ "$pid" -ne "$broker" ] ||
@@ -158,8 +189,8 @@ control() {
     generation=1
     while [ "$generation" -le 21 ]; do
         printf 'stage %s/candidate.manifest\n' "$out" >&3
-        wait_row "\"generation\":$generation,.*\"event\":\"stage_requested\"" >/dev/null
         if [ "$generation" -eq 21 ]; then
+            wait_row "\"generation\":$generation,.*\"event\":\"stage_requested\"" >/dev/null
             committed=$(wait_row '"generation":21,.*"event":"candidate_committed"' 500)
             final=$(child_pid "$committed" candidate_pid)
             wait_retired "$baseline"
@@ -167,13 +198,10 @@ control() {
             kill -0 "$broker" && kill -0 "$final" || fail 'broker or final candidate missing after commit'
             printf 'baseline %s\n' "$baseline" >> "$out/retirement"
         else
-            replayed=$(wait_row "\"generation\":$generation,.*\"event\":\"replay_complete\"")
+            replayed=$(wait_live_shadow "$generation")
+            printf 'cancel\n' >&3
             candidate=$(child_pid "$replayed" candidate_pid)
             [ "$candidate" -ne "$baseline" ] || fail 'candidate PID equals baseline PID'
-            boundary=$(printf '%s\n' "$replayed" | sed -n 's/.*"after_sequence":\([0-9][0-9]*\)[,}].*/\1/p')
-            [ -n "$boundary" ] || fail 'missing replay boundary'
-            wait_row "\"type\":\"sample\",\"sequence\":$((boundary + 1)),.*\"phase\":\"shadowing\"" >/dev/null
-            printf 'cancel\n' >&3
             wait_row "\"generation\":$generation,.*\"event\":\"candidate_cancelled\"" >/dev/null
             wait_retired "$candidate"
             snapshot_fds "cancel-$generation"
