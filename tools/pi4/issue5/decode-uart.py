@@ -25,6 +25,8 @@ decoded = base64.b64decode(payload.replace(b"\n", b""), validate=True)
 actual = subprocess.run(["cksum"], input=decoded, check=True, capture_output=True).stdout.split()
 if actual != [crc, length]:
     raise SystemExit("Archive POSIX checksum or length differs from the board value")
+if not decoded.startswith(b"\x1f\x8b"):
+    raise SystemExit("Invalid gzip archive: missing gzip header")
 try:
     with gzip.GzipFile(fileobj=io.BytesIO(decoded)) as archive:
         while archive.read(64 * 1024):
