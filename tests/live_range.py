@@ -25,15 +25,15 @@ def frame(sequence, acquired_ns=None, range_mm=10250):
 
 
 class LiveRangeTest(unittest.TestCase):
-    def run_broker(self, produce, samples=3, split=True):
+    def run_broker(self, produce, samples=3, split=True, *, period_ms=PERIOD_MS, deadline_ms=DEADLINE_MS):
         input_read, input_write = os.pipe()
         output_read, output_write = os.pipe()
         options = ["--output-fd", str(output_write)] if split else []
         inherited = (input_read, output_write) if split else (input_read,)
         with subprocess.Popen(
             [BUILD / "shadow-demo", "--worker", BUILD / "shadow-worker",
-             "--scenario", "promote", "--samples", str(samples), "--period-ms", str(PERIOD_MS),
-             "--deadline-ms", str(DEADLINE_MS), "--phase-timing", "--live-range-fd",
+             "--scenario", "promote", "--samples", str(samples), "--period-ms", str(period_ms),
+             "--deadline-ms", str(deadline_ms), "--phase-timing", "--live-range-fd",
              str(input_read), *options],
             pass_fds=inherited, stdout=subprocess.PIPE, stderr=subprocess.PIPE,
         ) as broker:
@@ -43,6 +43,7 @@ class LiveRangeTest(unittest.TestCase):
                 try:
                     meta = json.loads(broker.stdout.readline())
                     self.assertEqual(meta["input_source"], "live-range-mm")
+                    self.assertEqual(meta["release_policy"], "acquisition-relative")
                     produce(writer)
                     events, errors = broker.communicate(timeout=4)
                     return (broker.returncode, [json.loads(line) for line in events.splitlines()],
@@ -84,21 +85,33 @@ class LiveRangeTest(unittest.TestCase):
         self.assertIsNone(summary["input_error"])
 
     def test_fresh_queued_and_sparse_records_keep_producer_timestamps(self):
+        period_ms, deadline_ms = 1000, 900
+        period_ns = period_ms * 1_000_000
+        margin_ns = period_ns // 4
         acquired = []
 
         def produce(writer):
-            for delay in (0, (PERIOD_MS - 30) / 1000, (PERIOD_MS + 40) / 1000):
-                time.sleep(delay)
-                acquired.append(monotonic_ns())
-                writer.write(frame(len(acquired), acquired[-1]))
+            first_ns = monotonic_ns()
+            queued_ns = first_ns + period_ns - margin_ns
+            sparse_ns = queued_ns + period_ns + margin_ns
+            acquired.extend((first_ns, queued_ns, sparse_ns))
+            for sequence, stamp in enumerate(acquired, 1):
+                # Model fixed acquisition timestamps. A late producer wake-up
+                # delays the pipe write without shifting the measurement.
+                remaining_ns = stamp - monotonic_ns()
+                while remaining_ns > 0:
+                    time.sleep(remaining_ns / 1e9)
+                    remaining_ns = stamp - monotonic_ns()
+                writer.write(frame(sequence, stamp))
 
-        code, rows, errors, _ = self.run_broker(produce, split=False)
+        code, rows, errors, _ = self.run_broker(produce, split=False,
+                                                 period_ms=period_ms, deadline_ms=deadline_ms)
         self.assertEqual(code, 0, errors)
         self.assertEqual([row["acquired_ns"] for row in rows[:-1]], acquired)
-        self.assertGreater(rows[1]["scheduled_release_offset_ns"], rows[1]["acquired_offset_ns"])
+        self.assertEqual(rows[1]["scheduled_release_offset_ns"] - rows[1]["acquired_offset_ns"], margin_ns)
         self.assertEqual(rows[1]["release_lateness_ms"], 0)
-        self.assertGreater(rows[2]["acquired_offset_ns"], rows[2]["scheduled_release_offset_ns"])
-        meta = {"period_ms": PERIOD_MS, "deadline_ms": DEADLINE_MS, "requested_inputs": 3,
+        self.assertEqual(rows[2]["acquired_offset_ns"] - rows[2]["scheduled_release_offset_ns"], margin_ns)
+        meta = {"period_ms": period_ms, "deadline_ms": deadline_ms, "requested_inputs": 3,
                 "input_source": "live-range-mm", "release_policy": "acquisition-relative"}
         self.assertTrue(validate_continuity(meta, rows[-1], rows[:-1]))
 
