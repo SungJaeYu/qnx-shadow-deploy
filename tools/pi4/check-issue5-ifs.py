@@ -12,13 +12,16 @@ applets = {line.split()[-1] for line in symbols.splitlines() if line.strip()}
 for command in ("cksum", "base64", "tar", "gzip", "ln", "mktemp", "rm"):
     assert f"{command}_main" in applets, command
 linked_applets = {
-    "egrep": "grep", "sed": "sed", "cat": "cat", "mkdir": "mkdir",
+    "egrep": "grep", "printf": "printf", "sed": "sed", "cat": "cat", "mkdir": "mkdir",
     "mkfifo": "mkfifo", "rm": "rm", "sleep": "sleep", "tail": "tail", "uname": "uname",
 }
 for command, implementation in linked_applets.items():
     assert f" bin/{command} -> /usr/bin/toybox\n" in entries, command
     assert f"{implementation}_main" in applets, command
-for command in ("usr/bin/gawk", "sbin/devb-ram", "sbin/mkqnx6fs", "bin/mount"):
+for command in (
+    "bin/ksh", "bin/mount", "bin/on", "bin/pidin", "sbin/devb-ram",
+    "sbin/mkqnx6fs", "usr/bin/gawk", "usr/bin/toybox",
+):
     assert (tree / command).stat().st_mode & 0o111, command
 assert " usr/bin/awk -> /usr/bin/gawk\n" in entries
 assert " bin/waitfor -> /bin/on\n" in entries

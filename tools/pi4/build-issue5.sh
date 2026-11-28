@@ -18,7 +18,7 @@ sed 's|^\[perms=0555\] /usr/bin/toybox=|[perms=0555 +raw] /usr/bin/toybox=|' \
 } > "$board/issue5-build-source.txt"
 printf '\n[perms=0444] /etc/issue5-build-source=/work/%s/issue5-build-source.txt\n' "$board" >> "$board/rpi4.build"
 printf '\n[perms=0555] /usr/bin/gawk=/opt/qnx/target/qnx/aarch64le/usr/bin/gawk\n[type=link] /usr/bin/awk=/usr/bin/gawk\n' >> "$board/rpi4.build"
-for utility in egrep sed; do
+for utility in egrep printf sed; do
     printf '[type=link] /bin/%s=/usr/bin/toybox\n' "$utility"
 done >> "$board/rpi4.build"
 for name in run.sh export-uart.sh cycles-with-receipts.sh board-smoke.sh; do
