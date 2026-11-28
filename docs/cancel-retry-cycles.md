@@ -15,6 +15,9 @@ final commit while the broker and final candidate are still alive, and that
 the final candidate disappears after broker exit. The verifier independently
 checks generation ordering, stage and cancel acceptance, candidate and baseline
 identities, the retirement observations, and selected-source continuity.
+A shadow observation flagged as omitted earns no qualification credit even
+if the candidate result is valid after the broker drains it. Promotion
+requires the configured number of prior credits and a valid current result.
 Candidate identity is scoped to each generation. A PID can be reused after
 its earlier generation has retired. The controller sends cancel as soon as its bounded scan finds replay completion
 and the first valid live shadow sample. It checks the candidate PID and
@@ -61,7 +64,8 @@ partial retirement observations if a command fails.
 Pass `10000` as the driver's third argument and verify with `--samples 10000`.
 The extended run uses the same 20 cancellation generations and final commit.
 It continues through 10,000 live samples and takes about 200 seconds at the
-default 20 ms period. The default verifier still requires exactly 640 samples.
+default 20 ms period. The default verifier still requires exactly 640 samples. To replay the
+2,000-sample comparison captures, use `--samples 2000`.
 
 ```sh
 run=/tmp/shadow-cancel-cycles-10000-$(date +%Y%m%d-%H%M%S)
@@ -85,11 +89,13 @@ After exporting that directory, verify on the host with both gates:
 
 ```sh
 python3 tools/verify_cancel_retry_cycles.py "$exported_run" \
-  --samples 10000 --qnx-guest-profile --require-timing
+  --samples 10000 --qnx-guest-profile --qualification-profile
 ```
 
-The profile gate checks the native QNX backend and the
-`qnx-guest-16-mib` launch marker. The driver saves `pidin` descriptor
+The guest profile gate checks the native QNX backend and the
+`qnx-guest-16-mib` launch marker. The qualification timing gate also checks
+the guarded fixed grid and the exact 20 ms period, 10 ms decision deadline
+and 7.5 ms IPC budget. The driver saves `pidin` descriptor
 snapshots before the first stage, after each candidate exits and after
 the baseline exits. Use the snapshots to check that the initial
 side-channel set returns after each cancellation, then that the final
@@ -102,8 +108,43 @@ the trace.
 The verifier prints the configured timing, skipped nominal slots, decision
 misses and maximum acquisition interval separately from the lifecycle verdict.
 Pass `--require-timing` to require zero empty nominal slots and zero decision misses
-in that run. A decision deadline miss that suppresses selected output also
-fails the functional continuity check. The report describes broker-selected
+at the run's configured budget. Use `--qualification-profile` to additionally
+bind the configured timing to the stock guarded-grid profile. A decision deadline
+miss that suppresses selected output also fails the functional continuity check.
+Use `--sensor-trace` for a comparison driven by a prerecorded millimetre trace
+on the guarded grid. The default expects broker-generated inputs. Preserve the
+input file and digest with the trace so the verifier's source marker can be
+corroborated. The report describes broker-selected
 outputs, process retirement and timing for the recorded run. The optional
 descriptor snapshots provide independent connection evidence. External
 delivery and worst-case execution time require separate measurements.
+
+## Independent authority receipts
+
+For split-output captures, use an independent reader on the same target
+monotonic clock. Keep the receipt file with the broker trace. Each receipt
+line contains the receiver timestamp in integer nanoseconds, a space, and
+the complete authority JSON record. The offline checker accepts plain or
+gzip-compressed inputs.
+
+```sh
+python3 tools/verify_output_receipts.py "$run/cycles.jsonl.gz" "$run/receipts.gz"
+```
+
+The receiver verdict compares observed receipts with broker-reported
+authority writes and the deadlines advertised in their records. The workload
+verdict also accounts for unprocessed inputs, withheld outputs, selected
+outputs that the broker could not write, and terminal write errors. Telemetry
+drops can leave receiver coverage complete while some source, position or
+deadline joins remain unverified.
+
+New broker summaries carry the monotonic timing origin. Live-range samples
+can anchor the clock from their absolute acquisition timestamps. For other
+captures without a summary origin, pass `--phase-trace` with the broker
+stderr containing `phase_timing` records when available. Historical captures without either anchor can verify
+receipt counts and deadlines advertised in the records. The absolute timing
+verdict remains inconclusive. If the terminal summary is absent, counts that
+depend on broker totals remain unknown. Observed late receipts or explicit
+broker failures still fail the check. The checker exits 0 for a fully corroborated
+receipt check, 1 for a failure, and 77 for incomplete corroboration. Use the
+lifecycle and cadence verifier separately for deployment qualification.

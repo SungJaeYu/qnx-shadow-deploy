@@ -2,8 +2,10 @@
 """Check a fresh same-broker cancellation trace and online retirement observations."""
 import argparse
 import json
-from math import isclose
+from math import isfinite
 from pathlib import Path
+
+from verify_qnx_logs import validate_continuity
 
 
 def require(condition, message):
@@ -21,36 +23,52 @@ def verify_timing(meta, summary, samples):
     period, deadline = meta["period_ms"], meta["deadline_ms"]
     require(type(period) is int and type(deadline) is int and 0 < deadline < period <= 1000
             and meta["ipc_budget_ms"] == deadline * 0.75, "invalid timing configuration")
-    previous_acquired = previous_slot = None
-    skips = misses = max_interval = 0
-    for row in samples:
-        acquired, released, decided = (row[key] for key in
-                                      ("acquired_offset_ns", "scheduled_release_offset_ns", "decision_offset_ns"))
-        require(all(type(value) is int for value in (acquired, released, decided))
-                and 0 <= released <= acquired <= decided, f"sample {row['sequence']}: invalid timing boundaries")
-        slot = acquired // (period * 1_000_000)
-        skipped = 0 if previous_slot is None else slot - previous_slot - 1
-        interval = None if previous_acquired is None else acquired - previous_acquired
-        miss = decided - acquired > deadline * 1_000_000
-        require(row["nominal_slot"] == slot and skipped >= 0 and row["skipped_nominal_slots"] == skipped
-                and row["publication_miss"] is miss, f"sample {row['sequence']}: timing counters disagree")
-        reported = row["acquisition_interval_ms"]
-        require(reported is None if interval is None else
-                reported is not None and isclose(reported, interval / 1_000_000),
-                f"sample {row['sequence']}: acquisition interval disagrees")
-        max_interval = max(max_interval, interval or 0)
-        skips += skipped
-        misses += miss
-        previous_acquired, previous_slot = acquired, slot
-    require(summary["skipped_nominal_slots"] == skips
-            and summary["initial_unoccupied_slots"] == samples[0]["nominal_slot"]
-            and summary["last_nominal_slot"] == previous_slot
-            and summary["decision_deadline_misses"] == summary["publication_misses"] == misses
-            and isclose(summary["max_acquisition_interval_ms"], max_interval / 1_000_000),
-            "service timing summary disagrees with samples")
+    require(validate_continuity(meta, summary, samples), "missing continuity schema")
 
 
-def verify(directory, expected_samples=640, *, require_qnx_guest_profile=False):
+def require_qualification_profile(meta):
+    require((meta["period_ms"], meta["deadline_ms"], meta["ipc_budget_ms"]) == (20, 10, 7.5),
+            "qualification profile requires a 20 ms period, 10 ms decision deadline and 7.5 ms IPC budget")
+    require(meta.get("release_policy") == "guarded-fixed-grid", "qualification requires guarded fixed grid")
+
+
+def require_zero_timing_misses(summary):
+    require(summary["skipped_nominal_slots"] == summary["decision_deadline_misses"]
+            == summary["initial_unoccupied_slots"] == 0, "timing gate failed")
+
+
+def verify_final_qualification(samples, replay_boundary, promoted, committed, meta):
+    shadow = samples[replay_boundary:promoted["sequence"] - 1]
+    probation = samples[promoted["sequence"] - 1:committed["sequence"]]
+    require(all(row["generation"] == promoted["generation"] and row["baseline_check"] == "ok"
+                and row["candidate_check"] == "ok" for row in (*shadow, *probation)),
+            "invalid final qualification or probation observation")
+    omissions = [row.get("shadow_qualification_omitted", False) for row in shadow]
+    require(all(row["phase"] == "shadowing" for row in shadow)
+            and all(type(omission) is bool for omission in omissions)
+            and len(shadow) - sum(omissions) == meta["qualification_samples"],
+            "wrong final qualification boundary or omission count")
+    require(len(probation) == meta["probation_samples"]
+            and all(row["phase"] == "probation" for row in probation[:-1])
+            and probation[-1]["phase"] == "committed"
+            and all(row.get("shadow_qualification_omitted", False) is False for row in probation),
+            "wrong final probation boundary")
+
+
+def require_input_source(meta, samples=(), *, sensor_trace):
+    if sensor_trace:
+        require(meta.get("input_source") == "sensor-trace-mm", "expected sensor-trace-mm inputs")
+        require(meta.get("release_policy") == "guarded-fixed-grid", "sensor trace requires guarded fixed grid")
+        for row in samples:
+            measured = row.get("input")
+            require(row.get("truth", False) is None and "acquired_ns" not in row
+                    and (type(measured) is int or (type(measured) is float and isfinite(measured))),
+                    f"sample {row['sequence']}: invalid sensor trace input")
+    else:
+        require("input_source" not in meta, "expected broker-generated inputs")
+
+
+def verify(directory, expected_samples=640, *, require_qnx_guest_profile=False, sensor_trace=False):
     rows = [json.loads(line) for line in (directory / "cycles.jsonl").read_text().splitlines()]
     require(len(rows) >= 2 and rows[0]["type"] == "meta" and rows[-1]["type"] == "summary",
             "missing trace envelope")
@@ -63,15 +81,17 @@ def verify(directory, expected_samples=640, *, require_qnx_guest_profile=False):
             "multiple trace envelopes")
     require(meta["scenario"] == "live-deployment" and meta["schema"] == 2 and meta["candidate_pid"] == -1,
             "expected a live broker starting with only a baseline")
-    require("input_source" not in meta, "expected live inputs")
     require((directory / "exit").read_text().strip() == "0", "broker failed")
     require(not any(row.get("event") in {"command_rejected", "preparation_failed",
                                        "candidate_rejected", "candidate_rolled_back"} for row in rows),
             "a command or candidate was rejected unexpectedly")
     samples = [row for row in rows if row["type"] == "sample"]
+    require_input_source(meta, samples, sensor_trace=sensor_trace)
     require(meta["requested_inputs"] == expected_samples,
             f"expected {expected_samples} requested samples, got {meta['requested_inputs']}")
-    require([row["sequence"] for row in samples] == list(range(1, expected_samples + 1)),
+    require(len(samples) == expected_samples and all(
+        type(row["sequence"]) is int and row["sequence"] == index for index, row in enumerate(samples, 1)
+    ),
             "missing or nonconsecutive live samples")
     require(summary["phase"] == "committed" and summary["interrupted"] is False
             and all(summary[key] == expected_samples for key in
@@ -80,6 +100,12 @@ def verify(directory, expected_samples=640, *, require_qnx_guest_profile=False):
             and summary["decision_deadline_misses"] == 0,
             "final state or continuity summary failed")
     verify_timing(meta, summary, samples)
+    omission_fields = ["shadow_qualification_omitted" in row for row in samples]
+    if any(omission_fields) or "shadow_qualification_omissions" in summary:
+        omissions = summary.get("shadow_qualification_omissions")
+        require(all(omission_fields) and all(type(row["shadow_qualification_omitted"]) is bool for row in samples)
+                and type(omissions) is int and omissions == sum(row["shadow_qualification_omitted"] for row in samples),
+                "invalid shadow qualification omission counters")
     require(isinstance(meta["backend"], str) and meta["backend"], "missing transport backend")
     require(meta["qualification_samples"] == 20 and meta["probation_samples"] == 40,
             "unexpected qualification or probation window")
@@ -141,10 +167,9 @@ def verify(directory, expected_samples=640, *, require_qnx_guest_profile=False):
             require(replay_index < indices[id(promoted)] < indices[id(committed)]
                     and promoted["type"] == committed["type"] == "sample"
                     and promoted["candidate_pid"] == committed["candidate_pid"] == pid
-                    and promoted["phase"] == "probation" and committed["phase"] == "committed"
-                    and promoted["sequence"] - replay["after_sequence"] == meta["qualification_samples"] + 1
-                    and committed["sequence"] - promoted["sequence"] == meta["probation_samples"] - 1,
+                    and promoted["phase"] == "probation" and committed["phase"] == "committed",
                     "final healthy promotion or commit failed")
+            verify_final_qualification(samples, replay_boundary, promoted, committed, meta)
             expected_retirement.extend((f"baseline {baseline}", f"final {pid}"))
             terminal_sequence = expected_samples
         candidate_windows[generation] = (replay["after_sequence"], terminal_sequence, pid)
@@ -160,7 +185,8 @@ def verify(directory, expected_samples=640, *, require_qnx_guest_profile=False):
                 f"sample {sequence}: unexpected generation")
         source = "candidate" if sequence >= promoted["sequence"] else "baseline"
         require(sample["source"] == source and sample["output"] is not None
-                and sample[source] is not None and sample["output"] == sample[source]["position"],
+                and sample[source] is not None and sample["output"] == sample[source]["position"]
+                and sample[source + "_check"] == "ok",
                 f"sample {sequence}: selected output missing or has wrong source")
         expected_baseline = baseline if sequence <= committed["sequence"] else -1
         require(sample["baseline_pid"] == expected_baseline, f"sample {sequence}: baseline identity changed")
@@ -177,15 +203,20 @@ def verify(directory, expected_samples=640, *, require_qnx_guest_profile=False):
 def main():
     parser = argparse.ArgumentParser(description=__doc__)
     parser.add_argument("fresh_trace_dir", type=Path)
-    parser.add_argument("--samples", type=int, choices=(640, 10000), default=640,
+    parser.add_argument("--samples", type=int, choices=(640, 2000, 10000), default=640,
                         help="expected number of live samples (default: 640)")
     parser.add_argument("--require-timing", action="store_true", help="also require zero empty nominal slots and decision misses")
+    parser.add_argument("--qualification-profile", action="store_true",
+                        help="also require the guarded fixed grid and 20/10/7.5 ms budgets with no empty slots or misses")
     parser.add_argument("--qnx-guest-profile", action="store_true",
                         help="require the native QNX backend and locked guest candidate profile")
+    parser.add_argument("--sensor-trace", action="store_true",
+                        help="require prerecorded sensor-trace-mm inputs on the guarded fixed grid")
     args = parser.parse_args()
     try:
         meta, summary, commit = verify(args.fresh_trace_dir, args.samples,
-                                       require_qnx_guest_profile=args.qnx_guest_profile)
+                                       require_qnx_guest_profile=args.qnx_guest_profile,
+                                       sensor_trace=args.sensor_trace)
         if args.qnx_guest_profile:
             print(f"Candidate launch profile: {meta['candidate_launch_profile']}")
         print(f"PASS functional: backend={meta['backend']} cancellations=20 commit_sample={commit} "
@@ -195,8 +226,10 @@ def main():
               f"ipc_budget_ms={meta['ipc_budget_ms']} skipped_nominal_slots={skipped} decision_misses={misses} "
               f"initial_unoccupied_slots={summary['initial_unoccupied_slots']} "
               f"max_acquisition_interval_ms={summary['max_acquisition_interval_ms']}")
-        if args.require_timing:
-            require(skipped == misses == summary["initial_unoccupied_slots"] == 0, "timing gate failed")
+        if args.qualification_profile:
+            require_qualification_profile(meta)
+        if args.require_timing or args.qualification_profile:
+            require_zero_timing_misses(summary)
     except (OSError, ValueError, KeyError, IndexError, TypeError) as error:
         parser.exit(1, f"FAIL: {error}\n")
 
