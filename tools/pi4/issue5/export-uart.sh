@@ -9,6 +9,15 @@ case "$id" in *[!a-zA-Z0-9_-]*) exit 2;; esac
 archive="$id.tar.gz"
 [ -d "$id" ] && [ -f "$id.meta" ] || exit 2
 
+complete_archive() {
+    [ -f "$1" ] && toybox gzip -t "$1" >/dev/null 2>&1
+}
+
+# The old exporter could leave a truncated gzip at the original path.
+# Preserve those bytes and publish the replacement under a separate name.
+if [ -e "$archive" ] && ! complete_archive "$archive"; then
+    archive="$id.recovered.tar.gz"
+fi
 if [ ! -e "$archive" ]; then
     temp=$(toybox mktemp -d "./.$id.export.XXXXXXXX")
     trap 'toybox rm -rf "$temp"' EXIT
@@ -20,7 +29,10 @@ if [ ! -e "$archive" ]; then
         [ -f "$archive" ] || exit 1
     fi
 fi
-[ -f "$archive" ] || exit 2
+if ! complete_archive "$archive"; then
+    printf 'Unable to verify complete gzip archive: %s\n' "$archive" >&2
+    exit 2
+fi
 checksum=$(toybox cksum < "$archive")
 set -- $checksum
 [ "$#" -eq 2 ] || exit 2
