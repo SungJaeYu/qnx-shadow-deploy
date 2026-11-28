@@ -895,6 +895,7 @@ int main(int argc, char** argv) {
             if (input_error) json_string(out, input_error); else out << "null";
         }
         if (bounded_telemetry) out << ",\"telemetry_records_dropped\":" << telemetry.dropped;
+        out << ",\"timing_origin_ns\":" << start;
         out << ",\"external_delivery\":\"unmeasured\"}\n";
         telemetry.emit();
         if (bounded_telemetry) telemetry.drain(telemetry_deadline_ns);

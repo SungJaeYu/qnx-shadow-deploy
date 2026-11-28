@@ -57,6 +57,9 @@ def main(original):
     else:
         raise AssertionError("a 640-sample trace passed the 10000-sample gate")
     print("PASS negative: 640-sample trace cannot pass the 10000-sample gate")
+    mutate_and_reject(original, "generated capture relabelled as sensor trace",
+                      lambda rows: rows[0].update(input_source="sensor-trace-mm"),
+                      "invalid sensor trace input", sensor_trace=True)
     mutate_and_reject(original, "acceptance claims wrong preceding sample",
                       lambda rows: event(rows, "cancel_requested").update(after_sequence=1),
                       "outside its sample boundary")
@@ -68,10 +71,10 @@ def main(original):
                       lambda rows: rows.remove(event(rows, "cancel_requested")), "exactly one cancel_requested")
     mutate_and_reject(original, "summary hides nominal skips",
                       lambda rows: rows[-1].update(skipped_nominal_slots=rows[-1]["skipped_nominal_slots"] + 1),
-                      "service timing summary disagrees")
+                      "invalid continuity field: skipped_nominal_slots")
     mutate_and_reject(original, "per-sample deadline flag conflicts with timestamps",
                       lambda rows: next(row for row in rows if row["type"] == "sample")
-                      .update(publication_miss=True), "timing counters disagree")
+                      .update(publication_miss=True), "invalid continuity field: publication_miss")
 
 
 if __name__ == "__main__":

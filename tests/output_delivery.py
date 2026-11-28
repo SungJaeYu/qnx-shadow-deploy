@@ -7,7 +7,13 @@ import select
 import subprocess
 import sys
 import tempfile
+import time
 import unittest
+
+
+sys.path.insert(0, str(Path(__file__).resolve().parents[1] / "tools"))
+from live_range_example import monotonic_ns
+from verify_output_receipts import assess_receipts
 
 
 DEMO, WORKER = (str(Path(value).resolve()) for value in sys.argv[1:3])
@@ -116,8 +122,44 @@ class OutputDelivery(unittest.TestCase):
         self.assertEqual(telemetry[-1]["delivered_outputs"], 8)
         self.assertEqual(telemetry[-1]["telemetry_records_dropped"], 0)
         phases = self.check_write_phases(result.stderr, ["accepted"] * 8)
-        for timing, output in zip(phases, authority):
+        origin = telemetry[-1]["timing_origin_ns"]
+        for timing, output, sample in zip(phases, authority, samples):
             self.assertLessEqual(timing["authority_write_end_ns"], output["deadline_ns"])
+            self.assertEqual(origin + sample["acquired_offset_ns"], timing["acquired_ns"])
+            self.assertEqual(origin + sample["decision_offset_ns"], timing["selected_ns"])
+            self.assertEqual(timing["acquired_ns"] + 300_000_000, output["deadline_ns"])
+
+    def test_late_consumer_receipt_fails_after_on_time_authority_write(self):
+        deadline_ms = 300
+        command = COMMAND + ["--samples", "1", "--period-ms", "400", "--deadline-ms", str(deadline_ms)]
+        with pipe() as (source, sink):
+            result = self.run_demo(sink, command=command, extra=("--phase-timing",))
+            sink.close()
+            self.assertEqual(result.returncode, 0, result.stderr)
+            # Keep the FIFO open and leave the single record queued past its deadline.
+            time.sleep((deadline_ms + 1) / 1000)
+            data = source.read()
+            received_ns = monotonic_ns()
+        telemetry = records(result.stdout)
+        _, sample, summary = telemetry
+        self.assertEqual((sample["sequence"], sample["source"]), (1, "baseline"))
+        self.assertFalse(sample["publication_miss"])
+        self.assertTrue(sample["output_delivered"])
+        self.assertEqual((summary["selected_outputs"], summary["delivered_outputs"]), (1, 1))
+        output, = records(data)
+        self.assertEqual((output["sequence"], output["source"], output["position_m"]),
+                         (sample["sequence"], sample["source"], sample["output"]))
+        phases = self.check_write_phases(result.stderr, ["accepted"])
+        self.assertLessEqual(phases[0]["authority_write_end_ns"], output["deadline_ns"])
+        self.assertGreater(received_ns, output["deadline_ns"])
+
+        report = assess_receipts(telemetry, [(received_ns, output)], phases)
+        self.assertEqual(report["received_outputs"], 1)
+        self.assertEqual(report["missing_receipts"], 0)
+        self.assertEqual(report["late_receipts"], 1)
+        self.assertEqual(report["absolute_late_receipts"], 1)
+        self.assertEqual(report["receiver"], "fail")
+        self.assertEqual(report["status"], "fail")
 
     def test_pending_shadow_is_drained_after_baseline_reaches_authority_pipe(self):
         with tempfile.TemporaryDirectory() as directory, pipe() as (source, sink):
