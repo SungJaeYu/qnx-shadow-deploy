@@ -60,12 +60,13 @@ def assess_receipts(rows, receipts, phase_rows=()):
         check(outcome in (None, "accepted", "accepted_late", "rejected"),
               f"sample {sequence}: invalid authority write outcome")
         deadline_at = phase["acquired_ns"] + deadline_ns
+        write_returned_late = end is not None and end > deadline_at
         if outcome in ("accepted", "accepted_late") and end is not None:
-            check((end > deadline_at) == (outcome == "accepted_late"),
+            check(write_returned_late == (outcome == "accepted_late"),
                   f"sample {sequence}: authority write outcome conflicts with write return deadline")
         if phase["selected_ns"] > deadline_at:
             phase_misses.add(sequence)
-        phase_write_failure |= outcome in ("accepted_late", "rejected")
+        phase_write_failure |= write_returned_late or outcome in ("accepted_late", "rejected")
     drops = None
     if summary is not None:
         drops = summary.get("telemetry_records_dropped", 0)

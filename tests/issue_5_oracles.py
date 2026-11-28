@@ -215,6 +215,16 @@ class ReceiverEvidence(unittest.TestCase):
         self.assertEqual(result["receiver"], "pass")
         self.assertEqual(result["status"], "fail")
 
+    def test_sparse_phase_write_return_proves_a_miss_without_outcome(self):
+        rows, receipts, phases = self.fixture()
+        deadline, _ = receipts[0]
+        phases[0]["authority_write_end_ns"] = deadline
+        self.assertEqual(assess_receipts(rows[:1], receipts, phases)["status"], "inconclusive")
+        phases[0]["authority_write_end_ns"] += 1
+        result = assess_receipts(rows[:1], receipts, phases)
+        self.assertEqual(result["status"], "fail")
+        self.assertEqual(result["receiver"], "pass")
+
     def test_accepted_outcome_must_match_known_write_return_deadline(self):
         rows, receipts, phases = self.fixture()
         deadline, _ = receipts[0]
