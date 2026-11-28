@@ -59,7 +59,7 @@ if(BUILD_TESTING)
   add_test(NAME policy COMMAND policy-tests)
   add_executable(protocol-tests tests/protocol_tests.cpp)
   target_link_libraries(protocol-tests PRIVATE shadow_transport)
-  add_test(NAME protocol COMMAND protocol-tests)
+  add_test(NAME protocol COMMAND protocol-tests $<TARGET_FILE:shadow-worker>)
   add_executable(guest-headroom-tests tests/guest_headroom_tests.cpp)
   target_link_libraries(guest-headroom-tests PRIVATE shadow_transport)
   add_test(NAME guest-headroom COMMAND guest-headroom-tests)
@@ -116,6 +116,12 @@ if(BUILD_TESTING)
     add_test(NAME issue-5-oracles COMMAND ${Python3_EXECUTABLE}
       ${CMAKE_CURRENT_SOURCE_DIR}/tests/issue_5_oracles.py)
     set_tests_properties(issue-5-oracles PROPERTIES TIMEOUT 10)
+    add_test(NAME pi4-uart-export COMMAND ${Python3_EXECUTABLE}
+      ${CMAKE_CURRENT_SOURCE_DIR}/tools/pi4/check-uart-host.py)
+    set_tests_properties(pi4-uart-export PROPERTIES TIMEOUT 30)
+    add_test(NAME pi4-image-publication COMMAND ${Python3_EXECUTABLE}
+      ${CMAKE_CURRENT_SOURCE_DIR}/tools/pi4/check-publication.py)
+    set_tests_properties(pi4-image-publication PROPERTIES TIMEOUT 15)
     find_program(SHADOW_NODE_EXECUTABLE node)
     if(SHADOW_NODE_EXECUTABLE)
       add_test(NAME workbench-continuity COMMAND ${SHADOW_NODE_EXECUTABLE}

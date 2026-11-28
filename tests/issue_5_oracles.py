@@ -188,6 +188,58 @@ class ReceiverEvidence(unittest.TestCase):
         with self.assertRaisesRegex(ValueError, "precedes selection"):
             assess_receipts(rows, [(self.origin + 99, receipts[0][1]), receipts[1]], phase)
 
+    def test_receipt_cannot_precede_write_start_even_after_selection(self):
+        rows, receipts, phases = self.fixture()
+        phases[0]["authority_write_start_ns"] = self.origin + 102
+        early = (self.origin + 101, receipts[0][1])
+        with self.assertRaisesRegex(ValueError, "precedes authority write"):
+            assess_receipts(rows, [early, receipts[1]], phases)
+
+    def test_phase_only_rejected_or_withheld_write_cannot_have_receipt(self):
+        rows, receipts, phases = self.fixture()
+        for outcome in ("rejected", None):
+            with self.subTest(outcome=outcome):
+                phases[0]["authority_write_outcome"] = outcome
+                with self.assertRaisesRegex(ValueError, "authority write outcome"):
+                    assess_receipts(rows[:1], receipts, phases)
+
+    def test_receipt_can_precede_write_return_including_accepted_late(self):
+        rows, receipts, phases = self.fixture()
+        deadline, record = receipts[0]
+        phases[0].update(authority_write_start_ns=deadline - 2, authority_write_end_ns=deadline,
+                         authority_write_outcome="accepted")
+        early = [(deadline - 1, record), receipts[1]]
+        self.assertEqual(assess_receipts(rows, early, phases)["status"], "pass")
+        phases[0].update(authority_write_end_ns=deadline + 1, authority_write_outcome="accepted_late")
+        result = assess_receipts(rows[:1], early, phases)
+        self.assertEqual(result["receiver"], "pass")
+        self.assertEqual(result["status"], "fail")
+
+    def test_sparse_phase_write_return_proves_a_miss_without_outcome(self):
+        rows, receipts, phases = self.fixture()
+        deadline, _ = receipts[0]
+        phases[0]["authority_write_end_ns"] = deadline
+        self.assertEqual(assess_receipts(rows[:1], receipts, phases)["status"], "inconclusive")
+        phases[0]["authority_write_end_ns"] += 1
+        result = assess_receipts(rows[:1], receipts, phases)
+        self.assertEqual(result["status"], "fail")
+        self.assertEqual(result["receiver"], "pass")
+
+    def test_accepted_outcome_must_match_known_write_return_deadline(self):
+        rows, receipts, phases = self.fixture()
+        deadline, _ = receipts[0]
+        for outcome, end in (("accepted", deadline + 1), ("accepted_late", deadline)):
+            with self.subTest(outcome=outcome):
+                phases[0].update(authority_write_start_ns=deadline - 2, authority_write_end_ns=end,
+                                 authority_write_outcome=outcome)
+                with self.assertRaisesRegex(ValueError, "outcome conflicts with write return"):
+                    assess_receipts(rows, receipts, phases)
+
+    def test_missing_summary_preserves_phase_only_selection_deadline_miss(self):
+        rows, receipts, phases = self.fixture()
+        phases[1].update(selected_ns=receipts[1][0] + 1, authority_write_outcome=None)
+        self.assertEqual(assess_receipts(rows[:2], receipts[:1], phases)["status"], "fail")
+
     def test_phase_origin_detects_uniformly_shifted_receipt_deadlines(self):
         rows, receipts, phase = self.fixture()
         shifted = [(ns, dict(record, deadline_ns=record["deadline_ns"] + 1)) for ns, record in receipts]

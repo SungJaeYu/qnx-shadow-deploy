@@ -1,10 +1,13 @@
 #include "shadow/protocol.hpp"
+#include "shadow/io.hpp"
+#include "shadow/process.hpp"
 
 #include <algorithm>
 #include <cstdlib>
 #include <cstring>
 #include <iostream>
 #include <limits>
+#include <unistd.h>
 
 namespace {
 void require(bool condition, const char* message) {
@@ -19,9 +22,41 @@ bool accepts_native_bytes(const void* bytes, std::size_t size, long status) {
     std::memcpy(&receive, bytes, std::min(size, sizeof(receive)));
     return shadow::valid_native_estimate_reply(receive, status);
 }
+void verify_spawn_with_closed_standard_fds(const char* executable) {
+    for (const unsigned mask : {1U, 2U, 4U, 7U}) {
+        int saved[3]{};
+        for (int fd = STDIN_FILENO; fd <= STDERR_FILENO; ++fd) {
+            saved[fd] = dup(fd);
+            require(saved[fd] >= 0, "save standard descriptor");
+        }
+        for (int fd = STDIN_FILENO; fd <= STDERR_FILENO; ++fd) {
+            if (mask & (1U << fd)) close(fd);
+        }
+        std::string error;
+        try {
+            shadow::WorkerProcess worker(executable, "baseline", 0);
+            shadow::Sample sample{};
+            sample.sequence = 1;
+            sample.acquired_ns = shadow::monotonic_ns();
+            sample.position_m = 10;
+            const auto result = worker.submit(sample, sample.acquired_ns + 500000000ULL).get();
+            if (result.status != shadow::TransportStatus::ok || result.estimate.sequence != sample.sequence) {
+                error = "worker exchange failed";
+            }
+        } catch (const std::exception& failure) {
+            error = failure.what();
+        }
+        for (int fd = STDIN_FILENO; fd <= STDERR_FILENO; ++fd) {
+            require(dup2(saved[fd], fd) == fd, "restore standard descriptor");
+            close(saved[fd]);
+        }
+        require(error.empty(), error.c_str());
+    }
+}
 } // namespace
 
-int main() {
+int main(int argc, char** argv) {
+    if (argc == 2) verify_spawn_with_closed_standard_fds(argv[1]);
     using namespace shadow;
     Estimate estimate{};
     estimate.sequence = 3;

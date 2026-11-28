@@ -47,9 +47,26 @@ def assess_receipts(rows, receipts, phase_rows=()):
     samples = sequence_map((row for row in rows if row.get("type") == "sample"), acquired, "broker sample")
     phases = sequence_map(phase_rows, acquired, "broker phase timing")
     missing_telemetry = acquired - len(samples)
+    phase_misses = set()
+    phase_write_failure = False
     for sequence, phase in phases.items():
         check(integer(phase.get("acquired_ns"), 0) and integer(phase.get("selected_ns"), phase["acquired_ns"]),
               f"sample {sequence}: invalid absolute phase timestamps")
+        start, end, outcome = (phase.get(f"authority_write_{field}") for field in ("start_ns", "end_ns", "outcome"))
+        check(start is None or integer(start, phase["selected_ns"]),
+              f"sample {sequence}: invalid authority write start")
+        check(end is None or integer(end, start if start is not None else phase["selected_ns"]),
+              f"sample {sequence}: invalid authority write end")
+        check(outcome in (None, "accepted", "accepted_late", "rejected"),
+              f"sample {sequence}: invalid authority write outcome")
+        deadline_at = phase["acquired_ns"] + deadline_ns
+        write_returned_late = end is not None and end > deadline_at
+        if outcome in ("accepted", "accepted_late") and end is not None:
+            check(write_returned_late == (outcome == "accepted_late"),
+                  f"sample {sequence}: authority write outcome conflicts with write return deadline")
+        if phase["selected_ns"] > deadline_at:
+            phase_misses.add(sequence)
+        phase_write_failure |= write_returned_late or outcome in ("accepted_late", "rejected")
     drops = None
     if summary is not None:
         drops = summary.get("telemetry_records_dropped", 0)
@@ -62,7 +79,8 @@ def assess_receipts(rows, receipts, phase_rows=()):
         absolute_origins.add(summary_origin)
     live_range_anchored = False
     previous_offset = -1
-    visible_misses = 0
+    phase_only_misses = len(phase_misses - samples.keys())
+    visible_misses = phase_only_misses
     for sequence, sample in samples.items():
         acquired_offset, decision_offset = (sample.get(key) for key in ("acquired_offset_ns", "decision_offset_ns"))
         check(integer(acquired_offset, previous_offset + 1) and integer(decision_offset, acquired_offset),
@@ -133,6 +151,16 @@ def assess_receipts(rows, receipts, phase_rows=()):
         check(record["deadline_ns"] == acquisition + deadline_ns,
               f"receipt {sequence}: deadline disagrees with broker acquisition")
         check(received_ns >= selection, f"receipt {sequence}: receive timestamp precedes selection")
+        if sequence in phases:
+            check(sequence not in phase_misses,
+                  f"receipt {sequence}: output withheld after selection deadline")
+            start = phase.get("authority_write_start_ns")
+            check(start is None or received_ns >= start,
+                  f"receipt {sequence}: receive timestamp precedes authority write start")
+            # A receiver can consume a record before the write call returns.
+            check("authority_write_outcome" not in phase
+                  or phase["authority_write_outcome"] in ("accepted", "accepted_late"),
+                  f"receipt {sequence}: authority write outcome does not permit a receipt")
         if sequence in phases or absolute_origins:
             absolute_matches += 1
             absolute_late += received_ns > acquisition + deadline_ns
@@ -167,8 +195,8 @@ def assess_receipts(rows, receipts, phase_rows=()):
         for key in ("publication_misses", "decision_deadline_misses"):
             if key in summary:
                 count = summary[key]
-                check(integer(count, visible_misses) and count <= min(acquired - selected,
-                                                                     visible_misses + missing_telemetry)
+                max_misses = min(acquired - selected, visible_misses + missing_telemetry - phase_only_misses)
+                check(integer(count, visible_misses) and count <= max_misses
                       and (reported_misses is None or reported_misses == count), f"invalid broker {key}")
                 reported_misses = count
         if written is not None:
@@ -200,7 +228,9 @@ def assess_receipts(rows, receipts, phase_rows=()):
     telemetry = "pass" if summary is not None and drops == 0 and missing_telemetry == 0 else "inconclusive"
     absolute_timing = ("fail" if absolute_late else
                        "pass" if records and absolute_matches == len(records) else "inconclusive")
-    observed_failure = visible_misses > 0 or any(sample.get("phase") == "failed" for sample in samples.values())
+    observed_failure = visible_misses > 0 or phase_write_failure or any(
+        sample.get("phase") == "failed" for sample in samples.values()
+    )
     failed_workload = summary is not None and (workload_missing or summary.get("phase") == "failed"
                                                or summary.get("interrupted"))
     return {
