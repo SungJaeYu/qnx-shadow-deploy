@@ -62,8 +62,27 @@ struct Pipe {
     int fd[2]{-1, -1};
     Pipe() {
         if (pipe(fd) < 0) throw std::runtime_error("pipe failed");
-        if (fcntl(fd[0], F_SETFD, FD_CLOEXEC) < 0 || fcntl(fd[1], F_SETFD, FD_CLOEXEC) < 0) {
-            close(fd[0]); close(fd[1]); throw std::runtime_error("fcntl failed");
+        try {
+            for (int& endpoint : fd) {
+                if (fcntl(endpoint, F_SETFD, FD_CLOEXEC) < 0) throw std::runtime_error("fcntl failed");
+                // Keep spawn sources distinct from the standard descriptor targets.
+                if (endpoint > STDERR_FILENO) continue;
+#ifdef F_DUPFD_CLOEXEC
+                const int moved = fcntl(endpoint, F_DUPFD_CLOEXEC, STDERR_FILENO + 1);
+#else
+                const int moved = fcntl(endpoint, F_DUPFD, STDERR_FILENO + 1);
+#endif
+                if (moved < 0) throw std::runtime_error("fcntl failed");
+                close(endpoint);
+                endpoint = moved;
+#ifndef F_DUPFD_CLOEXEC
+                if (fcntl(endpoint, F_SETFD, FD_CLOEXEC) < 0) throw std::runtime_error("fcntl failed");
+#endif
+            }
+        } catch (...) {
+            close(fd[0]);
+            close(fd[1]);
+            throw;
         }
     }
     ~Pipe() { for (int f : fd) if (f >= 0) close(f); }

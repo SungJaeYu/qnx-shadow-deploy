@@ -32,6 +32,24 @@ def event(rows, name, generation=1):
     return next(row for row in rows if row.get("generation") == generation and row.get("event") == name)
 
 
+def verify_lifecycle_mutations(original, **options):
+    mutate_and_reject(original, "intermediate warming row has the wrong phase",
+                      lambda rows: event(rows, "candidate_staged").update(phase="idle"),
+                      "lifecycle phase", **options)
+    mutate_and_reject(original, "post-cancellation phase regressed",
+                      lambda rows: next(row for row in rows
+                                        if row.get("phase") == "rejected" and row.get("event") == "")
+                      .update(phase="idle"), "lifecycle phase", **options)
+    mutate_and_reject(original, "post-commit row has the wrong phase",
+                      lambda rows: next(row for row in rows if row.get("sequence") ==
+                                        event(rows, "candidate_committed", 21)["sequence"] + 1)
+                      .update(phase="probation"), "lifecycle phase", **options)
+    mutate_and_reject(original, "post-commit row claims a baseline observation",
+                      lambda rows: next(row for row in rows if row.get("sequence") ==
+                                        event(rows, "candidate_committed", 21)["sequence"] + 1)
+                      .update(baseline_check="ok", baseline={"position": 0}), "retired baseline", **options)
+
+
 def main(original):
     verify(original)
     def remove_profile(rows):
@@ -69,6 +87,7 @@ def main(original):
                       .update(candidate_check="deadline_exceeded"), "no valid live shadow sample")
     mutate_and_reject(original, "missing accepted cancellation",
                       lambda rows: rows.remove(event(rows, "cancel_requested")), "exactly one cancel_requested")
+    verify_lifecycle_mutations(original)
     mutate_and_reject(original, "summary hides nominal skips",
                       lambda rows: rows[-1].update(skipped_nominal_slots=rows[-1]["skipped_nominal_slots"] + 1),
                       "invalid continuity field: skipped_nominal_slots")

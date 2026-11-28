@@ -172,7 +172,7 @@ def verify(directory, expected_samples=640, *, require_qnx_guest_profile=False, 
             verify_final_qualification(samples, replay_boundary, promoted, committed, meta)
             expected_retirement.extend((f"baseline {baseline}", f"final {pid}"))
             terminal_sequence = expected_samples
-        candidate_windows[generation] = (replay["after_sequence"], terminal_sequence, pid)
+        candidate_windows[generation] = (replay_boundary, terminal_sequence, pid)
 
     for event, count in (("stage_requested", 21), ("replay_complete", 21), ("cancel_requested", 20),
                          ("candidate_cancelled", 20), ("candidate_promoted", 1), ("candidate_committed", 1)):
@@ -192,11 +192,37 @@ def verify(directory, expected_samples=640, *, require_qnx_guest_profile=False, 
         require(sample["baseline_pid"] == expected_baseline, f"sample {sequence}: baseline identity changed")
         generation = sample["generation"]
         expected_candidate = -1
+        expected_phase = "idle"
         if generation:
             replay_boundary, terminal, pid = candidate_windows[generation]
+            if sequence <= replay_boundary:
+                expected_phase = "warming"
+            elif generation < 21 and sequence >= terminal:
+                expected_phase = "rejected"
+            elif sequence < promoted["sequence"]:
+                expected_phase = "shadowing"
+            elif sequence < committed["sequence"]:
+                expected_phase = "probation"
+            else:
+                expected_phase = "committed"
             if replay_boundary < sequence <= terminal:
                 expected_candidate = pid
+        require(sample["phase"] == expected_phase, f"sample {sequence}: incorrect lifecycle phase")
         require(sample["candidate_pid"] == expected_candidate, f"sample {sequence}: unexpected candidate PID")
+        if expected_candidate == -1:
+            require(sample["candidate_check"] == "not_running" and sample["candidate"] is None,
+                    f"sample {sequence}: observation without a running candidate")
+        if expected_phase == "shadowing":
+            require(sample["candidate_check"] == "ok" and sample["candidate"] is not None
+                    and sample["candidate"]["position"] is not None,
+                    f"sample {sequence}: invalid live shadow observation")
+        if sequence <= committed["sequence"]:
+            require(sample["baseline_check"] == "ok" and sample["baseline"] is not None
+                    and sample["baseline"]["position"] is not None,
+                    f"sample {sequence}: invalid live baseline observation")
+        else:
+            require(sample["baseline_check"] == "not_running" and sample["baseline"] is None,
+                    f"sample {sequence}: retired baseline still observed")
     return meta, summary, committed["sequence"]
 
 
